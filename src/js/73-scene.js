@@ -54,7 +54,7 @@ function folTint(fam,var_){
   return rgbU(su[0]+((ca[0]+(cb[0]-ca[0])*f)-su[0])*m|0,su[1]+((ca[1]+(cb[1]-ca[1])*f)-su[1])*m|0,su[2]+((ca[2]+(cb[2]-ca[2])*f)-su[2])*m|0);
 }
 function snowAt(i){
-  const cold=temp[i]/255*1.5-.25-Math.max(0,elev[i]-100)/155*.5;
+  const cold=temp[i]/255*1.5-.25+gWarm-Math.max(0,elev[i]-100)/155*.5;
   return cold<.04+.3*wintF;
 }
 
@@ -67,7 +67,7 @@ function sceneNature(x0,y0,x1,y1,zc,night){
     for(let x=Math.max(0,x0);x<Math.min(W,x1);x++){
       const i=y*W+x,t=tile[i];
       if(t===LAVA){if(lights)light(x+.5,y+.5,1.7,.75,LAVAL);continue;}
-      if(!DECO[t]||bmap[i]||road[i]||fire[i])continue;
+      if(!DECO[t]||bmap[i]||road[i]||fire[i]||ore[i])continue;
       const h=hsh(x,y),h2=hsh(y+7,x+13),jx=(h2-.5)*.36,dy=y+.88+(h-.5)*.12;
       switch(t){
         case FOREST:{
@@ -101,6 +101,35 @@ function sceneNature(x0,y0,x1,y1,zc,night){
       }
     }
   }
+  sceneRiches(x0,y0,x1,y1,al,lights);
+}
+/* deposits, and the mines, quarries, paddocks and pumps that work them */
+function sceneRiches(x0,y0,x1,y1,al,lights){
+  const L=SPR.mn,ph=(now()/260)|0;
+  for(const i of deposits){
+    const x=i%W,y=(i/W)|0;if(x<x0||x>=x1||y<y0||y>=y1)continue;
+    const r=ore[i];if(!r||tile[i]<=WATER||bmap[i])continue;
+    const k=oreOwner(i),worked=!!k&&k.age>=RES[r].use;
+    let nm='ore_'+r,team=0;
+    if(worked){nm=r===OIL?'pump_'+((ph+x)&3):'work_'+r;team=kU(k);}
+    put(L,FI(nm),x+.5,y+.97,depthY(y+.99),team,0,(x*7+y)&1&&r!==OIL?1:0,al,1,worked?1.2:1.3);
+    if(lights&&r===URANIUM)light(x+.5,y+.6,1.3,.35,rgbU(120,255,100));
+  }
+}
+/* a brown pall hangs over towns that burn too much coal and oil: the sixteen smokiest in view */
+const smogU=new Float32Array(64);
+function smogSources(cx,cy,vw,vh){
+  const list=[];
+  for(let n=1;n<vById.length;n++){
+    const v=vById[n];if(!v.alive||!(v.smog>1.5))continue;
+    const r=v.rad*1.6+5;
+    if(v.x+r<cx||v.x-r>cx+vw||v.y+r<cy||v.y-r>cy+vh)continue;
+    list.push(v);
+  }
+  list.sort((a,b)=>b.smog-a.smog);
+  const n=Math.min(16,list.length);
+  for(let m=0;m<n;m++){const v=list[m];smogU.set([v.x+.5,v.y+.5,v.rad*1.6+5,Math.min(.7,.2+v.smog/25)],m*4);}
+  return n;
 }
 
 /* ---------- buildings ---------- */
@@ -345,7 +374,7 @@ function glFrame(R,dt,running,lerp){
   bindT(0,R.tTerr,uT.uTerr);bindT(1,R.tSm,uT.uSm);bindT(2,R.tOwn,uT.uOwn);bindT(3,R.tKPal,uT.uKPal);bindT(4,R.tBio,uT.uBio);bindT(5,R.tNz,uT.uNz);
   gl.uniform2f(uT.uRes,cw,ch);gl.uniform2f(uT.uCam,cx,cy);gl.uniform2f(uT.uWorld,W,H);gl.uniform2f(uT.uSun,sunX,sunY);gl.uniform2f(uT.uWind,wind[0],wind[1]);
   gl.uniform1f(uT.uZoom,z);gl.uniform1f(uT.uTime,tsec%3600);gl.uniform1f(uT.uSeas,seasonP);gl.uniform1f(uT.uSAmp,seasonAmp);
-  gl.uniform1f(uT.uBord,S.borders?1:0);gl.uniform1f(uT.uCloud,S.clouds?1:0);gl.uniform1f(uT.uDay,dayLight);gl.uniform1f(uT.uDet,S.detail?1:.35);gl.uniform1f(uT.uSL,SL);gl.uniform1f(uT.uTreeA,topoMap?1:Math.max(0,Math.min(1,(cam.z-2.6)/1.6)));gl.uniform1f(uT.uTopo,topoMap?2:S.contours?1:0);
+  gl.uniform1f(uT.uBord,S.borders?1:0);gl.uniform1f(uT.uCloud,S.clouds?1:0);gl.uniform1f(uT.uDay,dayLight);gl.uniform1f(uT.uDet,S.detail?1:.35);gl.uniform1f(uT.uSL,SL);gl.uniform1f(uT.uWarm,gWarm);gl.uniform1f(uT.uTreeA,topoMap?1:Math.max(0,Math.min(1,(cam.z-2.6)/1.6)));gl.uniform1f(uT.uTopo,topoMap?2:S.contours?1:0);
   setSt(uT);
   gl.bindVertexArray(R.vaoFull);gl.drawArrays(gl.TRIANGLES,0,3);
 
@@ -395,6 +424,17 @@ function glFrame(R,dt,running,lerp){
   gl.useProgram(pS.p);gl.enable(gl.DEPTH_TEST);gl.depthMask(false);gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
   draw(SPR.po,R.vPost,2);
   gl.disable(gl.DEPTH_TEST);gl.depthMask(true);
+  /* smog over smoky towns */
+  if(!topoMap&&R.pG){
+    const ns=smogSources(cx,cy,cw/z,ch/z);
+    if(ns){
+      const pG=R.pG,uG=pG.u;gl.useProgram(pG.p);gl.enable(gl.BLEND);gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
+      bindT(5,R.tNz,uG.uNz);gl.uniform2f(uG.uRes,cw,ch);gl.uniform2f(uG.uCam,cx,cy);gl.uniform2f(uG.uWind,wind[0],wind[1]);gl.uniform1f(uG.uZoom,z);
+      const a=R.amb||[1,1,1];gl.uniform3f(uG.uAmb,Math.min(1,a[0]+.1),Math.min(1,a[1]+.1),Math.min(1,a[2]+.1));
+      gl.uniform1i(uG.uNSt,0);gl.uniform4fv(uG.uSg,smogU);gl.uniform1i(uG.uNSg,ns);
+      gl.bindVertexArray(R.vaoFull);gl.drawArrays(gl.TRIANGLES,0,3);
+    }
+  }
   /* clouds high above */
   if((S.clouds||nst)&&!topoMap){
     const fade=Math.max(0,Math.min(1,1-(cam.z-3)/5));

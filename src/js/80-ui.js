@@ -27,6 +27,7 @@ function hud(){
   $('pop').textContent=fmtPop(cz+Math.max(0,civCount()-kingdoms.reduce((a,k)=>a+(k.alive?kPop(k):0),0))*6)+(vw<440?'':' people');
   let n=0;for(const k of kingdoms)if(k.alive)n++;
   $('realmCount').textContent=n===0?'No realms yet':n===1?'1 realm':n+' realms';
+  if(tool&&tool.id==='climate'&&!$('climBtns').hidden)$('climInfo').textContent=climateText();
 }
 function veil(on,title,text){
   $('veil').hidden=!on;
@@ -34,6 +35,22 @@ function veil(on,title,text){
   $('veilText').textContent=text||'';
 }
 const cap1=s=>s.charAt(0).toUpperCase()+s.slice(1);
+/* ---------- riches and smoke on the realm page ---------- */
+function richesHtml(k){
+  const ch=[],does=[];
+  for(let r=1;r<RES.length;r++){
+    const R=RES[r],own=k.rOwn?k.rOwn[r]:0,imp=k.rImp?k.rImp[r]:0,sw='<i style="background:'+R.col+'"></i>';
+    if(own&&k.age<R.use)ch.push('<span class="res dim">'+sw+R.n+(own>1?' \u00d7'+own:'')+' (from the '+AGE_NAME[R.use]+')</span>');
+    else if(own&&k.age>R.until)continue;
+    else if(own){ch.push('<span class="res new">'+sw+R.n+(own>1?' \u00d7'+own:'')+'</span>');does.push(R.n+': '+R.does);}
+    else if(imp){ch.push('<span class="res">'+sw+R.n+' (traded)</span>');does.push(R.n+' (half, by trade): '+R.does);}
+    else if(k.age>=R.use&&k.age<=R.until&&R.val>=.2)ch.push('<span class="res lack dim">'+sw+'No '+R.n.toLowerCase()+'</span>');
+  }
+  $('rRes').innerHTML=ch.length?ch.join(''):'<span class="res dim">None in its lands yet</span>';
+  let note=does.join('. ')+(does.length?'.':'');
+  if(k.age>=6)note+=(note?' ':'')+'Its towns are '+smokeWord(k)+(k.clean?'; '+Math.round(k.clean*100)+'% of its power is clean':'')+'.';
+  $('rResNote').textContent=note;
+}
 /* ---------- the ruler's mind on the realm page ---------- */
 const TEMPER_ADJ={aggr:['bold','peaceable'],caut:['careful','reckless'],ambi:['ambitious','content'],greed:['greedy','generous'],
   zeal:['devout','tolerant'],honor:['honourable','faithless'],curio:['curious','incurious'],cunning:['cunning','plain-dealing']};
@@ -111,6 +128,7 @@ function buildSheet(){
       '<h3 id="rAgeH"></h3><div class="meter" role="img" id="rMeterW"><i id="rMeter"></i></div><p id="rTechNow" class="fine"></p><div id="rTechs" class="chips"></div>'+
       '<div id="rWonders"></div>'+
       '<h3>Towns</h3><div id="rTowns"></div>'+
+      '<h3>Riches</h3><div id="rRes" class="chips"></div><p id="rResNote" class="fine"></p>'+
       '<h3>How it sees its neighbours</h3><div id="rRel"></div>'+
       '<div class="btnrow"><button id="rGo" class="act">Go to capital</button></div>';
   }else if(sheetMode==='chronicle'){
@@ -119,6 +137,8 @@ function buildSheet(){
     body.innerHTML='<dl id="hTiles" class="tiles"></dl>'+
       '<h3>The rise and fall of realms</h3><p class="fine">People in the largest realms over the years, on a scale where each line up is ten times more.</p>'+
       '<div id="hLegend" class="legend"></div><div class="chart"><canvas id="hChart" aria-label="Line chart of realm populations over time"></canvas><div id="hTip" class="tip" hidden></div></div>'+
+      '<h3>The climate</h3><p class="fine">How much warmer the world is than when it began, and how far the seas have risen. Smoke from industry warms the world; melting ice raises the seas.</p>'+
+      '<div class="chart"><canvas id="cChart" aria-label="Two line charts over the same years: world temperature change and sea level change"></canvas><div id="cTip" class="tip" hidden></div></div>'+
       '<h3>Leading realms</h3><table class="lead"><thead><tr><th>Realm</th><th>Age</th><th class="n">People</th><th class="n">Towns</th></tr></thead><tbody id="hLead"></tbody></table>'+
       '<h3>Wonders of the world</h3><div id="hWonders"></div>';
   }else{
@@ -127,6 +147,7 @@ function buildSheet(){
       optRow('Day and night','night',ONOFF)+optRow('Seasons','seasons',ONOFF)+optRow('Weather','weather',ONOFF)+optRow('Clouds','clouds',ONOFF)+optRow('Contour lines','contours',ONOFF)+optRow('Names on the map','labels',ONOFF)+
       optRow('Realm borders','borders',ONOFF)+optRow('Minimap','minimap',ONOFF)+optRow('Trees and peaks up close','detail',ONOFF)+
       optRow('Disasters','disasters',[['off','Off'],['rare','Rare'],['wild','Wild']])+
+      optRow('Smoke from industry','pollution',[['off','None'],['normal','Normal'],['heavy','Heavy']])+
       optRow('Temper of the times','mood',[['gentle','Gentle'],['normal','Normal'],['bloodthirsty','Bloodthirsty']])+
       optRow('Population limit','popcap',[['small','Small'],['normal','Normal'],['large','Large']])+
       '<h3>How to play</h3><p class="note">Raise land and paint the world with the Shape and Paint tools. Drop a few people from the Life tab on good land and they will found a realm. Speed time up and watch it grow through nine ages, from huts to cities and rockets. Tap Watch to let the camera follow the action.</p>'+
@@ -174,6 +195,7 @@ function refreshSheet(){
       '<div><dt>Gold</dt><dd>'+(k.gold|0)+'</dd></div><div><dt>Soldiers</dt><dd>'+k.nSold+'</dd></div><div><dt>Allies</dt><dd>'+k.allies.size+'</dd></div>';
     $('rFocus').textContent=FOCUS_WORD[k.focus]+(k.broke?'. The treasury is empty.':'.');
     mindHtml(k);
+    richesHtml(k);
     {
       const nt=Math.min(k.tech,TECH_LORE.length),lo=nt?TECH_LORE[nt-1]:0,hi=TECH_LORE[Math.min(nt,TECH_LORE.length-1)];
       const pct=nt>=TECH_LORE.length?100:Math.max(0,Math.min(100,Math.round((k.lore-lo)/(hi-lo)*100)));
@@ -281,7 +303,8 @@ const CATS=[
     {id:'erode',label:'Erode',ico:'\u{1F4A8}',mode:'brush',sculpt:1},
     {id:'flow',label:'Water flows',ico:'\u{1F4A6}',mode:'action'},
     {id:'spring',label:'Spring',ico:'\u26F2',mode:'tap'},
-    {id:'sea',label:'Sea level',ico:'\u{1F30A}',mode:'slider'}]},
+    {id:'sea',label:'Sea level',ico:'\u{1F30A}',mode:'slider'},
+    {id:'climate',label:'Climate',ico:'\u{1F321}\uFE0F',mode:'slider'}]},
   {label:'Paint',tools:[
     {id:'plant',label:'Plant trees',ico:'\u{1F333}',mode:'brush'},
     {id:'warm',label:'Warmer',ico:'\u2600\uFE0F',mode:'brush'},
@@ -289,8 +312,18 @@ const CATS=[
     {id:'wet',label:'Wetter',ico:'\u{1F4A7}',mode:'brush'},
     {id:'dry',label:'Drier',ico:'\u{1F335}',mode:'brush'},
     land('Ocean',DEEP),land('Shallows',WATER),land('Beach',SAND),land('Grass',GRASS),land('Forest',FOREST),land('Jungle',JUNGLE),
-    land('Pines',PINE),land('Savanna',SAVANNA),land('Desert',DESERT),land('Tundra',TUNDRA),land('Swamp',SWAMP),land('Hills',HILL),
+    land('Pines',PINE),land('Savanna',SAVANNA),land('Desert',DESERT),land('Tundra',TUNDRA),land('Ice',ICE),land('Swamp',SWAMP),land('Hills',HILL),
     land('Mountain',MOUNT),land('River',RIVER),land('Lava',LAVA)]},
+  {label:'Riches',tools:[
+    {id:'ore1',label:'Copper',ico:'\u{1F949}',mode:'tap',r:COPPER},
+    {id:'ore2',label:'Iron',ico:'\u26CF\uFE0F',mode:'tap',r:IRON},
+    {id:'ore3',label:'Horses',ico:'\u{1F40E}',mode:'tap',r:HORSES},
+    {id:'ore4',label:'Gold',ico:'\u{1FA99}',mode:'tap',r:GOLD},
+    {id:'ore5',label:'Marble',ico:'\u{1F3DB}\uFE0F',mode:'tap',r:MARBLE},
+    {id:'ore6',label:'Coal',ico:'\u{1FAA8}',mode:'tap',r:COAL},
+    {id:'ore7',label:'Oil',ico:'\u{1F6E2}\uFE0F',mode:'tap',r:OIL},
+    {id:'ore8',label:'Uranium',ico:'\u2622\uFE0F',mode:'tap',r:URANIUM},
+    {id:'ore0',label:'Remove',ico:'\u{1F9F9}',mode:'tap',r:0}]},
   {label:'Life',tools:[
     {id:'human',label:'Humans',ico:'\uD83E\uDDD1',mode:'spawn',type:HUMAN},
     {id:'elf',label:'Elves',ico:'\uD83E\uDDDD',mode:'spawn',type:ELF},
@@ -353,10 +386,12 @@ function buildTools(reset){
   el.scrollLeft=reset?0:keep;
   $('brushRow').hidden=!(tool.mode==='brush'||tool.mode==='spawn');
   $('strRow').hidden=!tool.sculpt;
-  $('seaRow').hidden=tool.mode!=='slider'||view3d;
+  $('seaRow').hidden=tool.id!=='sea'||view3d;
+  $('climRow').hidden=$('climBtns').hidden=tool.id!=='climate'||view3d;
   $('reliefRow').hidden=!view3d;
   if(view3d){$('brushRow').hidden=true;$('strRow').hidden=true;}
-  if(tool.mode==='slider'){$('seaIn').value=seaGoal-100;$('seaVal').textContent=fmtM((seaGoal-100)*60);}
+  if(tool.id==='sea'){$('seaIn').value=seaBase-100;$('seaVal').textContent=fmtM((seaBase-100)*60);}
+  if(tool.id==='climate')climUi();
 }
 
 /* ---------- input ---------- */
@@ -388,8 +423,8 @@ function tapAt(p){
   const t=toTile(p),ok=inB(t.x,t.y);
   switch(tool.id){
     case'spring':if(ok)snd('water',t.x,t.y,.8);if(ok&&makeRiver(t.x,t.y))chron('A new river springs from the earth'+nearName(t.x,t.y),'disaster',{x:t.x,y:t.y});break;
-    case'flood':snd('water');if(seaGoal<SL)seaGoal=SL;if(seaGoal>=118){toast('The seas can rise no higher.');break;}seaGoal=Math.min(118,seaGoal+6);chron('The heavens open and the seas begin to rise','disaster');break;
-    case'ebb':if(seaGoal>SL)seaGoal=SL;if(seaGoal<=82){toast('The seas can fall no lower.');break;}seaGoal=Math.max(82,seaGoal-6);chron('The seas draw back from the shores','disaster');break;
+    case'flood':snd('water');if(seaBase>=118){toast('The seas can rise no higher.');break;}seaBase=Math.min(118,seaBase+6);seaByGod=true;updSea();chron('The heavens open and the seas begin to rise','disaster');break;
+    case'ebb':if(seaBase<=82){toast('The seas can fall no lower.');break;}seaBase=Math.max(82,seaBase-6);seaByGod=true;updSea();chron('The seas draw back from the shores','disaster');break;
     case'storm':if(ok){storms.push({x:t.x,y:t.y,r:5+brush*1.5,t:0,life:(3+Math.random()*4)*YEAR|0,thunder:true,id:uid++});chron('A great storm gathers'+nearName(t.x,t.y),'disaster',{x:t.x,y:t.y});}break;
     case'inspect':inspect(t.x,t.y);break;
     case'bolt':strike(t.x,t.y);break;
@@ -399,6 +434,7 @@ function tapAt(p){
     case'volcano':if(t.x>3&&t.y>3&&t.x<W-4&&t.y<H-4)erupt(t.x,t.y);break;
     case'war':stirWar(t.x,t.y);break;
     case'peace':calmRealm(t.x,t.y);break;
+    default:if(tool.r!==undefined&&ok)placeOre(t.x,t.y,tool.r);
   }
 }
 ovc.addEventListener('pointerdown',e=>{
@@ -484,7 +520,26 @@ $('brush').addEventListener('input',e=>{brush=+e.target.value;$('brushVal').text
 $('strength').addEventListener('input',e=>{sculptStr=+e.target.value;$('strVal').textContent=sculptStr;});
 $('reliefIn').addEventListener('input',e=>{V3.relief=+e.target.value/10;$('reliefVal').textContent=(+e.target.value/10).toFixed(1)+'x';});
 $('exit3d').addEventListener('click',()=>setView3d(false));
-$('seaIn').addEventListener('input',e=>{seaGoal=100+(+e.target.value);$('seaVal').textContent=fmtM((+e.target.value)*60);});
+$('seaIn').addEventListener('input',e=>{seaBase=100+(+e.target.value);seaByGod=true;updSea();$('seaVal').textContent=fmtM((+e.target.value)*60);});
+/* ---------- the climate tool: the god's own warming or cooling, and the ice caps ---------- */
+function degTxt(d){return(d>0?'+':d<0?'\u2212':'')+Math.abs(d).toFixed(Math.abs(d)%1?1:0)+' \u00b0C';}
+function climUi(){$('climIn').value=uWarm/C_DEG;$('climVal').textContent=degTxt(uWarm/C_DEG);$('climInfo').textContent=climateText();}
+$('climIn').addEventListener('input',e=>{setGodWarm(+e.target.value);$('climVal').textContent=degTxt(+e.target.value);$('climInfo').textContent=climateText();});
+$('climIn').addEventListener('change',e=>{const d=+e.target.value;if(d)chron('The heavens '+(d>0?'warm':'chill')+' the world by '+Math.abs(d)+' degree'+(Math.abs(d)===1?'':'s'),'disaster');});
+$('meltBtn').addEventListener('click',()=>{snd('water');const n=meltCaps();if(n)toast('The ice caps melt. The seas will rise over the coming years.');climUi();});
+$('iceBtn').addEventListener('click',()=>{setGodWarm(-5);climateKick(2);chron('The heavens bring an ice age. Glaciers creep south and the seas draw back','disaster');toast('An ice age begins. Ice will spread and the seas will fall over the coming years.');climUi();});
+$('climReset').addEventListener('click',()=>{setGodWarm(0);chron('The heavens let the world find its own climate again','disaster');climUi();});
+/* the god places riches in the earth, or takes them away */
+function placeOre(x,y,r){
+  const i=y*W+x;
+  if(!r){let n=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)if(inB(x+dx,y+dy)&&ore[(y+dy)*W+x+dx]){setOre((y+dy)*W+x+dx,0);n++;}if(!n)toast('There are no riches here to take.');return;}
+  if(tile[i]<=WATER||tile[i]===RIVER||tile[i]===LAVA){toast('Riches can only be placed on dry land.');return;}
+  if(bmap[i]){const b=bmap[i];if(b.kind==='hall'){toast('Not under a town hall.');return;}destroyBld(b);}
+  if(road[i]){road[i]=0;}
+  setOre(i,r);snd('click');
+  const k=oreOwner(i);
+  toast(RES[r].n+' placed'+(k?' in the lands of '+k.name+(k.age<RES[r].use?'. They can use it from the '+AGE_NAME[RES[r].use]:''):'')+'.');
+}
 window.addEventListener('keydown',e=>{
   const tg=e.target&&e.target.tagName;if(tg==='TEXTAREA'||tg==='INPUT')return;
   if(e.key===' '){e.preventDefault();setSpeed(speed?0:1);}

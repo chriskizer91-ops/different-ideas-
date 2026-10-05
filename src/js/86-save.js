@@ -36,7 +36,7 @@ function snapshot(){
     wars:[...k.wars].map(kid),allies:[...k.allies].map(kid),target:vid(k.target),port:vid(k.port),landing:k.landing,rally:vid(k.rally),rallyUntil:k.rallyUntil,
     pauseUntil:k.pauseUntil,boatCd:k.boatCd,broke:k.broke,born:k.born,launches:k.launches,colony:k.colony,peak:k.peak,hist:k.hist,pad:k.pad?vid(k.pad.v):0,
     mem:k.mem||{},rep:repOf(k),goal:k.goal?{type:k.goal.type,o:kid(k.goal.o),why:k.goal.why,s:k.goal.s,since:k.goal.since}:null,weary:k.weary||0,
-    pacts:k.pacts||[],kin:k.kin||[],nudge:k.nudge||null,mind:k.mind||null,heard:k.heard||0,cool:k.cool||{},reigns:k.reigns||null,nat:natOf(k),culture:cultureOf(k)}));
+    pacts:k.pacts||[],kin:k.kin||[],nudge:k.nudge||null,mind:k.mind||null,heard:k.heard||0,cool:k.cool||{},reigns:k.reigns||null,nat:natOf(k),culture:cultureOf(k),clean:k.clean||0,rSeen:k.rSeen||0}));
   const vs=[];
   for(let n=1;n<vById.length;n++){
     const v=vById[n];
@@ -49,6 +49,7 @@ function snapshot(){
   const wo={};for(const id in wonderOf){const b=wonderOf[id];wo[id]=[b.v.id,b.v.blds.indexOf(b)];}
   const ft={};for(const n in firstTech)ft[n]=kid(firstTech[n]);
   return{v:SAVE_V,W,H,size:S.size,nature:NATURE.slice(),tick,uid,kc,SL,seaGoal,launches,dayClock,capMul,
+    ore:ore.slice(),clim:{seaBase,carbon,cWarm,uWarm,melt,ice0,warmMark,lastSummit,hist:climHist.slice(-1500),summitEver:lastSummitEver},
     tile:tile.slice(),soil:soil.slice(),elev:elev.slice(),fire:fire.slice(),road:road.slice(),vown:vown.slice(),temp:temp.slice(),moist:moist.slice(),
     kingdoms:ks,villages:vs,units:us,boats:bs,grps:[...grps.values()],
     wars:wars.map(w=>({a:kid(w.a),b:kid(w.b),start:w.start,sa:w.sa,sb:w.sb})),
@@ -60,6 +61,10 @@ function snapshot(){
 function restore(d){
   alloc(d.W,d.H);
   tile.set(d.tile);soil.set(d.soil);elev.set(d.elev);fire.set(d.fire);road.set(d.road);vown.set(d.vown);temp.set(d.temp);moist.set(d.moist);
+  if(d.ore)ore.set(d.ore);rebuildDeposits();
+  {const c=d.clim||{};let ni=0;for(let i=0;i<N;i++)if(tile[i]===ICE)ni++;
+   seaBase=c.seaBase===undefined?d.seaGoal:c.seaBase;carbon=c.carbon||0;cWarm=c.cWarm||0;uWarm=c.uWarm||0;gWarm=cWarm+uWarm;melt=c.melt||0;ice0=c.ice0||Math.max(1,ni);iceNow=ni;
+   warmMark=c.warmMark||0;lastSummit=c.lastSummit===undefined?-1e9:c.lastSummit;climHist=c.hist||[];lastSummitEver=!!c.summitEver;rowW=new Float32Array(d.H).fill(gWarm);climY=0;seaByGod=false;}
   units=[];vById=[null];kingdoms=[];wars=[];boats=[];twisters=d.twisters||[];towers=[];fireList=[];effects=[];sched=[];chronicle=d.chronicle||[];bubbles=[];risen=[];
   planes=[];raising=[];history=d.history||[];wonderOf={};firstTech={};storms=d.storms||[];
   relM.clear();truM.clear();counts.fill(0);dirtyWalk=[];dirtyOver=true;chronDirty=true;lastEvent=null;
@@ -70,7 +75,7 @@ function restore(d){
       focus:o.focus,focusUntil:o.focusUntil,restUntil:o.restUntil,ruler:{name:o.ruler.name,title:o.ruler.title,trait:TRAITS.find(t=>t.id===o.ruler.trait)||TRAITS[0],tm:o.ruler.tm||null,since:o.ruler.since,until:o.ruler.until},
       wars:new Set(),allies:new Set(),nb:[],regs:new Set(),target:null,port:null,landing:o.landing,rally:null,rallyUntil:o.rallyUntil,pauseUntil:o.pauseUntil,boatCd:o.boatCd,
       nAdult:0,nSold:0,nBarr:0,nCar:0,nSiege:0,broke:o.broke,born:o.born,launches:o.launches||0,colony:!!o.colony,peak:o.peak||0,hist:o.hist||[],pad:null,
-      mem:o.mem||{},rep:o.rep===undefined?50:o.rep,goal:null,weary:o.weary||0,pacts:o.pacts||[],kin:o.kin||[],nudge:o.nudge||null,mind:o.mind||null,heard:o.heard||0,cool:o.cool||{},reigns:o.reigns||null,nat:o.nat===undefined?null:o.nat,culture:o.culture||null};
+      mem:o.mem||{},rep:o.rep===undefined?50:o.rep,goal:null,weary:o.weary||0,pacts:o.pacts||[],kin:o.kin||[],nudge:o.nudge||null,mind:o.mind||null,heard:o.heard||0,cool:o.cool||{},reigns:o.reigns||null,nat:o.nat===undefined?null:o.nat,culture:o.culture||null,clean:o.clean||0,rSeen:o.rSeen||0};
     kingdoms.push(k);
   }
   for(const o of d.villages){

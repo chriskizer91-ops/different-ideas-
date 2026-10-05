@@ -197,6 +197,7 @@ function step(){
   if(twisters.length)updTwisters();
   if(towers.length)updTowers();
   fireStep();tileTicks();
+  climateStep();
   if(SL!==seaGoal&&tick%5===0)seaStep();
   stormsStep();
   if(sched.length)runSched();

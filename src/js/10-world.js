@@ -1,7 +1,7 @@
 /* ================= world ================= */
 function alloc(w,h){
   W=w;H=h;N=w*h;
-  tile=new Uint8Array(N);soil=new Uint8Array(N);temp=new Uint8Array(N);moist=new Uint8Array(N);elev=new Uint8Array(N);fire=new Uint8Array(N);road=new Uint8Array(N);
+  tile=new Uint8Array(N);soil=new Uint8Array(N);ore=new Uint8Array(N);temp=new Uint8Array(N);moist=new Uint8Array(N);elev=new Uint8Array(N);fire=new Uint8Array(N);road=new Uint8Array(N);
   vown=new Uint16Array(N);region=new Uint16Array(N);wreg=new Uint16Array(N);wsize=new Int32Array(65536);
   shade=new Float32Array(N);base=new Uint32Array(N);bmap=new Array(N).fill(null);
   bfsQ=new Int32Array(N);prevA=new Int32Array(N);
@@ -136,7 +136,7 @@ function genWorld(seed,opt){
   units=[];vById=[null];kingdoms=[];wars=[];boats=[];twisters=[];towers=[];fireList=[];effects=[];sched=[];chronicle=[];bubbles=[];risen=[];
   relM.clear();truM.clear();counts.fill(0);dirtyWalk=[];dirtyOver=true;
   planes=[];raising=[];history=[];wonderOf={};firstTech={};launches=0;lastEvent=null;SL=100;seaGoal=100;storms=[];worldAge=-1;colonyEver=false;
-  tick=0;uid=1;sweepY=0;chronDirty=true;
+  tick=0;uid=1;sweepY=0;chronDirty=true;gWarm=0;cWarm=0;uWarm=0;melt=0;
   const rnd=mulberry(seed);
   kc=(rnd()*COLORS.length)|0;
   const n1=mkNoise(rnd),n2=mkNoise(rnd),n3=mkNoise(rnd),n4=mkNoise(rnd);
@@ -167,7 +167,9 @@ function genWorld(seed,opt){
   const t0=opt.climate==='cold'?-.06:opt.climate==='hot'?.36:.17,ts=opt.climate==='hot'?.7:.8;
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const i=y*W+x,hv=hgt[i];
-    {const tb=t0+ts*(y/(H-1))+(tmp[i]-.5)*.32,mb=Math.max(0,Math.min(1,(mst[i]-.5)*2.3+.5));
+    /* the far north is polar: colder still, under ice where the land is cold enough */
+    const pol=y<H*.2?(1-y/(H*.2))*(1-y/(H*.2))*.34:0;
+    {const tb=t0+ts*(y/(H-1))+(tmp[i]-.5)*.32-pol,mb=Math.max(0,Math.min(1,(mst[i]-.5)*2.3+.5));
      temp[i]=Math.max(0,Math.min(255,Math.round((tb+.25)/1.5*255)));moist[i]=Math.round(mb*255);}
     if(hv<sea){
       tile[i]=hv<shal?DEEP:WATER;soil[i]=SAND;
@@ -175,7 +177,7 @@ function genWorld(seed,opt){
       continue;
     }
     const el=(hv-sea)/(top-sea+1e-6),m=mv[i];
-    const T=t0+ts*(y/(H-1))+(tmp[i]-.5)*.32-m*.22;
+    const T=t0+ts*(y/(H-1))+(tmp[i]-.5)*.32-pol-m*.22;
     const M=Math.max(0,Math.min(1,(mst[i]-.5)*2.3+.5));
     let t,so;
     if(m>qn||(m>qm&&T<.12)){t=SNOW;so=HILL;}
@@ -200,7 +202,8 @@ function genWorld(seed,opt){
     else e=100+Math.max(0,Math.min(1,m/(qh+1e-6)))*57;
     elev[i]=Math.round(e);
   }
-  if(opt.land==='flat'||opt.land==='ocean'){blankWorld(opt.land,rnd);computeRegions();recolorAll();seedLife(rnd,opt);return;}
+  if(opt.land==='flat'||opt.land==='ocean'){blankWorld(opt.land,rnd);settleIce();placeDeposits(rnd);resetClimate();computeRegions();recolorAll();seedLife(rnd,opt);return;}
+  settleIce();
   /* rivers run downhill from the highlands to the sea */
   const srcs=[];
   for(let i=0;i<N;i++)if(tile[i]===HILL||tile[i]===MOUNT)srcs.push(i);
@@ -229,6 +232,7 @@ function genWorld(seed,opt){
       i=best;
     }
   }
+  placeDeposits(rnd);resetClimate();
   computeRegions();recolorAll();
   seedLife(rnd,opt);
 }

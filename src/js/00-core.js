@@ -3,7 +3,7 @@ const reduceMotion=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-mot
 const now=()=>(typeof performance!=='undefined'?performance.now():Date.now());
 
 /* ---------- terrain ---------- */
-const DEEP=0,WATER=1,SAND=2,GRASS=3,FOREST=4,HILL=5,MOUNT=6,SNOW=7,LAVA=8,ASH=9,DESERT=10,SAVANNA=11,JUNGLE=12,TUNDRA=13,PINE=14,SWAMP=15,RIVER=16,NT=17;
+const DEEP=0,WATER=1,SAND=2,GRASS=3,FOREST=4,HILL=5,MOUNT=6,SNOW=7,LAVA=8,ASH=9,DESERT=10,SAVANNA=11,JUNGLE=12,TUNDRA=13,PINE=14,SWAMP=15,RIVER=16,ICE=17,NT=18;
 const TD=[
   {n:'Deep ocean',    c:[24,64,116],  v:4, w:0,b:0,f:0,  burn:0, sp:0,  tree:0},
   {n:'Shallows',      c:[46,116,170], v:6, w:0,b:0,f:0,  burn:0, sp:0,  tree:0},
@@ -21,7 +21,8 @@ const TD=[
   {n:'Tundra',        c:[208,216,216],v:6, w:1,b:1,f:.2, burn:0, sp:0,  tree:0},
   {n:'Pine forest',   c:[62,104,86],  v:8, w:1,b:1,f:.5, burn:40,sp:.1, tree:1},
   {n:'Swamp',         c:[88,114,80],  v:8, w:1,b:1,f:.5, burn:0, sp:0,  tree:0},
-  {n:'River',         c:[72,142,192], v:6, w:1,b:0,f:0,  burn:0, sp:0,  tree:0}
+  {n:'River',         c:[72,142,192], v:6, w:1,b:0,f:0,  burn:0, sp:0,  tree:0},
+  {n:'Ice sheet',     c:[228,238,246],v:5, w:1,b:0,f:0,  burn:0, sp:0,  tree:0}
 ];
 const WALK=new Uint8Array(NT),BUILD=new Uint8Array(NT),TREE=new Uint8Array(NT),BURN=new Uint8Array(NT),SPREAD=new Float32Array(NT),FERT=new Float32Array(NT);
 TD.forEach((d,i)=>{WALK[i]=d.w;BUILD[i]=d.b;TREE[i]=d.tree;BURN[i]=d.burn;SPREAD[i]=d.sp;FERT[i]=d.f;});
@@ -35,7 +36,7 @@ const BIOME_COL=[
   ['#e6c680','#e2c27c','#dcbb78','#d8c592'],['#c2bd60','#b8b058','#c4a250','#aaa070'],
   ['#349450','#2f8a48','#47864a','#3a7a4c'],['#b0c2ae','#b9c4bc','#bdb6a6','#d4dbde'],
   ['#4f8460','#4c7a5a','#537660','#55705f'],['#607b54','#5b7350','#6b6d48','#5f6a5a'],
-  ['#4a9cc8','#4a9cc8','#4a9cc8','#4a9cc8']
+  ['#4a9cc8','#4a9cc8','#4a9cc8','#4a9cc8'],['#dfeaf3','#e2edf5','#dde8f1','#eef4fa']
 ];
 /* tree crowns seen from afar: shadow and lit colour */
 const CANOPY=BIOME_COL.map(()=>['#3f7a34','#5a9a44']);
@@ -46,7 +47,7 @@ MINI_COL[FOREST]=[58,112,50];MINI_COL[PINE]=[52,96,72];MINI_COL[JUNGLE]=[36,110,
 const DECO=new Uint8Array(NT);[FOREST,PINE,JUNGLE,SAVANNA,DESERT,GRASS,HILL,TUNDRA,SWAMP,ASH,MOUNT,SNOW].forEach(t=>DECO[t]=1);
 /* visual building tier for each age */
 const TIER=[0,0,1,1,2,2,3,4,4];
-const ELEV0=[40,84,101,108,110,172,202,236,170,108,108,108,110,110,112,102,100];
+const ELEV0=[40,84,101,108,110,172,202,236,170,108,108,108,110,110,112,102,100,112];
 const DIRS=[[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]];
 
 /* ---------- creatures ---------- */
@@ -133,7 +134,7 @@ const SIZES={cozy:[224,144],grand:[416,240],colossal:[640,352]};
 const DEF={size:'grand',land:'continents',climate:'temperate',peoples:'few',history:'0',wild:true,
   natHuman:'average',natElf:'average',natDwarf:'average',natOrc:'average',
   night:true,clouds:true,labels:true,borders:true,minimap:true,detail:true,disasters:'rare',mood:'normal',popcap:'normal',
-  gfx:'hd',quality:'balanced',seasons:true,weather:true,sound:false,music:true,autosave:true,topo:'off',contours:false};
+  pollution:'normal',gfx:'hd',quality:'balanced',seasons:true,weather:true,sound:false,music:true,autosave:true,topo:'off',contours:false};
 const S=Object.assign({},DEF);
 try{const j=JSON.parse(localStorage.getItem('tinydominion.settings')||'null');if(j&&typeof j==='object')for(const k in DEF)if(typeof j[k]===typeof DEF[k])S[k]=j[k];}catch(e){}
 function saveSettings(){try{localStorage.setItem('tinydominion.settings',JSON.stringify(S));}catch(e){}}
@@ -141,10 +142,12 @@ const POPCAP={small:1200,normal:2200,large:3600},MOOD={gentle:.35,normal:1,blood
 
 /* ---------- state ---------- */
 let W=0,H=0,N=0,GW=0,GH=0;
-let tile,soil,elev,fire,road,vown,region,wreg,wsize,shade,base,bmap,bfsQ,prevA,grid,temp,moist;
+let tile,soil,elev,fire,road,vown,region,wreg,wsize,shade,base,bmap,bfsQ,prevA,grid,temp,moist,ore;
 let units=[],vById=[null],kingdoms=[],wars=[],boats=[],twisters=[],towers=[],fireList=[],effects=[],sched=[],chronicle=[],bubbles=[],risen=[];
 let planes=[],raising=[],history=[],wonderOf={},firstTech={},launches=0;
 let dirtyWalk=[],dirtyOver=false,capMul=1;
+/* climate: carbon in the air, warming it causes (and the god's own), ice melted since the world began */
+let seaBase=100,carbon=0,cWarm=0,uWarm=0,gWarm=0,melt=0,ice0=1,deposits=[];
 let SL=100,seaGoal=100,storms=[],lastEvent=null,tick=0,uid=1,kc=0,dirtyAll=true,regionsDirty=true,regionStamp=0,shake=0,quiet=false,chronDirty=true,startSpot=null,animCap=300;
 const counts=new Int32Array(NU);
 const relM=new Map(),truM=new Map();

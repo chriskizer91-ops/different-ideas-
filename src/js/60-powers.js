@@ -134,6 +134,10 @@ function inspect(tx,ty){
       (b?'<small>This is its '+bldName(b)+(b.prog<1?', still being built':'')+'</small>':'')+
       (k.wars.size?'<small>At war with '+[...k.wars].map(o=>esc(o.name)).join(', ')+'</small>':'');
   }else html='<b>'+TD[tile[i]].n+'</b>';
+  if(ore[i]){
+    const r=ore[i],R=RES[r],k=oreOwner(i);
+    html+='<small>'+R.n+(r===HORSES?' run wild here':' lies here')+(k?(k.age>=R.use?', worked by '+esc(k.name):', in the lands of '+esc(k.name)+', useful from the '+AGE_NAME[R.use]):', unclaimed')+'. It gives '+R.does+'.</small>';
+  }
   {const m=metres(elev[i]);html+='<small>'+(m<0?'Depth '+fmtM(-m):'Height '+fmtM(m)+' above the sea')+'</small>';}
   showInfo(html);
 }

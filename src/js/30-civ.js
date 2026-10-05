@@ -25,7 +25,7 @@ function citizens(v){return v.pop*PPL[v.k.age];}
 function kCitizens(k){let n=0;for(const v of k.villages)n+=v.pop;return n*PPL[k.age];}
 function fmtPop(n){return n>=1e6?(n/1e6).toFixed(n>=1e7?0:1)+'M':n>=1e4?Math.round(n/1e3)+'k':n>=1e3?(n/1e3).toFixed(1)+'k':String(n|0);}
 function settlementWord(v){const h=v.houses,a=v.k.age;return h>=30&&a>=6?'Metropolis':h>=20?'City':h>=12?'Town':h>=5?'Village':'Hamlet';}
-function updPow(k){k.pow=(1+.15*k.age)*(k.nBarr>0?1.2:1)*(k.ruler.trait.id==='conqueror'?1.1:1)*(k.broke?.85:1);}
+function updPow(k){k.pow=(1+.15*k.age)*(k.nBarr>0?1.2:1)*(k.ruler.trait.id==='conqueror'?1.1:1)*(k.broke?.85:1)*resPow(k);}
 function hallHp(v){return BHP.hall*(1+.3*v.k.age)*(v.race===DWARF?1.25:1);}
 function claim(v,x,y,r){
   for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){
@@ -146,7 +146,7 @@ function clearAround(x,y){
 function layStreet(v,x,y){
   if(x<1||y<1||x>=W-1||y>=H-1)return false;
   const i=y*W+x;
-  if(bmap[i]||fire[i]||!BUILD[tile[i]]||!ownOK(v,i))return false;
+  if(bmap[i]||fire[i]||ore[i]||!BUILD[tile[i]]||!ownOK(v,i))return false;
   if((road[i]&3)!==2){road[i]=2;touch(i);}
   return true;
 }
@@ -180,7 +180,7 @@ function placeTown(v,kind){
       if(x<1||y<1||x>=W-1||y>=H-1)continue;
       if(Math.abs(x-v.x)<=1&&Math.abs(y-v.y)<=1)continue;
       const i=y*W+x,t=tile[i];
-      if(bmap[i]||road[i]||fire[i]||!BUILD[t]||!ownOK(v,i)||!nearStreet(i))continue;
+      if(bmap[i]||road[i]||fire[i]||ore[i]||!BUILD[t]||!ownOK(v,i)||!nearStreet(i))continue;
       addBuilding(v,kind,x,y);return true;
     }
     for(let m=0;m<4;m++)growStreets(v);
@@ -197,7 +197,7 @@ function placeBig(v,kind,ex,coast){
     let ok=true,wet=false;
     for(let dy=0;dy<2&&ok;dy++)for(let dx=0;dx<2;dx++){
       const i=(y+dy)*W+x+dx;
-      if(bmap[i]||road[i]||fire[i]||!BUILD[tile[i]]||!ownOK(v,i)){ok=false;break;}
+      if(bmap[i]||road[i]||fire[i]||ore[i]||!BUILD[tile[i]]||!ownOK(v,i)){ok=false;break;}
       if(coast&&coastWater(i,-1)>=0)wet=true;
     }
     if(!ok||(coast&&!wet))continue;
@@ -219,7 +219,7 @@ function placeBld(v,kind){
     const x=Math.round(v.x+Math.cos(a)*r),y=Math.round(v.y+Math.sin(a)*r);
     if(x<1||y<1||x>=W-1||y>=H-1)continue;
     const i=y*W+x,t=tile[i];
-    if(bmap[i]||road[i]||fire[i]||!BUILD[t]||!ownOK(v,i))continue;
+    if(bmap[i]||road[i]||fire[i]||ore[i]||!BUILD[t]||!ownOK(v,i))continue;
     if(kind==='farm'){
       if(elf){if(!TREE[t])continue;addBuilding(v,'farm',x,y,{grove:true});return true;}
       if(FERT[TREE[t]?soil[i]:t]<.45)continue;
@@ -353,9 +353,21 @@ function sendSettlers(v){
     if(x<2||y<2||x>=W-2||y>=H-2)continue;
     const i=y*W+x,t=tile[i];
     if(!BUILD[t]||vown[i]||region[i]!==reg)continue;
-    const p=pr[t]+Math.random()*.15;if(p<=bs)continue;
+    const p=pr[t]+Math.random()*.15+siteRiches(k,x,y);if(p<=bs)continue;
     if(!farFromVillages(x,y))continue;
     bs=p;best={x,y};
+  }
+  /* riches draw settlers: try sites beside free deposits within reach */
+  for(const d of richesNear(v,14,48)){
+    for(let m=0;m<3;m++){
+      const x=d.x+((Math.random()*7)|0)-3,y=d.y+((Math.random()*7)|0)-3;
+      if(x<2||y<2||x>=W-2||y>=H-2)continue;
+      const i=y*W+x,t=tile[i];
+      if(!BUILD[t]||vown[i]||ore[i]||region[i]!==reg||!farFromVillages(x,y))continue;
+      const p=pr[t]+.1+siteRiches(k,x,y);
+      if(p>bs){bs=p;best={x,y};}
+      break;
+    }
   }
   const adult=SPEC[v.race].adult;
   if(best&&bs>.2){
@@ -463,7 +475,7 @@ function raiseStep(){
   for(let n=0;n<raising.length;n++){
     const b=raising[n],v=b.v;
     if(!v.alive||bmap[b.i]!==b)continue;
-    b.prog+=(b.rate||BUILD_T[b.kind]||.25)*(b.rate?1:.7+.3*Math.min(1,v.pop/8));
+    b.prog+=(b.rate||BUILD_T[b.kind]||.25)*(b.rate?1:.7+.3*Math.min(1,v.pop/8))*(b.kind==='wonder'&&v.k.rOwn?1+.4*hasRes(v.k,MARBLE):1);
     if(b.prog>=1){
       b.prog=1;
       snd('build',b.x,b.y,.5);
@@ -516,7 +528,7 @@ function villagesStep(){
     k.gold+=(v.pop*.005+(v.market?.2+v.pop*.008:0)+v.mines*.1+v.factories*.3+(v.dock?.04:0)+(wd&&wd.gold||0))*(f==='wealth'?1.5:1)*(1+ag*.06);
     if(v.res<10&&k.gold>30){k.gold-=3;v.res+=3;}
     k.lore+=(v.pop*.0025+v.houses*.0015+(v.temple?.06:0)+(v.academy?.3+.12*ti:0)+(v.lighthouse?.03:0)+(wd&&wd.lore||0))
-      *(f==='lore'?1.6:1)*(k.ruler.trait.id==='scholar'?1.3:1)*(1+ag*.1);
+      *(f==='lore'?1.6:1)*(k.ruler.trait.id==='scholar'?1.3:1)*(1+ag*.1)*(k.rOwn?resLore(k):1);
     const hall=v.blds[0];
     if(hall&&hall.kind==='hall'&&!fire[hall.i]){const mx=hallHp(v);if(hall.hp<mx)hall.hp=Math.min(mx,hall.hp+8);}
     if((v.pop>=1||k.pop>=12)&&v.pop<v.cap){

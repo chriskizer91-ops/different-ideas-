@@ -158,9 +158,12 @@ function rulersStep(){
       setRel(a,b,r);
     }
   }
+  riches(alive);
+  climateYear();
   for(const k of alive){
     if(!k.alive)continue;
     k.nb.sort((p,q)=>p.d-q.d);
+    updPow(k);
     while(k.tech<TECH_LORE.length&&k.lore>=TECH_LORE[k.tech]){
       const nm=TECHS[(k.tech/3)|0][k.tech%3];
       if(!firstTech[nm]){firstTech[nm]=k;chron(k.name+' is the first realm to discover '+nm,'tech',k);snd('tech');}
@@ -175,7 +178,8 @@ function rulersStep(){
       if(TIER[k.age]!==t0)upgradeRoads(k);else dirtyAll=true;
     }
     spaceProgram(k);
-    if(k.wars.size&&k.age>=7&&k.target&&k.target.alive&&k.gold>60&&Math.random()<.45)airRaid(k);
+    /* bombers need oil: without it a realm can only rarely afford to fly */
+    if(k.wars.size&&k.age>=7&&k.target&&k.target.alive&&k.gold>60&&Math.random()<(hasRes(k,OIL)?.5:.12))airRaid(k);
     if(!k.wars.size&&k.age>=2&&Math.random()<.18+(k.pacts?k.pacts.length*.1:0))tradeFleet(k);
     if(tick>k.ruler.until)succession(k);
     if(k.alive)rulerThink(k);
@@ -203,7 +207,7 @@ const AGE_SAY=['','Bronze tools for a bronze age!','Iron makes us strong.','Let 
 function spaceProgram(k){
   const pad=k.pad;
   if(!pad||pad.prog<1||bmap[pad.i]!==pad||pad.v.k!==k)return;
-  if(Math.random()>.22)return;
+  if(Math.random()>(hasRes(k,URANIUM)?.32:.16))return;
   const colony=k.tech>=TECH_LORE.length&&!k.colony;
   k.launches++;launches++;
   effects.push({k:'rocket',x:pad.x+1,y:pad.y+1,t:420,T:420,team:k,colony});snd('rocket',pad.x+1,pad.y+1,1);

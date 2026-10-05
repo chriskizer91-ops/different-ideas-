@@ -179,7 +179,7 @@ function rel3dBake(R){
   bindT(0,R.tTerr,uT.uTerr);bindT(1,R.tSm,uT.uSm);bindT(2,R.tOwn,uT.uOwn);bindT(3,R.tKPal,uT.uKPal);bindT(4,R.tBio,uT.uBio);bindT(5,R.tNz,uT.uNz);
   gl.uniform2f(uT.uRes,bw,bh);gl.uniform2f(uT.uCam,0,0);gl.uniform2f(uT.uWorld,W,H);gl.uniform2f(uT.uSun,0,0);gl.uniform2f(uT.uWind,0,0);
   gl.uniform1f(uT.uZoom,P);gl.uniform1f(uT.uTime,0);gl.uniform1f(uT.uSeas,seasonP);gl.uniform1f(uT.uSAmp,seasonAmp);
-  gl.uniform1f(uT.uBord,S.borders?1:0);gl.uniform1f(uT.uCloud,0);gl.uniform1f(uT.uDay,1);gl.uniform1f(uT.uDet,1);gl.uniform1f(uT.uSL,SL);
+  gl.uniform1f(uT.uBord,S.borders?1:0);gl.uniform1f(uT.uCloud,0);gl.uniform1f(uT.uDay,1);gl.uniform1f(uT.uDet,1);gl.uniform1f(uT.uSL,SL);gl.uniform1f(uT.uWarm,gWarm);
   gl.uniform1f(uT.uTreeA,topoMap?1:0);gl.uniform1f(uT.uTopo,topoMap?2:S.contours?1:0);gl.uniform1i(uT.uNSt,0);
   gl.bindVertexArray(R.vaoFull);gl.drawArrays(gl.TRIANGLES,0,3);
   if(SPR.mn.n){

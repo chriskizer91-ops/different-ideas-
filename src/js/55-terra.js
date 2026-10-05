@@ -1,28 +1,33 @@
 /* ================= terraforming, climate and weather ================= */
 /* height bands above the sea: lowland, hills, mountains, peaks */
 function bandOf(e){const r=e-SL;return r<0?-1:r<58?0:r<88?1:r<118?2:3;}
-function tBase(i){return temp[i]/255*1.5-.25;}
-function tEff(i){return tBase(i)-Math.max(0,elev[i]-SL)/155*.3;}
+/* warmth of a tile: its own climate plus the world's warming (or the god's cooling) */
+function tBase(i,w){return temp[i]/255*1.5-.25+(w===undefined?gWarm:w);}
+function tEff(i,w){return tBase(i,w)-Math.max(0,elev[i]-SL)/155*.3;}
+/* land this cold lies under an ice sheet; hills need it colder still */
+const ICE_T=.02;
+function iceAt(i,w){const b=bandOf(elev[i]);return b>=0&&b<=1&&tEff(i,w)<ICE_T-(b===1?.04:0);}
 /* the natural ground for a lowland tile, from its warmth, wetness and height */
-function biomeFor(i){
-  const T=tEff(i),M=moist[i]/255,low=elev[i]-SL;
+function biomeFor(i,w){
+  const T=tEff(i,w),M=moist[i]/255,low=elev[i]-SL;
+  if(T<ICE_T)return ICE;
   if(low<3&&T>.2&&coastWater(i,-1)>=0)return SAND;
   if(T<.2)return M>.55?PINE:TUNDRA;
   if(T<.36)return M>.5?PINE:GRASS;
   if(T<.68){if(M>.76&&low<20)return SWAMP;return M>.52?FOREST:GRASS;}
   return M<.34?DESERT:M<.54?SAVANNA:JUNGLE;
 }
-function soilFor(t){return t===FOREST||t===JUNGLE?GRASS:t===PINE?GRASS:t===HILL||t===MOUNT||t===SNOW?HILL:t<=WATER?SAND:t;}
+function soilFor(t){return t===FOREST||t===JUNGLE?GRASS:t===PINE?GRASS:t===HILL||t===MOUNT||t===SNOW?HILL:t<=WATER?SAND:t===ICE?TUNDRA:t;}
 /* settle a tile's type after its height or climate changed */
 function reclass(i,climateOnly){
   const t=tile[i],e=elev[i],b=bandOf(e);
   let n=t;
   if(b<0){if(t>WATER||climateOnly)n=e<SL-30?DEEP:WATER;}
   else if(b===0){
-    if(t<=WATER||t===HILL||t===MOUNT||t===SNOW||climateOnly)n=biomeFor(i);
+    if(t<=WATER||t===HILL||t===MOUNT||t===SNOW||t===ICE||climateOnly)n=biomeFor(i);
     if(t===RIVER&&!climateOnly)n=RIVER;
     if(t===LAVA||t===ASH)n=t;
-  }else if(b===1)n=t===LAVA?t:HILL;
+  }else if(b===1)n=t===LAVA?t:iceAt(i)?ICE:HILL;
   else if(b===2)n=t===LAVA?t:tEff(i)<.12?SNOW:MOUNT;
   else n=SNOW;
   if(n!==t){const s=soilFor(n);setTile(i,n);soil[i]=s;}
@@ -114,12 +119,16 @@ function seaStep(){
   const edgeE=up?SL-1:SL;
   for(let i=0;i<N;i++){
     const t=tile[i],wet=t<=WATER;
-    if(elev[i]===edgeE&&(up?!wet:wet))reclass(i,false);
+    if(elev[i]===edgeE&&(up?!wet:wet)){
+      const b=bmap[i];
+      if(up&&b&&b.kind==='hall'&&b.v.alive&&!quiet)chron('The rising sea swallows '+b.v.name+(b.v.k.alive?' of '+b.v.k.name:''),'disaster',b.v);
+      reclass(i,false);
+    }
     else if(wet&&t===WATER&&elev[i]<SL-30){tile[i]=DEEP;touch(i);}
     else if(wet&&t===DEEP&&elev[i]>=SL-30){tile[i]=WATER;touch(i);}
   }
   regionsDirty=true;dirtyOver=true;
-  if(SL===seaGoal)chron(SL>100?'The great flood reaches its height':SL<100?'The seas have fallen to their lowest':'The seas return to their old shores','disaster');
+  if(SL===seaGoal&&seaByGod){seaByGod=false;chron(SL>100?'The great flood reaches its height':SL<100?'The seas have fallen to their lowest':'The seas return to their old shores','disaster');}
 }
 /* ---------- weather: storms drift with the wind ---------- */
 const WIND={x:.035,y:.008};

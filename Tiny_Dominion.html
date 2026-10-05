@@ -9,15 +9,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
+  --viz-warm:#eb6834;--viz-sea:#2a78d6;
   --sea:#184074;--panel:#d7ebe4;--panel-2:#bfdcd3;--ink:#12263f;--muted:#4d6577;--sun:#ffd23f;--sun-ink:#12263f;--shadow:#0b1828;--hot:#b3261e;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){--panel:#15263d;--panel-2:#1f3552;--ink:#dcefe9;--muted:#8fa9b8;--shadow:#050b14;--hot:#ff8a7a;}
+  :root:not([data-theme="light"]){--viz-warm:#d95926;--viz-sea:#3987e5;--panel:#15263d;--panel-2:#1f3552;--ink:#dcefe9;--muted:#8fa9b8;--shadow:#050b14;--hot:#ff8a7a;}
 }
-:root[data-theme="dark"]{--panel:#15263d;--panel-2:#1f3552;--ink:#dcefe9;--muted:#8fa9b8;--shadow:#050b14;--hot:#ff8a7a;}
+:root[data-theme="dark"]{--viz-warm:#d95926;--viz-sea:#3987e5;--panel:#15263d;--panel-2:#1f3552;--ink:#dcefe9;--muted:#8fa9b8;--shadow:#050b14;--hot:#ff8a7a;}
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 html,body{height:100%;margin:0}
@@ -149,13 +150,21 @@ textarea{width:100%;resize:vertical;display:block;margin-bottom:8px}
 .slideRow{display:flex;align-items:center;gap:10px;padding:6px 12px 0;font-size:13px}
 .slideRow input{flex:1;accent-color:var(--ink);height:28px;margin:0}
 .slideRow output{min-width:5ch;text-align:right;font-weight:700}
+.climBtns{display:flex;flex-wrap:wrap;gap:6px;padding:6px 12px 0;align-items:center}
+.climBtns[hidden]{display:none}
+.climBtns .act{min-height:36px;padding:0 10px;font-size:13px;box-shadow:0 2px 0 var(--shadow)}
+.climBtns p{flex-basis:100%;margin:0;font-size:12px;color:var(--muted)}
+.res{display:inline-flex;align-items:center;gap:5px}
+.res i{width:10px;height:10px;border:2px solid var(--ink);display:inline-block}
+.chips .dim{opacity:.6}
+.chips .lack{border-style:dashed}
 #tools{display:flex;gap:6px;overflow-x:auto;padding:8px 8px 10px;scrollbar-width:none;touch-action:pan-x}
 #tools::-webkit-scrollbar{display:none}
 .tool{flex:0 0 auto;min-width:62px;height:58px;padding:4px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:var(--panel-2);border:2px solid var(--ink);box-shadow:0 3px 0 var(--shadow);font-size:12px;white-space:nowrap}
 .tool .ico{font-size:21px;line-height:1;font-family:system-ui,"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
 .tool .sw{width:24px;height:20px;border:2px solid var(--ink)}
 .tool[aria-pressed="true"]{background:var(--sun);color:var(--sun-ink);box-shadow:none;transform:translateY(3px)}
-#tabs{display:grid;grid-template-columns:repeat(5,1fr);border-top:2px solid var(--ink)}
+#tabs{display:grid;grid-template-columns:repeat(6,1fr);border-top:2px solid var(--ink)}
 #tabs button{min-height:44px;background:transparent;border:0;border-left:2px solid var(--ink);font-weight:600;font-size:15px;padding:0 2px}
 #tabs button:first-child{border-left:0}
 #tabs button[aria-selected="true"]{background:var(--ink);color:var(--panel)}
@@ -171,6 +180,7 @@ textarea{width:100%;resize:vertical;display:block;margin-bottom:8px}
 .tiles dt{font-size:12px;color:var(--muted)}.tiles dd{margin:0;font-size:22px;font-weight:700}
 .chart{position:relative;margin:4px 0 6px}
 .chart canvas{display:block;width:100%;height:230px;touch-action:pan-y}
+.chart canvas#cChart{height:200px}
 .tip{position:absolute;pointer-events:none;background:var(--shadow);color:#e8f4ef;font-size:12px;padding:4px 6px;white-space:nowrap;z-index:2}
 .tip i{display:inline-block;width:8px;height:8px;margin-right:4px;border:1px solid #e8f4ef}
 .legend{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;margin:2px 0 6px}
@@ -262,6 +272,15 @@ body.v3d #banner{top:calc(124px + env(safe-area-inset-top,0px))}
       <input id="seaIn" type="range" min="-18" max="18" value="0">
       <output id="seaVal" for="seaIn">0 m</output>
     </div>
+    <div id="climRow" class="slideRow" hidden>
+      <label for="climIn">Temperature</label>
+      <input id="climIn" type="range" min="-6" max="8" step="0.5" value="0">
+      <output id="climVal" for="climIn">0 &deg;C</output>
+    </div>
+    <div id="climBtns" class="climBtns" hidden>
+      <button id="meltBtn" class="act">Melt the ice caps</button><button id="iceBtn" class="act">Ice age</button><button id="climReset" class="act">Restore</button>
+      <p id="climInfo"></p>
+    </div>
     <div id="tools" role="toolbar" aria-label="Tools"></div>
     <div id="tabs" role="tablist" aria-label="Tool groups"></div>
   </div>
@@ -276,7 +295,7 @@ const reduceMotion=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-mot
 const now=()=>(typeof performance!=='undefined'?performance.now():Date.now());
 
 /* ---------- terrain ---------- */
-const DEEP=0,WATER=1,SAND=2,GRASS=3,FOREST=4,HILL=5,MOUNT=6,SNOW=7,LAVA=8,ASH=9,DESERT=10,SAVANNA=11,JUNGLE=12,TUNDRA=13,PINE=14,SWAMP=15,RIVER=16,NT=17;
+const DEEP=0,WATER=1,SAND=2,GRASS=3,FOREST=4,HILL=5,MOUNT=6,SNOW=7,LAVA=8,ASH=9,DESERT=10,SAVANNA=11,JUNGLE=12,TUNDRA=13,PINE=14,SWAMP=15,RIVER=16,ICE=17,NT=18;
 const TD=[
   {n:'Deep ocean',    c:[24,64,116],  v:4, w:0,b:0,f:0,  burn:0, sp:0,  tree:0},
   {n:'Shallows',      c:[46,116,170], v:6, w:0,b:0,f:0,  burn:0, sp:0,  tree:0},
@@ -294,7 +313,8 @@ const TD=[
   {n:'Tundra',        c:[208,216,216],v:6, w:1,b:1,f:.2, burn:0, sp:0,  tree:0},
   {n:'Pine forest',   c:[62,104,86],  v:8, w:1,b:1,f:.5, burn:40,sp:.1, tree:1},
   {n:'Swamp',         c:[88,114,80],  v:8, w:1,b:1,f:.5, burn:0, sp:0,  tree:0},
-  {n:'River',         c:[72,142,192], v:6, w:1,b:0,f:0,  burn:0, sp:0,  tree:0}
+  {n:'River',         c:[72,142,192], v:6, w:1,b:0,f:0,  burn:0, sp:0,  tree:0},
+  {n:'Ice sheet',     c:[228,238,246],v:5, w:1,b:0,f:0,  burn:0, sp:0,  tree:0}
 ];
 const WALK=new Uint8Array(NT),BUILD=new Uint8Array(NT),TREE=new Uint8Array(NT),BURN=new Uint8Array(NT),SPREAD=new Float32Array(NT),FERT=new Float32Array(NT);
 TD.forEach((d,i)=>{WALK[i]=d.w;BUILD[i]=d.b;TREE[i]=d.tree;BURN[i]=d.burn;SPREAD[i]=d.sp;FERT[i]=d.f;});
@@ -308,7 +328,7 @@ const BIOME_COL=[
   ['#e6c680','#e2c27c','#dcbb78','#d8c592'],['#c2bd60','#b8b058','#c4a250','#aaa070'],
   ['#349450','#2f8a48','#47864a','#3a7a4c'],['#b0c2ae','#b9c4bc','#bdb6a6','#d4dbde'],
   ['#4f8460','#4c7a5a','#537660','#55705f'],['#607b54','#5b7350','#6b6d48','#5f6a5a'],
-  ['#4a9cc8','#4a9cc8','#4a9cc8','#4a9cc8']
+  ['#4a9cc8','#4a9cc8','#4a9cc8','#4a9cc8'],['#dfeaf3','#e2edf5','#dde8f1','#eef4fa']
 ];
 /* tree crowns seen from afar: shadow and lit colour */
 const CANOPY=BIOME_COL.map(()=>['#3f7a34','#5a9a44']);
@@ -319,7 +339,7 @@ MINI_COL[FOREST]=[58,112,50];MINI_COL[PINE]=[52,96,72];MINI_COL[JUNGLE]=[36,110,
 const DECO=new Uint8Array(NT);[FOREST,PINE,JUNGLE,SAVANNA,DESERT,GRASS,HILL,TUNDRA,SWAMP,ASH,MOUNT,SNOW].forEach(t=>DECO[t]=1);
 /* visual building tier for each age */
 const TIER=[0,0,1,1,2,2,3,4,4];
-const ELEV0=[40,84,101,108,110,172,202,236,170,108,108,108,110,110,112,102,100];
+const ELEV0=[40,84,101,108,110,172,202,236,170,108,108,108,110,110,112,102,100,112];
 const DIRS=[[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]];
 
 /* ---------- creatures ---------- */
@@ -406,7 +426,7 @@ const SIZES={cozy:[224,144],grand:[416,240],colossal:[640,352]};
 const DEF={size:'grand',land:'continents',climate:'temperate',peoples:'few',history:'0',wild:true,
   natHuman:'average',natElf:'average',natDwarf:'average',natOrc:'average',
   night:true,clouds:true,labels:true,borders:true,minimap:true,detail:true,disasters:'rare',mood:'normal',popcap:'normal',
-  gfx:'hd',quality:'balanced',seasons:true,weather:true,sound:false,music:true,autosave:true,topo:'off',contours:false};
+  pollution:'normal',gfx:'hd',quality:'balanced',seasons:true,weather:true,sound:false,music:true,autosave:true,topo:'off',contours:false};
 const S=Object.assign({},DEF);
 try{const j=JSON.parse(localStorage.getItem('tinydominion.settings')||'null');if(j&&typeof j==='object')for(const k in DEF)if(typeof j[k]===typeof DEF[k])S[k]=j[k];}catch(e){}
 function saveSettings(){try{localStorage.setItem('tinydominion.settings',JSON.stringify(S));}catch(e){}}
@@ -414,10 +434,12 @@ const POPCAP={small:1200,normal:2200,large:3600},MOOD={gentle:.35,normal:1,blood
 
 /* ---------- state ---------- */
 let W=0,H=0,N=0,GW=0,GH=0;
-let tile,soil,elev,fire,road,vown,region,wreg,wsize,shade,base,bmap,bfsQ,prevA,grid,temp,moist;
+let tile,soil,elev,fire,road,vown,region,wreg,wsize,shade,base,bmap,bfsQ,prevA,grid,temp,moist,ore;
 let units=[],vById=[null],kingdoms=[],wars=[],boats=[],twisters=[],towers=[],fireList=[],effects=[],sched=[],chronicle=[],bubbles=[],risen=[];
 let planes=[],raising=[],history=[],wonderOf={},firstTech={},launches=0;
 let dirtyWalk=[],dirtyOver=false,capMul=1;
+/* climate: carbon in the air, warming it causes (and the god's own), ice melted since the world began */
+let seaBase=100,carbon=0,cWarm=0,uWarm=0,gWarm=0,melt=0,ice0=1,deposits=[];
 let SL=100,seaGoal=100,storms=[],lastEvent=null,tick=0,uid=1,kc=0,dirtyAll=true,regionsDirty=true,regionStamp=0,shake=0,quiet=false,chronDirty=true,startSpot=null,animCap=300;
 const counts=new Int32Array(NU);
 const relM=new Map(),truM=new Map();
@@ -472,7 +494,7 @@ function genName(race){
 /* ================= world ================= */
 function alloc(w,h){
   W=w;H=h;N=w*h;
-  tile=new Uint8Array(N);soil=new Uint8Array(N);temp=new Uint8Array(N);moist=new Uint8Array(N);elev=new Uint8Array(N);fire=new Uint8Array(N);road=new Uint8Array(N);
+  tile=new Uint8Array(N);soil=new Uint8Array(N);ore=new Uint8Array(N);temp=new Uint8Array(N);moist=new Uint8Array(N);elev=new Uint8Array(N);fire=new Uint8Array(N);road=new Uint8Array(N);
   vown=new Uint16Array(N);region=new Uint16Array(N);wreg=new Uint16Array(N);wsize=new Int32Array(65536);
   shade=new Float32Array(N);base=new Uint32Array(N);bmap=new Array(N).fill(null);
   bfsQ=new Int32Array(N);prevA=new Int32Array(N);
@@ -607,7 +629,7 @@ function genWorld(seed,opt){
   units=[];vById=[null];kingdoms=[];wars=[];boats=[];twisters=[];towers=[];fireList=[];effects=[];sched=[];chronicle=[];bubbles=[];risen=[];
   relM.clear();truM.clear();counts.fill(0);dirtyWalk=[];dirtyOver=true;
   planes=[];raising=[];history=[];wonderOf={};firstTech={};launches=0;lastEvent=null;SL=100;seaGoal=100;storms=[];worldAge=-1;colonyEver=false;
-  tick=0;uid=1;sweepY=0;chronDirty=true;
+  tick=0;uid=1;sweepY=0;chronDirty=true;gWarm=0;cWarm=0;uWarm=0;melt=0;
   const rnd=mulberry(seed);
   kc=(rnd()*COLORS.length)|0;
   const n1=mkNoise(rnd),n2=mkNoise(rnd),n3=mkNoise(rnd),n4=mkNoise(rnd);
@@ -638,7 +660,9 @@ function genWorld(seed,opt){
   const t0=opt.climate==='cold'?-.06:opt.climate==='hot'?.36:.17,ts=opt.climate==='hot'?.7:.8;
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const i=y*W+x,hv=hgt[i];
-    {const tb=t0+ts*(y/(H-1))+(tmp[i]-.5)*.32,mb=Math.max(0,Math.min(1,(mst[i]-.5)*2.3+.5));
+    /* the far north is polar: colder still, under ice where the land is cold enough */
+    const pol=y<H*.2?(1-y/(H*.2))*(1-y/(H*.2))*.34:0;
+    {const tb=t0+ts*(y/(H-1))+(tmp[i]-.5)*.32-pol,mb=Math.max(0,Math.min(1,(mst[i]-.5)*2.3+.5));
      temp[i]=Math.max(0,Math.min(255,Math.round((tb+.25)/1.5*255)));moist[i]=Math.round(mb*255);}
     if(hv<sea){
       tile[i]=hv<shal?DEEP:WATER;soil[i]=SAND;
@@ -646,7 +670,7 @@ function genWorld(seed,opt){
       continue;
     }
     const el=(hv-sea)/(top-sea+1e-6),m=mv[i];
-    const T=t0+ts*(y/(H-1))+(tmp[i]-.5)*.32-m*.22;
+    const T=t0+ts*(y/(H-1))+(tmp[i]-.5)*.32-pol-m*.22;
     const M=Math.max(0,Math.min(1,(mst[i]-.5)*2.3+.5));
     let t,so;
     if(m>qn||(m>qm&&T<.12)){t=SNOW;so=HILL;}
@@ -671,7 +695,8 @@ function genWorld(seed,opt){
     else e=100+Math.max(0,Math.min(1,m/(qh+1e-6)))*57;
     elev[i]=Math.round(e);
   }
-  if(opt.land==='flat'||opt.land==='ocean'){blankWorld(opt.land,rnd);computeRegions();recolorAll();seedLife(rnd,opt);return;}
+  if(opt.land==='flat'||opt.land==='ocean'){blankWorld(opt.land,rnd);settleIce();placeDeposits(rnd);resetClimate();computeRegions();recolorAll();seedLife(rnd,opt);return;}
+  settleIce();
   /* rivers run downhill from the highlands to the sea */
   const srcs=[];
   for(let i=0;i<N;i++)if(tile[i]===HILL||tile[i]===MOUNT)srcs.push(i);
@@ -700,6 +725,7 @@ function genWorld(seed,opt){
       i=best;
     }
   }
+  placeDeposits(rnd);resetClimate();
   computeRegions();recolorAll();
   seedLife(rnd,opt);
 }
@@ -1259,7 +1285,7 @@ function citizens(v){return v.pop*PPL[v.k.age];}
 function kCitizens(k){let n=0;for(const v of k.villages)n+=v.pop;return n*PPL[k.age];}
 function fmtPop(n){return n>=1e6?(n/1e6).toFixed(n>=1e7?0:1)+'M':n>=1e4?Math.round(n/1e3)+'k':n>=1e3?(n/1e3).toFixed(1)+'k':String(n|0);}
 function settlementWord(v){const h=v.houses,a=v.k.age;return h>=30&&a>=6?'Metropolis':h>=20?'City':h>=12?'Town':h>=5?'Village':'Hamlet';}
-function updPow(k){k.pow=(1+.15*k.age)*(k.nBarr>0?1.2:1)*(k.ruler.trait.id==='conqueror'?1.1:1)*(k.broke?.85:1);}
+function updPow(k){k.pow=(1+.15*k.age)*(k.nBarr>0?1.2:1)*(k.ruler.trait.id==='conqueror'?1.1:1)*(k.broke?.85:1)*resPow(k);}
 function hallHp(v){return BHP.hall*(1+.3*v.k.age)*(v.race===DWARF?1.25:1);}
 function claim(v,x,y,r){
   for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){
@@ -1380,7 +1406,7 @@ function clearAround(x,y){
 function layStreet(v,x,y){
   if(x<1||y<1||x>=W-1||y>=H-1)return false;
   const i=y*W+x;
-  if(bmap[i]||fire[i]||!BUILD[tile[i]]||!ownOK(v,i))return false;
+  if(bmap[i]||fire[i]||ore[i]||!BUILD[tile[i]]||!ownOK(v,i))return false;
   if((road[i]&3)!==2){road[i]=2;touch(i);}
   return true;
 }
@@ -1414,7 +1440,7 @@ function placeTown(v,kind){
       if(x<1||y<1||x>=W-1||y>=H-1)continue;
       if(Math.abs(x-v.x)<=1&&Math.abs(y-v.y)<=1)continue;
       const i=y*W+x,t=tile[i];
-      if(bmap[i]||road[i]||fire[i]||!BUILD[t]||!ownOK(v,i)||!nearStreet(i))continue;
+      if(bmap[i]||road[i]||fire[i]||ore[i]||!BUILD[t]||!ownOK(v,i)||!nearStreet(i))continue;
       addBuilding(v,kind,x,y);return true;
     }
     for(let m=0;m<4;m++)growStreets(v);
@@ -1431,7 +1457,7 @@ function placeBig(v,kind,ex,coast){
     let ok=true,wet=false;
     for(let dy=0;dy<2&&ok;dy++)for(let dx=0;dx<2;dx++){
       const i=(y+dy)*W+x+dx;
-      if(bmap[i]||road[i]||fire[i]||!BUILD[tile[i]]||!ownOK(v,i)){ok=false;break;}
+      if(bmap[i]||road[i]||fire[i]||ore[i]||!BUILD[tile[i]]||!ownOK(v,i)){ok=false;break;}
       if(coast&&coastWater(i,-1)>=0)wet=true;
     }
     if(!ok||(coast&&!wet))continue;
@@ -1453,7 +1479,7 @@ function placeBld(v,kind){
     const x=Math.round(v.x+Math.cos(a)*r),y=Math.round(v.y+Math.sin(a)*r);
     if(x<1||y<1||x>=W-1||y>=H-1)continue;
     const i=y*W+x,t=tile[i];
-    if(bmap[i]||road[i]||fire[i]||!BUILD[t]||!ownOK(v,i))continue;
+    if(bmap[i]||road[i]||fire[i]||ore[i]||!BUILD[t]||!ownOK(v,i))continue;
     if(kind==='farm'){
       if(elf){if(!TREE[t])continue;addBuilding(v,'farm',x,y,{grove:true});return true;}
       if(FERT[TREE[t]?soil[i]:t]<.45)continue;
@@ -1587,9 +1613,21 @@ function sendSettlers(v){
     if(x<2||y<2||x>=W-2||y>=H-2)continue;
     const i=y*W+x,t=tile[i];
     if(!BUILD[t]||vown[i]||region[i]!==reg)continue;
-    const p=pr[t]+Math.random()*.15;if(p<=bs)continue;
+    const p=pr[t]+Math.random()*.15+siteRiches(k,x,y);if(p<=bs)continue;
     if(!farFromVillages(x,y))continue;
     bs=p;best={x,y};
+  }
+  /* riches draw settlers: try sites beside free deposits within reach */
+  for(const d of richesNear(v,14,48)){
+    for(let m=0;m<3;m++){
+      const x=d.x+((Math.random()*7)|0)-3,y=d.y+((Math.random()*7)|0)-3;
+      if(x<2||y<2||x>=W-2||y>=H-2)continue;
+      const i=y*W+x,t=tile[i];
+      if(!BUILD[t]||vown[i]||ore[i]||region[i]!==reg||!farFromVillages(x,y))continue;
+      const p=pr[t]+.1+siteRiches(k,x,y);
+      if(p>bs){bs=p;best={x,y};}
+      break;
+    }
   }
   const adult=SPEC[v.race].adult;
   if(best&&bs>.2){
@@ -1697,7 +1735,7 @@ function raiseStep(){
   for(let n=0;n<raising.length;n++){
     const b=raising[n],v=b.v;
     if(!v.alive||bmap[b.i]!==b)continue;
-    b.prog+=(b.rate||BUILD_T[b.kind]||.25)*(b.rate?1:.7+.3*Math.min(1,v.pop/8));
+    b.prog+=(b.rate||BUILD_T[b.kind]||.25)*(b.rate?1:.7+.3*Math.min(1,v.pop/8))*(b.kind==='wonder'&&v.k.rOwn?1+.4*hasRes(v.k,MARBLE):1);
     if(b.prog>=1){
       b.prog=1;
       snd('build',b.x,b.y,.5);
@@ -1750,7 +1788,7 @@ function villagesStep(){
     k.gold+=(v.pop*.005+(v.market?.2+v.pop*.008:0)+v.mines*.1+v.factories*.3+(v.dock?.04:0)+(wd&&wd.gold||0))*(f==='wealth'?1.5:1)*(1+ag*.06);
     if(v.res<10&&k.gold>30){k.gold-=3;v.res+=3;}
     k.lore+=(v.pop*.0025+v.houses*.0015+(v.temple?.06:0)+(v.academy?.3+.12*ti:0)+(v.lighthouse?.03:0)+(wd&&wd.lore||0))
-      *(f==='lore'?1.6:1)*(k.ruler.trait.id==='scholar'?1.3:1)*(1+ag*.1);
+      *(f==='lore'?1.6:1)*(k.ruler.trait.id==='scholar'?1.3:1)*(1+ag*.1)*(k.rOwn?resLore(k):1);
     const hall=v.blds[0];
     if(hall&&hall.kind==='hall'&&!fire[hall.i]){const mx=hallHp(v);if(hall.hp<mx)hall.hp=Math.min(mx,hall.hp+8);}
     if((v.pop>=1||k.pop>=12)&&v.pop<v.cap){
@@ -1944,9 +1982,12 @@ function rulersStep(){
       setRel(a,b,r);
     }
   }
+  riches(alive);
+  climateYear();
   for(const k of alive){
     if(!k.alive)continue;
     k.nb.sort((p,q)=>p.d-q.d);
+    updPow(k);
     while(k.tech<TECH_LORE.length&&k.lore>=TECH_LORE[k.tech]){
       const nm=TECHS[(k.tech/3)|0][k.tech%3];
       if(!firstTech[nm]){firstTech[nm]=k;chron(k.name+' is the first realm to discover '+nm,'tech',k);snd('tech');}
@@ -1961,7 +2002,8 @@ function rulersStep(){
       if(TIER[k.age]!==t0)upgradeRoads(k);else dirtyAll=true;
     }
     spaceProgram(k);
-    if(k.wars.size&&k.age>=7&&k.target&&k.target.alive&&k.gold>60&&Math.random()<.45)airRaid(k);
+    /* bombers need oil: without it a realm can only rarely afford to fly */
+    if(k.wars.size&&k.age>=7&&k.target&&k.target.alive&&k.gold>60&&Math.random()<(hasRes(k,OIL)?.5:.12))airRaid(k);
     if(!k.wars.size&&k.age>=2&&Math.random()<.18+(k.pacts?k.pacts.length*.1:0))tradeFleet(k);
     if(tick>k.ruler.until)succession(k);
     if(k.alive)rulerThink(k);
@@ -1989,7 +2031,7 @@ const AGE_SAY=['','Bronze tools for a bronze age!','Iron makes us strong.','Let 
 function spaceProgram(k){
   const pad=k.pad;
   if(!pad||pad.prog<1||bmap[pad.i]!==pad||pad.v.k!==k)return;
-  if(Math.random()>.22)return;
+  if(Math.random()>(hasRes(k,URANIUM)?.32:.16))return;
   const colony=k.tech>=TECH_LORE.length&&!k.colony;
   k.launches++;launches++;
   effects.push({k:'rocket',x:pad.x+1,y:pad.y+1,t:420,T:420,team:k,colony});snd('rocket',pad.x+1,pad.y+1,1);
@@ -2159,6 +2201,7 @@ const SAY={
   war_sly:['While {O} bleeds elsewhere, we strike.','They will never see it coming.'],
   war_goal:['The time has come. {O} falls.','For years we have prepared. Now, {O}!'],
   war_fear:['Strike {O} before {O} strikes us.'],
+  war_res:['The {X} of {O} will be ours.','Our {ARMY} need their {X}.','Why should {O} keep all that {X}?'],
   war_betray:['Alliances are for the weak. {O} is ours.'],
   peace_weary:['Enough blood. Let there be peace with {O}.','Our people are tired of war.'],
   peace_losing:['We cannot win this. Seek terms with {O}.'],
@@ -2172,6 +2215,7 @@ const SAY={
   pact:['Let our caravans roll to {O}.','Trade makes us both rich.'],
   marry:['Our houses are joined.','A royal wedding! Let the bells ring.'],
   patron:['Knowledge is our greatest treasure.','Build schools, not swords.'],
+  clean:['Clear skies for our children.','The seas will not take our cities.','Wind and sun will power us now.'],
   refuse_war:['The heavens ask too much. We will not fight.','War? Not while I live.'],
   refuse_peace:['Peace? Not while {O} stands.','The heavens are wrong. We fight on.'],
   refuse_lore:['Books will not fill our granaries.','We have no time for scrolls.'],
@@ -2189,11 +2233,13 @@ function chooseGoal(k){
   const tm=tmOf(k),opts=[],maxV=5+k.age+(k.ruler.trait.id==='builder'?2:0);
   opts.push({type:'prosper',s:.15+tm.greed*.55,why:'a merchant’s heart'});
   opts.push({type:'enlighten',s:.1+tm.curio*.6+(wonderFor(k)?.08:0),why:'a curious mind'});
-  if(k.villages.length<maxV)opts.push({type:'expand',s:.12+tm.ambi*.5,why:'room to grow'});
+  if(k.villages.length<maxV){const fr=freeRiches(k,60);opts.push({type:'expand',s:.12+tm.ambi*.5+(fr?fr.v*.5:0),why:fr&&fr.v>.12?'the '+RES[fr.r].n.toLowerCase()+' in the wilds':'room to grow'});}
   for(const n of k.nb){
     const o=n.k;if(!o.alive||!canReach(k,o))continue;
     const adv=allyStr(k)/(allyStr(o)+1),g=grudge(k,o),f=fearOf(k,o);
-    if(adv>1.3&&!k.allies.has(o))opts.push({type:'conquer',o,s:tm.ambi*.3+tm.aggr*.3+covet(k,o)*.25+Math.min(.25,(adv-1)*.2)-tm.caut*.25+(natOf(k)-1)*.08,why:adv>2?'they are weak':covet(k,o)>.3?'their riches':'room to grow'});
+    const rw=resWant(k,o);
+    if(adv>1.3&&!k.allies.has(o))opts.push({type:'conquer',o,s:tm.ambi*.3+tm.aggr*.3+covet(k,o)*.25+(rw?rw.v*.5:0)+Math.min(.25,(adv-1)*.2)-tm.caut*.25+(natOf(k)-1)*.08,
+      why:rw&&rw.v>.18?'their '+RES[rw.r].n.toLowerCase():adv>2?'they are weak':covet(k,o)>.3?'their riches':'room to grow'});
     if(g>25)opts.push({type:'avenge',o,s:g/100*(.7+tm.aggr*.4)-tm.honor*.05,why:memOf(k,o).why||'old wrongs'});
     if(f>.25)opts.push({type:'defend',o,s:f*(.6+tm.caut*.6),why:'they grow too strong'});
   }
@@ -2221,6 +2267,7 @@ function weighWar(k,o){
   if(adv>1)f.push(['they are weaker',Math.min(.45,(adv-1)*.3)*(1-tm.caut*.5)]);else f.push(['they are stronger',-(1/Math.max(.2,adv)-1)*.35*(.5+tm.caut)]);
   if(g>5)f.push(['old grudge',g/100*.55]);
   const cv=covet(k,o);if(cv>.05)f.push(['covets their land',cv*tm.ambi*.55]);
+  const rw=resWant(k,o);if(rw)f.push(['their '+RES[rw.r].n.toLowerCase(),rw.v*(.45+tm.greed*.35+tm.ambi*.25)]);
   if(o.race!==k.race&&tm.zeal>.5)f.push(['zeal against the '+SPEC[o.race].pl.toLowerCase(),(tm.zeal-.5)*.5]);
   if(o.wars.size)f.push(['they are busy at war',tm.cunning*.3]);
   if(goal)f.push(['it is our goal',.4]);
@@ -2289,6 +2336,7 @@ function weighPact(k,o){
   const tm=tmOf(k),f=[['greed',tm.greed*.4],['friendship',rel(k,o)/100*.3]];
   let m=0;for(const v of k.villages)if(v.market)m++;
   if(!m)f.push(['no markets yet',-.3]);
+  const rw=resWant(k,o);if(rw)f.push(['to trade for their '+RES[rw.r].n.toLowerCase(),rw.v*.7]);
   return{kind:'pact',o,u:sumWhy(f)-.1,f};
 }
 function weighMarriage(k,o){
@@ -2333,6 +2381,7 @@ function rulerThink(k){
     if((x=weighMarriage(k,o)))opts.push(x);
   }
   if(!k.wars.size&&k.gold>320)opts.push({kind:'festival',o:null,u:.1+Math.min(.4,k.gold/4000)-tm.greed*.2,f:[['a full treasury',Math.min(.4,k.gold/4000)],['greed',-tm.greed*.2]]});
+  {const c=weighClean(k);if(c)opts.push(c);}
   if(k.gold>250&&tm.curio>.45)opts.push({kind:'patron',o:null,u:tm.curio*.45-tm.greed*.15,f:[['curiosity',tm.curio*.45],['greed',-tm.greed*.15]]});
   opts.sort((a,b)=>b.u-a.u);
   const best=opts[0];
@@ -2344,6 +2393,18 @@ function rulerThink(k){
   for(const p of opts){if(shown.length>=5)break;if((per[p.kind]=(per[p.kind]||0)+1)<=2||p===best)shown.push(p);}
   k.mind={y:yearNow(),bar,opts:shown.map(p=>({kind:p.kind,o:p.o?p.o.id:0,u:p.u,f:p.f.filter(x=>Math.abs(x[1])>.02).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,4),done:p===best&&!!did})),did};
 }
+/* clean power: weighed by realms of the Modern Age once smoke and rising seas trouble them */
+function weighClean(k,atSummit){
+  if(k.age<7||(k.clean||0)>=.95||(!atSummit&&k.gold<180))return null;
+  const tm=tmOf(k),deg=degWarm(),f=[];
+  if(deg>.4)f.push(['the world is warming',Math.min(.5,(deg-.4)*.16)]);
+  if(SL>100){let c=0;for(const v of k.villages)if(v.dock)c++;f.push(['the seas are rising',Math.min(.45,(SL-100)*.06)*(.3+Math.min(1,c/Math.max(1,k.villages.length))*1.2)]);}
+  if((k.smoke||0)>8)f.push(['smog over our cities',Math.min(.25,(k.smoke-8)*.012)]);
+  f.push(['curiosity',tm.curio*.15]);f.push(['caution',tm.caut*.1]);
+  f.push(['the cost',-.2-tm.greed*.25]);
+  if(hasRes(k,OIL)||hasRes(k,COAL))f.push(['our own coal and oil',-.1]);
+  return{kind:'clean',o:null,u:sumWhy(f),f};
+}
 const WAR_WHY={'a warlike temper':'for glory','a warlike people':'as warlike peoples do','they are weaker':'seeing their weakness','old grudge':'to avenge old wrongs','covets their land':'coveting their land','they are busy at war':'while they are busy elsewhere',
   'it is our goal':'as long planned','the heavens urge war':'urged on by the heavens','a bloodthirsty age':'in a bloodthirsty age'};
 function lead(f){let b=null;for(const x of f)if(x[1]>0&&(!b||x[1]>b[1]))b=x;return b?b[0]:'';}
@@ -2352,9 +2413,9 @@ function act(k,p){
   switch(p.kind){
     case'war':{
       const betray=k.allies.has(o);
-      const key=betray?'war_betray':why==='old grudge'?'war_grudge':why==='they are weaker'?'war_weak':why==='covets their land'?'war_covet':why.indexOf('zeal')===0?'war_zeal':why==='they are busy at war'?'war_sly':why==='it is our goal'?'war_goal':'war_weak';
-      const ph=why.indexOf('zeal')===0?'out of zeal':WAR_WHY[why]||'';
-      if(declareWar(k,o,rulerName(k)+' of '+k.name+' declares war on '+o.name+(ph?', '+ph:''))){say(k,SAY[key],o,memOf(k,o).why);return'war on '+o.name;}
+      const key=betray?'war_betray':why==='old grudge'?'war_grudge':why==='they are weaker'?'war_weak':why==='covets their land'?'war_covet':why.indexOf('zeal')===0?'war_zeal':why==='they are busy at war'?'war_sly':why==='it is our goal'?'war_goal':why.indexOf('their ')===0?'war_res':'war_weak';
+      const ph=why.indexOf('zeal')===0?'out of zeal':why.indexOf('their ')===0?'to seize '+why:WAR_WHY[why]||'';
+      if(declareWar(k,o,rulerName(k)+' of '+k.name+' declares war on '+o.name+(ph?', '+ph:''))){say(k,SAY[key],o,key==='war_res'?why.slice(6):memOf(k,o).why);return'war on '+o.name;}
       return null;
     }
     case'peace':{
@@ -2422,6 +2483,12 @@ function act(k,p){
       chron(k.name+' holds a grand festival','peace',k,true);
       return'a grand festival';
     }
+    case'clean':{
+      const cost=Math.round(120+k.gold*.12);k.gold-=cost;k.clean=Math.min(1,(k.clean||0)+.25);
+      chron(k.name+(k.age>=8?' lights its cities with fusion power':k.clean>=.9?' runs almost wholly on wind and sun':' builds wind farms and solar fields')+', cutting its smoke','tech',k);
+      say(k,SAY.clean,null);
+      return'clean power';
+    }
     case'patron':{
       const g=Math.round(k.gold*.3);k.gold-=g;k.lore+=g*.25;
       chron(rulerName(k)+' of '+k.name+' pours '+g+' gold into scholars and libraries','tech',k);say(k,SAY.patron,null);
@@ -2481,7 +2548,128 @@ function whisper(k,kind){
 /* describe a weighed option for the realm page */
 function optLabel(p){
   const o=p.o?kingdoms[p.o-1]:null,n=o?o.name:'';
-  return{war:'War on '+n,peace:'Peace with '+n,ally:'Alliance with '+n,tribute:'Demand tribute from '+n,gift:'Send gifts to '+n,pact:'Trade pact with '+n,marry:'Royal marriage with '+n,festival:'Hold a festival',patron:'Fund scholars'}[p.kind]||p.kind;
+  return{war:'War on '+n,peace:'Peace with '+n,ally:'Alliance with '+n,tribute:'Demand tribute from '+n,gift:'Send gifts to '+n,clean:'Build clean power',pact:'Trade pact with '+n,marry:'Royal marriage with '+n,festival:'Hold a festival',patron:'Fund scholars'}[p.kind]||p.kind;
+}
+
+/* ===== 47-riches.js ===== */
+/* ================= riches of the earth =================
+   Deposits lie on single tiles. A realm works a deposit once the tile is inside one of its towns'
+   lands and it has reached the age that can use it. Riches strengthen armies, fill treasuries and
+   speed learning and wonders. Rulers covet what they lack, settlers seek it out, and allies and
+   trade partners share what they have. */
+const COPPER=1,IRON=2,HORSES=3,GOLD=4,MARBLE=5,COAL=6,OIL=7,URANIUM=8;
+/* use: the age a realm can first work it; until: the last age it matters; val: how much rulers want it */
+const RES=[null,
+  {id:'copper', n:'Copper', use:1,until:3,val:.12,col:'#d0783a',does:'stronger bronze weapons and quicker learning'},
+  {id:'iron',   n:'Iron',   use:2,until:8,val:.22,col:'#a4492c',does:'stronger armies'},
+  {id:'horses', n:'Horses', use:1,until:6,val:.14,col:'#8a5a34',does:'cavalry: stronger armies'},
+  {id:'gold',   n:'Gold',   use:0,until:8,val:.16,col:'#f2c434',does:'gold every year'},
+  {id:'marble', n:'Marble', use:3,until:8,val:.09,col:'#e8e6e0',does:'wonders built faster'},
+  {id:'coal',   n:'Coal',   use:6,until:8,val:.22,col:'#2c2a2e',does:'faster research and more gold in the Industrial Age'},
+  {id:'oil',    n:'Oil',    use:7,until:8,val:.34,col:'#3a2a4a',does:'much stronger armies and air power'},
+  {id:'uranium',n:'Uranium',use:8,until:8,val:.26,col:'#6ee05a',does:'faster space programme'}];
+/* where each lies: one tile in N of these terrains */
+const ORE_ON=[null,
+  {[HILL]:150,[MOUNT]:420},
+  {[HILL]:115,[MOUNT]:230},
+  {[GRASS]:300,[SAVANNA]:230,[TUNDRA]:900},
+  {[MOUNT]:300,[HILL]:480,[DESERT]:1400},
+  {[HILL]:330,[MOUNT]:480},
+  {[HILL]:170,[PINE]:650,[FOREST]:950,[SWAMP]:520},
+  {[DESERT]:170,[TUNDRA]:420,[SWAMP]:280,[ICE]:500},
+  {[MOUNT]:430,[DESERT]:750,[HILL]:1600}];
+function placeDeposits(rnd){
+  ore.fill(0);
+  const far=(x,y)=>{for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++){const nx=x+dx,ny=y+dy;if(inB(nx,ny)&&ore[ny*W+nx])return false;}return true;};
+  for(let y=2;y<H-2;y++)for(let x=2;x<W-2;x++){
+    const i=y*W+x,t=tile[i];if(t<=WATER||t===RIVER||t===LAVA)continue;
+    for(let r=1;r<RES.length;r++){
+      const n=ORE_ON[r][t];if(!n||rnd()*n>=1)continue;
+      if(far(x,y)){ore[i]=r;break;}
+    }
+  }
+  rebuildDeposits();
+}
+function rebuildDeposits(){deposits=[];for(let i=0;i<N;i++)if(ore[i])deposits.push(i);}
+function setOre(i,r){if(ore[i]===r)return;ore[i]=r;rebuildDeposits();touch(i);}
+/* who holds a deposit right now (the realm whose town's lands cover it) */
+function oreOwner(i){const vid=vown[i];if(!vid)return null;const v=vById[vid];return v&&v.alive?v.k:null;}
+function oreWorked(i){const k=oreOwner(i);return!!k&&tile[i]>WATER&&k.age>=RES[ore[i]].use;}
+
+/* ---------- yearly tally: what each realm holds, works and imports ---------- */
+function riches(alive){
+  for(const k of alive){(k.rOwn||(k.rOwn=new Uint8Array(RES.length))).fill(0);(k.rImp||(k.rImp=new Uint8Array(RES.length))).fill(0);}
+  for(const i of deposits){
+    const r=ore[i];if(!r||tile[i]<=WATER)continue;
+    const k=oreOwner(i);if(k&&k.rOwn&&k.rOwn[r]<255)k.rOwn[r]++;
+  }
+  for(const k of alive){
+    for(const o of k.allies)if(o.alive&&o.rOwn)imp(k,o);
+    if(k.pacts)for(const id of k.pacts){const o=kingdoms[id-1];if(o&&o.alive&&o.rOwn&&!k.wars.has(o))imp(k,o);}
+    /* gold mines pay every year; coal pays in the age of steam */
+    k.gold+=hasRes(k,GOLD)*(k.rOwn[GOLD]?Math.min(4,k.rOwn[GOLD]):1)*(4+k.age*2);
+    if(hasRes(k,COAL))k.gold+=hasRes(k,COAL)*(6+k.age*2);
+    /* the first time a realm works a great resource, the world hears of it */
+    for(let r=1;r<RES.length;r++){
+      if(!k.rOwn[r]||k.age<RES[r].use||(k.rSeen&(1<<r)))continue;
+      k.rSeen=(k.rSeen||0)|(1<<r);
+      if(r===GOLD||r===OIL||r===URANIUM||r===COAL||(r===IRON&&k.age>=2)){
+        const at=resTown(k,r);
+        chron(k.name+(r===GOLD?' finds gold':r===OIL?' strikes oil':r===URANIUM?' mines uranium':r===COAL?' digs its first coal':' forges iron')+(at?' near '+at.name:''),'tech',at||k,r===IRON);
+      }
+    }
+  }
+}
+function imp(k,o){for(let r=1;r<RES.length;r++)if(o.rOwn[r]&&!k.rOwn[r]&&o.age>=RES[r].use)k.rImp[r]=1;}
+function resTown(k,r){for(const i of deposits)if(ore[i]===r&&oreOwner(i)===k){const v=vById[vown[i]];if(v)return v;}return null;}
+/* 1 if the realm works it, half if it trades for it, 0 if it has none or cannot use it yet */
+function hasRes(k,r){
+  if(!k.rOwn||k.age<RES[r].use||k.age>RES[r].until)return 0;
+  return k.rOwn[r]?1:k.rImp&&k.rImp[r]?.5:0;
+}
+function resPow(k){return 1+(k.age<=3?.08*hasRes(k,COPPER):0)+.15*hasRes(k,IRON)+.1*hasRes(k,HORSES)+.25*hasRes(k,OIL);}
+function resLore(k){return 1+.15*hasRes(k,COAL)+.06*hasRes(k,COPPER);}
+/* what another realm holds that we lack and could soon use */
+function resWant(k,o){
+  if(!o.rOwn||!k.rOwn)return null;
+  let best=0,bv=0,sum=0;
+  for(let r=1;r<RES.length;r++){
+    if(!o.rOwn[r]||k.rOwn[r])continue;
+    const R=RES[r];if(k.age<R.use-1||k.age>R.until)continue;
+    const v=R.val*(k.rImp&&k.rImp[r]?.4:1);sum+=v;if(v>bv){bv=v;best=r;}
+  }
+  return best?{r:best,v:Math.min(.6,sum)}:null;
+}
+/* unclaimed riches within reach of a realm's towns */
+function freeRiches(k,range){
+  let v=0,best=0,bv=0;const R2=range*range;
+  for(const i of deposits){
+    const r=ore[i];if(!r||vown[i]||tile[i]<=WATER||k.age<RES[r].use-1||k.age>RES[r].until||(k.rOwn&&k.rOwn[r]))continue;
+    const x=i%W,y=(i/W)|0;let near=false;
+    for(const t of k.villages)if((t.x-x)*(t.x-x)+(t.y-y)*(t.y-y)<R2){near=true;break;}
+    if(!near)continue;v+=RES[r].val;if(RES[r].val>bv){bv=RES[r].val;best=r;}
+  }
+  return best?{r:best,v:Math.min(.5,v)}:null;
+}
+/* settlers favour sites with riches nearby that their realm can use */
+function siteRiches(k,x,y){
+  let s=0;
+  for(const i of deposits){
+    const r=ore[i],dx=i%W-x,dy=((i/W)|0)-y;
+    if(dx*dx+dy*dy>36||!r||vown[i]||tile[i]<=WATER||k.age<RES[r].use-1||k.age>RES[r].until)continue;
+    s+=RES[r].val*(k.rOwn&&k.rOwn[r]?.4:1.6);
+  }
+  return Math.min(.8,s);
+}
+/* places to aim settlers at: free deposits within reach of a town */
+function richesNear(v,r0,r1){
+  const out=[],k=v.k;
+  for(const i of deposits){
+    const r=ore[i];if(!r||vown[i]||tile[i]<=WATER||k.age<RES[r].use-1||k.age>RES[r].until)continue;
+    const x=i%W,y=(i/W)|0,d=Math.hypot(x-v.x,y-v.y);
+    if(d>=r0&&d<=r1)out.push({x,y,r});
+  }
+  return out;
 }
 
 /* ===== 50-nature.js ===== */
@@ -2684,6 +2872,7 @@ function step(){
   if(twisters.length)updTwisters();
   if(towers.length)updTowers();
   fireStep();tileTicks();
+  climateStep();
   if(SL!==seaGoal&&tick%5===0)seaStep();
   stormsStep();
   if(sched.length)runSched();
@@ -2695,28 +2884,33 @@ function step(){
 /* ================= terraforming, climate and weather ================= */
 /* height bands above the sea: lowland, hills, mountains, peaks */
 function bandOf(e){const r=e-SL;return r<0?-1:r<58?0:r<88?1:r<118?2:3;}
-function tBase(i){return temp[i]/255*1.5-.25;}
-function tEff(i){return tBase(i)-Math.max(0,elev[i]-SL)/155*.3;}
+/* warmth of a tile: its own climate plus the world's warming (or the god's cooling) */
+function tBase(i,w){return temp[i]/255*1.5-.25+(w===undefined?gWarm:w);}
+function tEff(i,w){return tBase(i,w)-Math.max(0,elev[i]-SL)/155*.3;}
+/* land this cold lies under an ice sheet; hills need it colder still */
+const ICE_T=.02;
+function iceAt(i,w){const b=bandOf(elev[i]);return b>=0&&b<=1&&tEff(i,w)<ICE_T-(b===1?.04:0);}
 /* the natural ground for a lowland tile, from its warmth, wetness and height */
-function biomeFor(i){
-  const T=tEff(i),M=moist[i]/255,low=elev[i]-SL;
+function biomeFor(i,w){
+  const T=tEff(i,w),M=moist[i]/255,low=elev[i]-SL;
+  if(T<ICE_T)return ICE;
   if(low<3&&T>.2&&coastWater(i,-1)>=0)return SAND;
   if(T<.2)return M>.55?PINE:TUNDRA;
   if(T<.36)return M>.5?PINE:GRASS;
   if(T<.68){if(M>.76&&low<20)return SWAMP;return M>.52?FOREST:GRASS;}
   return M<.34?DESERT:M<.54?SAVANNA:JUNGLE;
 }
-function soilFor(t){return t===FOREST||t===JUNGLE?GRASS:t===PINE?GRASS:t===HILL||t===MOUNT||t===SNOW?HILL:t<=WATER?SAND:t;}
+function soilFor(t){return t===FOREST||t===JUNGLE?GRASS:t===PINE?GRASS:t===HILL||t===MOUNT||t===SNOW?HILL:t<=WATER?SAND:t===ICE?TUNDRA:t;}
 /* settle a tile's type after its height or climate changed */
 function reclass(i,climateOnly){
   const t=tile[i],e=elev[i],b=bandOf(e);
   let n=t;
   if(b<0){if(t>WATER||climateOnly)n=e<SL-30?DEEP:WATER;}
   else if(b===0){
-    if(t<=WATER||t===HILL||t===MOUNT||t===SNOW||climateOnly)n=biomeFor(i);
+    if(t<=WATER||t===HILL||t===MOUNT||t===SNOW||t===ICE||climateOnly)n=biomeFor(i);
     if(t===RIVER&&!climateOnly)n=RIVER;
     if(t===LAVA||t===ASH)n=t;
-  }else if(b===1)n=t===LAVA?t:HILL;
+  }else if(b===1)n=t===LAVA?t:iceAt(i)?ICE:HILL;
   else if(b===2)n=t===LAVA?t:tEff(i)<.12?SNOW:MOUNT;
   else n=SNOW;
   if(n!==t){const s=soilFor(n);setTile(i,n);soil[i]=s;}
@@ -2808,12 +3002,16 @@ function seaStep(){
   const edgeE=up?SL-1:SL;
   for(let i=0;i<N;i++){
     const t=tile[i],wet=t<=WATER;
-    if(elev[i]===edgeE&&(up?!wet:wet))reclass(i,false);
+    if(elev[i]===edgeE&&(up?!wet:wet)){
+      const b=bmap[i];
+      if(up&&b&&b.kind==='hall'&&b.v.alive&&!quiet)chron('The rising sea swallows '+b.v.name+(b.v.k.alive?' of '+b.v.k.name:''),'disaster',b.v);
+      reclass(i,false);
+    }
     else if(wet&&t===WATER&&elev[i]<SL-30){tile[i]=DEEP;touch(i);}
     else if(wet&&t===DEEP&&elev[i]>=SL-30){tile[i]=WATER;touch(i);}
   }
   regionsDirty=true;dirtyOver=true;
-  if(SL===seaGoal)chron(SL>100?'The great flood reaches its height':SL<100?'The seas have fallen to their lowest':'The seas return to their old shores','disaster');
+  if(SL===seaGoal&&seaByGod){seaByGod=false;chron(SL>100?'The great flood reaches its height':SL<100?'The seas have fallen to their lowest':'The seas return to their old shores','disaster');}
 }
 /* ---------- weather: storms drift with the wind ---------- */
 const WIND={x:.035,y:.008};
@@ -2999,6 +3197,151 @@ function blankWorld(kind,rnd){
   }
 }
 
+/* ===== 57-climate.js ===== */
+/* ================= climate: smoke, warming, ice and the seas =================
+   From the Industrial Age, towns burn coal and oil. The smoke gathers in the air and the world
+   slowly warms. Ice sheets in the cold north and on high ground melt as it warms and grow as it
+   cools, and melted ice raises the seas, which can swallow coastal towns. Rulers may turn to
+   clean power, alone or together at a summit. The god can also warm or chill the world directly. */
+const POLLUTE={off:0,normal:1,heavy:2.4};
+const C_DEG=.025;                    /* one degree of warming, in the units of tBase */
+const CARBON_DEG=1/75;               /* degrees of lasting warming per unit of carbon in the air */
+let rowW=new Float32Array(1),climY=0,iceNow=0,seaByGod=false,warmMark=0,lastSummit=-1e9,climHist=[];
+function degWarm(){return gWarm/C_DEG;}
+function iceUnit(){return Math.max(160,ice0/6);}
+/* the sea follows the god's chosen level plus the water of every ice sheet that has melted */
+function updSea(){
+  const g=Math.max(64,Math.min(136,seaBase+Math.max(-12,Math.min(12,Math.round(melt/iceUnit())))));
+  if(g!==seaGoal)seaGoal=g;
+}
+function resetClimate(){
+  rowW=new Float32Array(H);climY=0;carbon=0;cWarm=0;uWarm=0;gWarm=0;melt=0;seaBase=100;seaByGod=false;warmMark=0;lastSummit=-1e9;climHist=[];
+  let n=0;for(let i=0;i<N;i++)if(tile[i]===ICE)n++;
+  ice0=Math.max(1,n);iceNow=n;
+}
+/* make the ice of a fresh world agree exactly with its climate, so nothing melts on the first day */
+function settleIce(){
+  for(let i=0;i<N;i++){
+    const t=tile[i];if(t<=WATER||t===RIVER||t===LAVA||t===MOUNT||t===SNOW)continue;
+    const b=bandOf(elev[i]);if(b<0||b>1)continue;
+    if(iceAt(i)){if(t!==ICE){tile[i]=ICE;soil[i]=TUNDRA;}}
+    else if(t===ICE){const n=b===0?biomeFor(i):HILL;tile[i]=n;soil[i]=soilFor(n);}
+  }
+}
+
+/* ---------- every tick: a few rows of the world catch up with its temperature ---------- */
+function climateStep(){
+  if(rowW.length!==H)rowW=new Float32Array(H).fill(gWarm);
+  const rows=Math.max(1,Math.ceil(H/120));
+  for(let n=0;n<rows;n++){climateRow(climY,1);climY=(climY+1)%H;}
+  updSea();
+}
+function climateRow(y,boost){
+  const w=gWarm,w0=rowW[y],shift=Math.abs(w-w0)>.003;
+  let i=y*W;
+  for(let x=0;x<W;x++,i++){
+    const t=tile[i];if(t<=WATER||t===LAVA||t===RIVER||t===ASH)continue;
+    const b=bandOf(elev[i]);
+    if(b<=1){
+      const T=tEff(i),lim=ICE_T-(b===1?.04:0);
+      if(t===ICE){
+        /* ice melts faster the warmer it is */
+        if(T>=lim&&Math.random()<Math.min(1,(.18+(T-lim)*6)*boost)){const n=b===0?biomeFor(i):HILL;setTile(i,n);soil[i]=soilFor(n);melt++;iceNow--;}
+        continue;
+      }
+      if(T<lim){
+        /* and creeps back slowly, faster in a deep freeze */
+        if(!bmap[i]&&!road[i]&&(b===1?t===HILL:(t===TUNDRA||t===PINE||t===GRASS||t===SAND||t===SWAMP||t===FOREST||t===DESERT||t===SAVANNA))
+          &&Math.random()<Math.min(1,(.03+(lim-T)*3)*boost)){setTile(i,ICE);soil[i]=TUNDRA;melt--;iceNow++;}
+        continue;
+      }
+      /* warmer or colder years move the forests, grasslands and deserts, but not what the god painted */
+      if(b===0&&shift&&!bmap[i]){
+        const was=biomeFor(i,w0);
+        if(was===t){const n=biomeFor(i);if(n!==t&&n!==ICE&&!(TREE[n]&&road[i])){setTile(i,n);soil[i]=soilFor(n);}}
+      }
+    }else if(b===2&&(t===MOUNT||t===SNOW)){
+      const want=tEff(i)<.12?SNOW:MOUNT;
+      if(want!==t&&Math.random()<.3*boost){tile[i]=want;touch(i);}
+    }
+  }
+  rowW[y]=w;
+}
+
+/* ---------- every year: smoke rises, the air warms ---------- */
+function climateYear(){
+  const pm=POLLUTE[S.pollution]===undefined?1:POLLUTE[S.pollution];
+  let e=0;
+  for(const k of kingdoms){
+    if(!k.alive){k.smoke=0;continue;}
+    let s=0;
+    if(k.age>=6){
+      const am=k.age===6?1:k.age===7?1.7:1.25;
+      for(const v of k.villages){v.smog=(v.factories*1.2+v.houses*.05)*am*(1-(k.clean||0))*pm;s+=v.smog;}
+    }else for(const v of k.villages)v.smog=0;
+    k.smoke=s;e+=s;
+  }
+  carbon=Math.max(0,carbon*.993+e*.01);
+  const target=Math.min(9,carbon*CARBON_DEG)*C_DEG;
+  cWarm+=(target-cWarm)*.06;
+  gWarm=cWarm+uWarm;
+  if((yearNow()&3)===0){let n=0;for(let i=0;i<N;i++)if(tile[i]===ICE)n++;iceNow=n;}
+  /* milestones of a warming world */
+  const smoke=cWarm/C_DEG;
+  if(smoke>=warmMark+1&&smoke>=1){
+    warmMark=Math.floor(smoke);
+    chron('The smoke of '+(e>0?'the factories':'the old factories')+' has warmed the world by '+warmMark+' degree'+(warmMark>1?'s':''),'disaster');
+  }
+  climHist.push([yearNow(),Math.round(degWarm()*10)/10,SL-100]);
+  if(climHist.length>3000)climHist.shift();
+  summit();
+}
+function smokeWord(k){const s=k.smoke||0;return s<3?'clear':s<10?'hazy':s<25?'smoky':'choking';}
+
+/* ---------- a summit: when the world grows warm, modern realms meet to cut their smoke ---------- */
+function summit(){
+  if(degWarm()<1.5||tick-lastSummit<35*YEAR)return;
+  const ks=kingdoms.filter(k=>k.alive&&k.age>=7&&k.villages.length);
+  if(ks.length<3)return;
+  lastSummit=tick;
+  let host=ks[0],hb=-1;
+  for(const k of ks){const tm=tmOf(k),s=tm.curio+tm.caut+(k.smoke?0:.2);if(s>hb){hb=s;host=k;}}
+  const yes=[],no=[];
+  for(const k of ks){
+    const p=weighClean(k,true);
+    if(p&&p.u+.15>0){yes.push(k);k.clean=Math.min(1,(k.clean||0)+.2);}else no.push(k);
+  }
+  for(const a of yes)for(const b of yes)if(a.id<b.id)setRel(a,b,rel(a,b)+10);
+  const town=host.villages[0];
+  const name='Summit of '+(town?town.name:host.name);
+  if(!yes.length){chron('A '+name+' on the warming world ends in failure','disaster',host);return;}
+  chron('At the '+name+', '+yes.map(k=>k.name).join(', ')+' pledge to cut their smoke'+(no.length?'. '+no.map(k=>k.name).join(', ')+(no.length>1?' refuse':' refuses'):''),'peace',host);
+  if(!lastSummitEver){lastSummitEver=true;banner('A warming world','The '+name,yes.length+(yes.length===1?' realm pledges':' realms pledge')+' to cut their smoke');}
+  for(const k of no)k.rep=repOf(k)-3;
+}
+let lastSummitEver=false;
+
+/* ---------- the god's hand on the climate ---------- */
+function setGodWarm(deg){
+  uWarm=deg*C_DEG;gWarm=cWarm+uWarm;
+}
+/* a burst of change so the god sees the ice start to move at once */
+function climateKick(passes){for(let p=0;p<passes;p++)for(let y=0;y<H;y++)climateRow(y,2.5);updSea();}
+function meltCaps(){
+  let n=0;
+  for(let i=0;i<N;i++)if(tile[i]===ICE){const b=bandOf(elev[i]),nt=b===0?TUNDRA:HILL;setTile(i,nt);soil[i]=TUNDRA;n++;}
+  melt+=n;iceNow=0;updSea();
+  for(let i=0;i<N;i++)if(tile[i]===SNOW&&bandOf(elev[i])===2){tile[i]=MOUNT;touch(i);}
+  chron(n?'The heavens melt the ice caps. Meltwater pours into the seas':'There is no ice left to melt','disaster');
+  return n;
+}
+/* the readout under the climate slider */
+function climateText(){
+  const d=degWarm(),sm=cWarm/C_DEG,ip=Math.round(iceNow/Math.max(1,ice0)*100);
+  return 'World '+(d>=0?'+':'−')+Math.abs(d).toFixed(1)+' °C'+(sm>=.1?' ('+sm.toFixed(1)+' from smoke)':'')+
+    ' · Seas '+(SL>=100?'+':'−')+fmtM(Math.abs(SL-100)*60).replace('-','')+' · Ice '+Math.min(999,ip)+'%';
+}
+
 /* ===== 60-powers.js ===== */
 /* ================= god powers ================= */
 let brush=2;
@@ -3136,6 +3479,10 @@ function inspect(tx,ty){
       (b?'<small>This is its '+bldName(b)+(b.prog<1?', still being built':'')+'</small>':'')+
       (k.wars.size?'<small>At war with '+[...k.wars].map(o=>esc(o.name)).join(', ')+'</small>':'');
   }else html='<b>'+TD[tile[i]].n+'</b>';
+  if(ore[i]){
+    const r=ore[i],R=RES[r],k=oreOwner(i);
+    html+='<small>'+R.n+(r===HORSES?' run wild here':' lies here')+(k?(k.age>=R.use?', worked by '+esc(k.name):', in the lands of '+esc(k.name)+', useful from the '+AGE_NAME[R.use]):', unclaimed')+'. It gives '+R.does+'.</small>';
+  }
   {const m=metres(elev[i]);html+='<small>'+(m<0?'Depth '+fmtM(-m):'Height '+fmtM(m)+' above the sea')+'</small>';}
   showInfo(html);
 }
@@ -3229,6 +3576,12 @@ function drawDetail(ox,oy,z,x0,y0,x1,y1){
       }
       if(bmap[i]||fire[i]||road[i])continue;
       const h=hsh(x,y),px=ox+x*z;
+      if(ore[i]){
+        const r=ore[i],wk=oreWorked(i);
+        ctx.fillStyle=wk?'#3a2a1c':'#4a4440';ctx.fillRect((px+z*.2)|0,(py+z*.45)|0,Math.ceil(z*.6),Math.ceil(z*.4));
+        ctx.fillStyle=RES[r].col;ctx.fillRect((px+z*.32)|0,(py+z*.5)|0,Math.ceil(z*.36),Math.ceil(z*.24));
+        continue;
+      }
       switch(t){
         case GRASS:
           if(h<.14){ctx.fillStyle='#5f9a40';ctx.fillRect((px+z*h*4)|0,(py+z*.5)|0,Math.max(1,z*.14),Math.ceil(z*.26));}
@@ -5580,6 +5933,60 @@ function extras(){
   {cv(6,16);vl(1,0,16,M.wood[1]);px(1,0,M.gold[3]);banner(2,1,3,8);add('banner',1,15);}
 }
 GENS.push(extras);
+
+/* ---------- riches of the earth: raw deposits, the works that mine them, and smog ---------- */
+function depositArt(){
+  const M=MT;
+  const rock=(name,base,spk,n)=>{cv(14,10);seed=name.length*13+n;sph(6,9,5,5.6,base,{clipY:9});sph(10,9,3.2,3.6,base,{clipY:9});
+    for(let q=0;q<n;q++){const x=rint(2,12),y=rint(4,8);if(getPx(x,y))px(x,y,spk[q%spk.length]);}
+    px(5,4,base[4]);add(name,7,9);};
+  rock('ore_1',M.rock,[hex('#e08a40'),hex('#4fb090'),hex('#c86a30')],9);
+  rock('ore_2',M.rock,[hex('#b04a2a'),hex('#7a2e1e'),hex('#d06a3a')],10);
+  rock('ore_4',M.rock,[M.gold[4],M.gold[3],hex('#fff6c0'),M.gold[2]],9);
+  rock('ore_6',ramp('#18161a #242228 #333138 #45434a #59575e'),[hex('#0a0a0c'),hex('#7a7880'),hex('#0a0a0c')],8);
+  rock('ore_8',ramp('#2e3a2c #44523e #5e6a52 #788468 #929c80'),[emi('#7dff6a'),emi('#c0ff80'),hex('#3a8a30')],8);
+  /* horses grazing */
+  const horse=(x,yb,c,cd,dir)=>{
+    rc(x+1,yb-4,6,3,c[2]);hl(x+1,yb-4,6,c[3]);hl(x+1,yb-2,6,c[1]);
+    for(const lx of[1,2,5,6])vl(x+lx,yb-1,2,cd);
+    if(dir>0){rc(x+7,yb-3,2,2,c[2]);px(x+8,yb-1,c[2]);px(x+7,yb-4,cd);px(x,yb-4,cd);px(x,yb-3,cd);}
+    else{rc(x-1,yb-3,2,2,c[2]);px(x-1,yb-1,c[2]);px(x,yb-4,cd);px(x+7,yb-4,cd);px(x+7,yb-3,cd);}
+  };
+  {cv(20,9);const B=ramp('#4a2a16 #6a3e22 #8a5a34 #a87448 #c49264'),Wt=ramp('#9a9488 #bcb6aa #dcd6ca #eee8dc #fcf8ee');
+    horse(1,8,B,hex('#2a1a10'),1);horse(11,7,Wt,hex('#5a5048'),-1);add('ore_3',10,8);}
+  /* marble outcrop */
+  {cv(14,10);const Wm=M.wstone;rc(1,4,5,5,Wm[2]);hl(1,4,5,Wm[4]);vl(5,4,5,Wm[1]);
+    rc(5,2,6,7,Wm[2]);hl(5,2,6,Wm[4]);vl(10,2,7,Wm[1]);ln(6,4,9,7,Wm[1]);rc(9,6,4,3,Wm[3]);hl(9,6,4,Wm[4]);hl(0,9,14,M.rock[1]);add('ore_5',7,9);}
+  /* an oil seep */
+  {cv(14,6);ell(7,3,6,2.4,hex('#120e16'));ell(6,3,3,1.2,hex('#1e1824'));px(4,2,hex('#6a4a9a'));px(5,2,hex('#2a7a8a'));px(9,3,hex('#8a6a2a'));
+    px(1,1,hex('#4a4038'));px(12,2,hex('#4a4038'));px(12,1,hex('#6a5a48'));add('ore_7',7,5);}
+  /* a mine head: timber frame, wheel, dark adit and a cart of ore */
+  const mine=(name,ore)=>{cv(18,16);const yb=15,Wd=M.wood;
+    sph(9,yb,7,4,M.rock,{clipY:yb});rc(7,yb-4,4,4,HOLE);hl(6,yb-5,6,Wd[3]);vl(6,yb-4,4,Wd[2]);vl(11,yb-4,4,Wd[1]);
+    ln(5,yb-5,9,yb-13,Wd[2]);ln(13,yb-5,9,yb-13,Wd[1]);hl(7,yb-9,5,Wd[2]);
+    ell(9,yb-13,2,2,M.iron[3]);px(9,yb-13,M.iron[1]);vl(9,yb-11,6,M.iron[2]);
+    rc(13,yb-3,4,2,M.iron[2]);hl(13,yb-4,4,ore[0]);px(14,yb-5,ore[1]);px(15,yb-4,ore[2]||ore[0]);px(13,yb-1,M.iron[0]);px(16,yb-1,M.iron[0]);
+    add(name,9,yb);};
+  mine('work_1',[hex('#e08a40'),hex('#4fb090')]);mine('work_2',[hex('#b04a2a'),hex('#d06a3a')]);mine('work_4',[M.gold[4],M.gold[3]]);
+  mine('work_6',[hex('#0e0e10'),hex('#3a383e')]);mine('work_8',[emi('#7dff6a'),hex('#3a8a30')]);
+  /* a paddock with horses */
+  {cv(20,12);const yb=11,Wd=M.lwood;hl(1,yb-6,18,Wd[3]);hl(1,yb-3,18,Wd[2]);for(let x=1;x<20;x+=4)vl(x,yb-7,7,Wd[1]);
+    horse(4,yb-1,ramp('#4a2a16 #6a3e22 #8a5a34 #a87448 #c49264'),hex('#2a1a10'),1);add('work_3',10,yb);}
+  /* a marble quarry: cut terraces and a block on a hoist */
+  {cv(18,14);const yb=13,Wm=M.wstone;rc(1,yb-4,16,5,Wm[1]);rc(3,yb-7,12,3,Wm[2]);rc(5,yb-9,8,2,Wm[3]);hl(1,yb-4,16,Wm[4]);hl(3,yb-7,12,Wm[4]);hl(5,yb-9,8,Wm[4]);
+    for(const x of[4,9,13])vl(x,yb-3,3,Wm[0]);vl(15,yb-13,10,M.wood[2]);hl(11,yb-13,5,M.wood[3]);vl(12,yb-12,2,M.iron[2]);rc(11,yb-10,3,2,Wm[4]);add('work_5',9,yb);}
+  /* an oil pump jack, four frames of its nodding beam */
+  for(let f=0;f<4;f++){cv(20,16);const yb=15,ang=[-.22,0,.22,0][f];
+    rc(2,yb-1,16,2,M.concrete[2]);hl(2,yb-1,16,M.concrete[3]);
+    ln(9,yb-1,10,yb-9,M.iron[2]);ln(12,yb-1,10,yb-9,M.iron[1]);
+    const bx=Math.cos(ang),by=Math.sin(ang);
+    for(let t=-7;t<=6;t++){const x=Math.round(10+t*bx),y=Math.round(yb-10+t*by);px(x,y,TEAM[3]);px(x,y+1,TEAM[1]);}
+    const hx=Math.round(10-7*bx),hy=Math.round(yb-10-7*by);rc(hx-1,hy-1,2,4,TEAM[2]);vl(hx-1,hy+3,yb-hy-3,M.iron[1]);
+    const cx=Math.round(10+6*bx),cy=Math.round(yb-10+6*by);ln(cx,cy+1,15,yb-4,M.iron[1]);ell(15,yb-4,2,2,M.iron[3]);px(15,yb-4,M.iron[1]);
+    rc(16,yb-7,3,6,M.steel[2]);hl(16,yb-7,3,M.steel[4]);
+    add('pump_'+f,10,yb);}
+}
+GENS.push(depositArt);
 return pack();
 }
 
@@ -5608,7 +6015,7 @@ const SH_TERRAIN_FS=`#version 300 es
 precision highp float;precision highp int;
 uniform highp sampler2D uTerr,uSm,uOwn,uKPal,uBio,uNz;
 uniform vec2 uRes,uCam,uWorld,uSun,uWind;
-uniform float uZoom,uTime,uSeas,uSAmp,uBord,uCloud,uDay,uDet,uSL,uTreeA,uTopo;
+uniform float uZoom,uTime,uSeas,uSAmp,uBord,uCloud,uDay,uDet,uSL,uTreeA,uTopo,uWarm;
 uniform vec4 uSt[6];uniform int uNSt;
 out vec4 o;
 ${SH_COMMON}
@@ -5624,6 +6031,7 @@ vec3 BIO(int t){
   vec3 sc=mix(texelFetch(uBio,ivec2(t,a),0).rgb,texelFetch(uBio,ivec2(t,b),0).rgb,f);
   return mix(texelFetch(uBio,ivec2(t,1),0).rgb,sc,uSAmp);
 }
+const vec3 ORE[9]=vec3[9](vec3(0.),vec3(.82,.47,.23),vec3(.64,.29,.17),vec3(.54,.35,.2),vec3(.95,.77,.2),vec3(.93,.92,.88),vec3(.17,.16,.18),vec3(.23,.16,.29),vec3(.43,.88,.35));
 float segD(vec2 p,vec2 a,vec2 b){vec2 pa=p-a,ba=b-a;float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.);return length(pa-ba*h);}
 /* distance from the road's centre line inside tile t, joining every road neighbour */
 float roadD(ivec2 t,vec2 f,out int ax){
@@ -5676,7 +6084,7 @@ void main(){
   ivec2 t0=ivec2(floor(ap));
   vec4 T0=TT(t0);
   int ty0=B(T0.r),fl=B(T0.g),rb=B(T0.a);
-  float cold=T0.b*1.5-.25;
+  float cold=T0.b*1.5-.25+uWarm;
   int otier=B(texelFetch(uOwn,ct(t0),0).b);
   float h=hs(ai),h2=hs2(ai);
   vec3 c;
@@ -5762,16 +6170,30 @@ void main(){
       float n=fbm(ap*.7+vec2(uTime*.05,uTime*.03));
       c=mix(vec3(.8,.15,.03),vec3(1.,.8,.25),smoothstep(.35,.75,n));
       if(nz(ap*2.3+vec2(uTime*.02,0.))>.63)c=vec3(.28,.12,.09);
+    }else if(ty==17){
+      /* an ice sheet: wind-packed snow, blue crevasses, a glint here and there */
+      float cv=abs(fract(ap.x*.37+ap.y*.21+fbm(ap*.35)*2.2)-.5);
+      c=mix(vec3(.93,.96,.99),vec3(.83,.9,.97),nz(ap*1.3));
+      if(cv<.03)c=vec3(.58,.74,.9);else if(cv<.055)c*=.94;
+      if(fract(ap.y*3.1+nz(ap*.8)*2.)<.1)c*=.975;
+      if(h2>.992)c=vec3(1.);
     }else if(ty==9){
       if(h>.9)c*=.8;
       if(h2>.985)c=mix(vec3(1.,.35,.05),vec3(1.,.7,.2),hs(ai+ivec2(int(uTime*5.),0)));
     }
-    bool cliff=ty==6||ty==7;
+    bool cliff=ty==6||ty==7||ty==17;
     if(!cliff&&land<.6&&river<.3){
       vec3 sand=cold<.12?vec3(.66,.66,.64):texelFetch(uBio,ivec2(2,1),0).rgb;
       c=land<.535?sand*.86:sand*(h>.85?.94:1.);
     }
     if(river>.12&&land<.64)c=mix(c,vec3(.42,.5,.3),.45);
+    /* a deposit: a patch of bare, ore-flecked ground, and from afar a clear coloured spot */
+    int oreT=B(texelFetch(uOwn,ct(t0),0).a);
+    if(oreT>0&&uTopo<1.5){
+      vec3 oc=ORE[min(oreT,8)];vec2 f=fract(ap)-.5;float d=length(f*vec2(1.,1.25));
+      if(d<.46){c=mix(c,vec3(.45,.38,.3)*(h>.5?1.:.9),.6);if(hs(ai*3+ivec2(oreT,7))>.62)c=mix(c,oc,.9);}
+      if(d<.5)c=mix(c,oc,clamp((6.-uZoom)/4.,0.,.75));
+    }
     if((fl&2)!=0){
       vec2 f=fract(ap);bool vt=hs(t0*3)>.5;
       float rw=fract((vt?f.x:f.y)*4.);
@@ -5863,6 +6285,29 @@ void main(){
   if(uNSt>0&&uTopo<1.5){float st=stormAt(ap);c*=1.-st*.32;c=mix(c,vec3(dot(c,vec3(.33))),st*.35);}
   if(outW){vec2 d=max(-wp,wp-uWorld);c*=max(.7,1.-max(d.x,d.y)*.008);}
   o=vec4(c,1.);
+}`;
+
+/* smog: a smooth brown pall drifting over the smokiest towns in view */
+const SH_SMOG_FS=`#version 300 es
+precision highp float;
+uniform highp sampler2D uNz;
+uniform vec2 uRes,uCam,uWind;uniform vec3 uAmb;uniform float uZoom;
+uniform vec4 uSt[6];uniform int uNSt;
+uniform vec4 uSg[16];uniform int uNSg;
+out vec4 o;
+${SH_COMMON}
+void main(){
+  vec2 fc=vec2(gl_FragCoord.x,uRes.y-gl_FragCoord.y);
+  vec2 wp=uCam+fc/uZoom;
+  vec2 cp=(floor(wp*4.)+.5)/4.;
+  float a=0.;
+  for(int i=0;i<16;i++){if(i>=uNSg)break;vec4 s=uSg[i];float d=length((cp-s.xy)*vec2(1.,1.35))/s.z;a=max(a,(1.-smoothstep(.3,1.,d))*s.w);}
+  if(a<.01)discard;
+  float n=fbm(cp*.11+uWind*4.);
+  a*=.45+n*1.1;
+  a=floor(a*10.+bay(ivec2(fc))*.9)/10.;
+  if(a<.02)discard;
+  o=vec4(mix(vec3(.66,.58,.42),vec3(.5,.46,.38),n)*uAmb,min(a,.62));
 }`;
 
 const SH_CLOUD_FS=`#version 300 es
@@ -5986,6 +6431,7 @@ function glCreate(canvas){
   gl.pixelStorei(gl.UNPACK_ALIGNMENT,1);
   R.pT=program(SH_FULL_VS,SH_TERRAIN_FS);
   R.pC=program(SH_FULL_VS,SH_CLOUD_FS);
+  R.pG=program(SH_FULL_VS,SH_SMOG_FS);
   R.pD=program(SH_FULL_VS,SH_DARK_FS);
   R.pS=program(SH_SPRITE_VS,SH_SPRITE_FS);
   R.pL=program(SH_LIGHT_VS,SH_LIGHT_FS);
@@ -6095,7 +6541,7 @@ function glTileData(R,i){
   const rd=road[i];
   R.dT[o]=t;R.dT[o+1]=fl;R.dT[o+2]=temp[i];R.dT[o+3]=rd?((rd&3)|(Math.max(rd>>2,0)<<2)):0;
   R.dS[o]=t>WATER&&t!==RIVER?255:0;R.dS[o+1]=elev[i];R.dS[o+2]=TREE[t]?255:0;R.dS[o+3]=t===RIVER?255:0;
-  R.dO[o]=kid&255;R.dO[o+1]=kid>>8;R.dO[o+2]=tier;R.dO[o+3]=0;
+  R.dO[o]=kid&255;R.dO[o+1]=kid>>8;R.dO[o+2]=tier;R.dO[o+3]=ore?ore[i]:0;
 }
 /* a tiny stand-in atlas, used only if the art module is missing */
 function atlStub(){
@@ -6162,7 +6608,7 @@ function folTint(fam,var_){
   return rgbU(su[0]+((ca[0]+(cb[0]-ca[0])*f)-su[0])*m|0,su[1]+((ca[1]+(cb[1]-ca[1])*f)-su[1])*m|0,su[2]+((ca[2]+(cb[2]-ca[2])*f)-su[2])*m|0);
 }
 function snowAt(i){
-  const cold=temp[i]/255*1.5-.25-Math.max(0,elev[i]-100)/155*.5;
+  const cold=temp[i]/255*1.5-.25+gWarm-Math.max(0,elev[i]-100)/155*.5;
   return cold<.04+.3*wintF;
 }
 
@@ -6175,7 +6621,7 @@ function sceneNature(x0,y0,x1,y1,zc,night){
     for(let x=Math.max(0,x0);x<Math.min(W,x1);x++){
       const i=y*W+x,t=tile[i];
       if(t===LAVA){if(lights)light(x+.5,y+.5,1.7,.75,LAVAL);continue;}
-      if(!DECO[t]||bmap[i]||road[i]||fire[i])continue;
+      if(!DECO[t]||bmap[i]||road[i]||fire[i]||ore[i])continue;
       const h=hsh(x,y),h2=hsh(y+7,x+13),jx=(h2-.5)*.36,dy=y+.88+(h-.5)*.12;
       switch(t){
         case FOREST:{
@@ -6209,6 +6655,35 @@ function sceneNature(x0,y0,x1,y1,zc,night){
       }
     }
   }
+  sceneRiches(x0,y0,x1,y1,al,lights);
+}
+/* deposits, and the mines, quarries, paddocks and pumps that work them */
+function sceneRiches(x0,y0,x1,y1,al,lights){
+  const L=SPR.mn,ph=(now()/260)|0;
+  for(const i of deposits){
+    const x=i%W,y=(i/W)|0;if(x<x0||x>=x1||y<y0||y>=y1)continue;
+    const r=ore[i];if(!r||tile[i]<=WATER||bmap[i])continue;
+    const k=oreOwner(i),worked=!!k&&k.age>=RES[r].use;
+    let nm='ore_'+r,team=0;
+    if(worked){nm=r===OIL?'pump_'+((ph+x)&3):'work_'+r;team=kU(k);}
+    put(L,FI(nm),x+.5,y+.97,depthY(y+.99),team,0,(x*7+y)&1&&r!==OIL?1:0,al,1,worked?1.2:1.3);
+    if(lights&&r===URANIUM)light(x+.5,y+.6,1.3,.35,rgbU(120,255,100));
+  }
+}
+/* a brown pall hangs over towns that burn too much coal and oil: the sixteen smokiest in view */
+const smogU=new Float32Array(64);
+function smogSources(cx,cy,vw,vh){
+  const list=[];
+  for(let n=1;n<vById.length;n++){
+    const v=vById[n];if(!v.alive||!(v.smog>1.5))continue;
+    const r=v.rad*1.6+5;
+    if(v.x+r<cx||v.x-r>cx+vw||v.y+r<cy||v.y-r>cy+vh)continue;
+    list.push(v);
+  }
+  list.sort((a,b)=>b.smog-a.smog);
+  const n=Math.min(16,list.length);
+  for(let m=0;m<n;m++){const v=list[m];smogU.set([v.x+.5,v.y+.5,v.rad*1.6+5,Math.min(.7,.2+v.smog/25)],m*4);}
+  return n;
 }
 
 /* ---------- buildings ---------- */
@@ -6453,7 +6928,7 @@ function glFrame(R,dt,running,lerp){
   bindT(0,R.tTerr,uT.uTerr);bindT(1,R.tSm,uT.uSm);bindT(2,R.tOwn,uT.uOwn);bindT(3,R.tKPal,uT.uKPal);bindT(4,R.tBio,uT.uBio);bindT(5,R.tNz,uT.uNz);
   gl.uniform2f(uT.uRes,cw,ch);gl.uniform2f(uT.uCam,cx,cy);gl.uniform2f(uT.uWorld,W,H);gl.uniform2f(uT.uSun,sunX,sunY);gl.uniform2f(uT.uWind,wind[0],wind[1]);
   gl.uniform1f(uT.uZoom,z);gl.uniform1f(uT.uTime,tsec%3600);gl.uniform1f(uT.uSeas,seasonP);gl.uniform1f(uT.uSAmp,seasonAmp);
-  gl.uniform1f(uT.uBord,S.borders?1:0);gl.uniform1f(uT.uCloud,S.clouds?1:0);gl.uniform1f(uT.uDay,dayLight);gl.uniform1f(uT.uDet,S.detail?1:.35);gl.uniform1f(uT.uSL,SL);gl.uniform1f(uT.uTreeA,topoMap?1:Math.max(0,Math.min(1,(cam.z-2.6)/1.6)));gl.uniform1f(uT.uTopo,topoMap?2:S.contours?1:0);
+  gl.uniform1f(uT.uBord,S.borders?1:0);gl.uniform1f(uT.uCloud,S.clouds?1:0);gl.uniform1f(uT.uDay,dayLight);gl.uniform1f(uT.uDet,S.detail?1:.35);gl.uniform1f(uT.uSL,SL);gl.uniform1f(uT.uWarm,gWarm);gl.uniform1f(uT.uTreeA,topoMap?1:Math.max(0,Math.min(1,(cam.z-2.6)/1.6)));gl.uniform1f(uT.uTopo,topoMap?2:S.contours?1:0);
   setSt(uT);
   gl.bindVertexArray(R.vaoFull);gl.drawArrays(gl.TRIANGLES,0,3);
 
@@ -6503,6 +6978,17 @@ function glFrame(R,dt,running,lerp){
   gl.useProgram(pS.p);gl.enable(gl.DEPTH_TEST);gl.depthMask(false);gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
   draw(SPR.po,R.vPost,2);
   gl.disable(gl.DEPTH_TEST);gl.depthMask(true);
+  /* smog over smoky towns */
+  if(!topoMap&&R.pG){
+    const ns=smogSources(cx,cy,cw/z,ch/z);
+    if(ns){
+      const pG=R.pG,uG=pG.u;gl.useProgram(pG.p);gl.enable(gl.BLEND);gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
+      bindT(5,R.tNz,uG.uNz);gl.uniform2f(uG.uRes,cw,ch);gl.uniform2f(uG.uCam,cx,cy);gl.uniform2f(uG.uWind,wind[0],wind[1]);gl.uniform1f(uG.uZoom,z);
+      const a=R.amb||[1,1,1];gl.uniform3f(uG.uAmb,Math.min(1,a[0]+.1),Math.min(1,a[1]+.1),Math.min(1,a[2]+.1));
+      gl.uniform1i(uG.uNSt,0);gl.uniform4fv(uG.uSg,smogU);gl.uniform1i(uG.uNSg,ns);
+      gl.bindVertexArray(R.vaoFull);gl.drawArrays(gl.TRIANGLES,0,3);
+    }
+  }
   /* clouds high above */
   if((S.clouds||nst)&&!topoMap){
     const fade=Math.max(0,Math.min(1,1-(cam.z-3)/5));
@@ -6857,7 +7343,7 @@ function rel3dBake(R){
   bindT(0,R.tTerr,uT.uTerr);bindT(1,R.tSm,uT.uSm);bindT(2,R.tOwn,uT.uOwn);bindT(3,R.tKPal,uT.uKPal);bindT(4,R.tBio,uT.uBio);bindT(5,R.tNz,uT.uNz);
   gl.uniform2f(uT.uRes,bw,bh);gl.uniform2f(uT.uCam,0,0);gl.uniform2f(uT.uWorld,W,H);gl.uniform2f(uT.uSun,0,0);gl.uniform2f(uT.uWind,0,0);
   gl.uniform1f(uT.uZoom,P);gl.uniform1f(uT.uTime,0);gl.uniform1f(uT.uSeas,seasonP);gl.uniform1f(uT.uSAmp,seasonAmp);
-  gl.uniform1f(uT.uBord,S.borders?1:0);gl.uniform1f(uT.uCloud,0);gl.uniform1f(uT.uDay,1);gl.uniform1f(uT.uDet,1);gl.uniform1f(uT.uSL,SL);
+  gl.uniform1f(uT.uBord,S.borders?1:0);gl.uniform1f(uT.uCloud,0);gl.uniform1f(uT.uDay,1);gl.uniform1f(uT.uDet,1);gl.uniform1f(uT.uSL,SL);gl.uniform1f(uT.uWarm,gWarm);
   gl.uniform1f(uT.uTreeA,topoMap?1:0);gl.uniform1f(uT.uTopo,topoMap?2:S.contours?1:0);gl.uniform1i(uT.uNSt,0);
   gl.bindVertexArray(R.vaoFull);gl.drawArrays(gl.TRIANGLES,0,3);
   if(SPR.mn.n){
@@ -7021,6 +7507,7 @@ function hud(){
   $('pop').textContent=fmtPop(cz+Math.max(0,civCount()-kingdoms.reduce((a,k)=>a+(k.alive?kPop(k):0),0))*6)+(vw<440?'':' people');
   let n=0;for(const k of kingdoms)if(k.alive)n++;
   $('realmCount').textContent=n===0?'No realms yet':n===1?'1 realm':n+' realms';
+  if(tool&&tool.id==='climate'&&!$('climBtns').hidden)$('climInfo').textContent=climateText();
 }
 function veil(on,title,text){
   $('veil').hidden=!on;
@@ -7028,6 +7515,22 @@ function veil(on,title,text){
   $('veilText').textContent=text||'';
 }
 const cap1=s=>s.charAt(0).toUpperCase()+s.slice(1);
+/* ---------- riches and smoke on the realm page ---------- */
+function richesHtml(k){
+  const ch=[],does=[];
+  for(let r=1;r<RES.length;r++){
+    const R=RES[r],own=k.rOwn?k.rOwn[r]:0,imp=k.rImp?k.rImp[r]:0,sw='<i style="background:'+R.col+'"></i>';
+    if(own&&k.age<R.use)ch.push('<span class="res dim">'+sw+R.n+(own>1?' \u00d7'+own:'')+' (from the '+AGE_NAME[R.use]+')</span>');
+    else if(own&&k.age>R.until)continue;
+    else if(own){ch.push('<span class="res new">'+sw+R.n+(own>1?' \u00d7'+own:'')+'</span>');does.push(R.n+': '+R.does);}
+    else if(imp){ch.push('<span class="res">'+sw+R.n+' (traded)</span>');does.push(R.n+' (half, by trade): '+R.does);}
+    else if(k.age>=R.use&&k.age<=R.until&&R.val>=.2)ch.push('<span class="res lack dim">'+sw+'No '+R.n.toLowerCase()+'</span>');
+  }
+  $('rRes').innerHTML=ch.length?ch.join(''):'<span class="res dim">None in its lands yet</span>';
+  let note=does.join('. ')+(does.length?'.':'');
+  if(k.age>=6)note+=(note?' ':'')+'Its towns are '+smokeWord(k)+(k.clean?'; '+Math.round(k.clean*100)+'% of its power is clean':'')+'.';
+  $('rResNote').textContent=note;
+}
 /* ---------- the ruler's mind on the realm page ---------- */
 const TEMPER_ADJ={aggr:['bold','peaceable'],caut:['careful','reckless'],ambi:['ambitious','content'],greed:['greedy','generous'],
   zeal:['devout','tolerant'],honor:['honourable','faithless'],curio:['curious','incurious'],cunning:['cunning','plain-dealing']};
@@ -7105,6 +7608,7 @@ function buildSheet(){
       '<h3 id="rAgeH"></h3><div class="meter" role="img" id="rMeterW"><i id="rMeter"></i></div><p id="rTechNow" class="fine"></p><div id="rTechs" class="chips"></div>'+
       '<div id="rWonders"></div>'+
       '<h3>Towns</h3><div id="rTowns"></div>'+
+      '<h3>Riches</h3><div id="rRes" class="chips"></div><p id="rResNote" class="fine"></p>'+
       '<h3>How it sees its neighbours</h3><div id="rRel"></div>'+
       '<div class="btnrow"><button id="rGo" class="act">Go to capital</button></div>';
   }else if(sheetMode==='chronicle'){
@@ -7113,6 +7617,8 @@ function buildSheet(){
     body.innerHTML='<dl id="hTiles" class="tiles"></dl>'+
       '<h3>The rise and fall of realms</h3><p class="fine">People in the largest realms over the years, on a scale where each line up is ten times more.</p>'+
       '<div id="hLegend" class="legend"></div><div class="chart"><canvas id="hChart" aria-label="Line chart of realm populations over time"></canvas><div id="hTip" class="tip" hidden></div></div>'+
+      '<h3>The climate</h3><p class="fine">How much warmer the world is than when it began, and how far the seas have risen. Smoke from industry warms the world; melting ice raises the seas.</p>'+
+      '<div class="chart"><canvas id="cChart" aria-label="Two line charts over the same years: world temperature change and sea level change"></canvas><div id="cTip" class="tip" hidden></div></div>'+
       '<h3>Leading realms</h3><table class="lead"><thead><tr><th>Realm</th><th>Age</th><th class="n">People</th><th class="n">Towns</th></tr></thead><tbody id="hLead"></tbody></table>'+
       '<h3>Wonders of the world</h3><div id="hWonders"></div>';
   }else{
@@ -7121,6 +7627,7 @@ function buildSheet(){
       optRow('Day and night','night',ONOFF)+optRow('Seasons','seasons',ONOFF)+optRow('Weather','weather',ONOFF)+optRow('Clouds','clouds',ONOFF)+optRow('Contour lines','contours',ONOFF)+optRow('Names on the map','labels',ONOFF)+
       optRow('Realm borders','borders',ONOFF)+optRow('Minimap','minimap',ONOFF)+optRow('Trees and peaks up close','detail',ONOFF)+
       optRow('Disasters','disasters',[['off','Off'],['rare','Rare'],['wild','Wild']])+
+      optRow('Smoke from industry','pollution',[['off','None'],['normal','Normal'],['heavy','Heavy']])+
       optRow('Temper of the times','mood',[['gentle','Gentle'],['normal','Normal'],['bloodthirsty','Bloodthirsty']])+
       optRow('Population limit','popcap',[['small','Small'],['normal','Normal'],['large','Large']])+
       '<h3>How to play</h3><p class="note">Raise land and paint the world with the Shape and Paint tools. Drop a few people from the Life tab on good land and they will found a realm. Speed time up and watch it grow through nine ages, from huts to cities and rockets. Tap Watch to let the camera follow the action.</p>'+
@@ -7168,6 +7675,7 @@ function refreshSheet(){
       '<div><dt>Gold</dt><dd>'+(k.gold|0)+'</dd></div><div><dt>Soldiers</dt><dd>'+k.nSold+'</dd></div><div><dt>Allies</dt><dd>'+k.allies.size+'</dd></div>';
     $('rFocus').textContent=FOCUS_WORD[k.focus]+(k.broke?'. The treasury is empty.':'.');
     mindHtml(k);
+    richesHtml(k);
     {
       const nt=Math.min(k.tech,TECH_LORE.length),lo=nt?TECH_LORE[nt-1]:0,hi=TECH_LORE[Math.min(nt,TECH_LORE.length-1)];
       const pct=nt>=TECH_LORE.length?100:Math.max(0,Math.min(100,Math.round((k.lore-lo)/(hi-lo)*100)));
@@ -7275,7 +7783,8 @@ const CATS=[
     {id:'erode',label:'Erode',ico:'\u{1F4A8}',mode:'brush',sculpt:1},
     {id:'flow',label:'Water flows',ico:'\u{1F4A6}',mode:'action'},
     {id:'spring',label:'Spring',ico:'\u26F2',mode:'tap'},
-    {id:'sea',label:'Sea level',ico:'\u{1F30A}',mode:'slider'}]},
+    {id:'sea',label:'Sea level',ico:'\u{1F30A}',mode:'slider'},
+    {id:'climate',label:'Climate',ico:'\u{1F321}\uFE0F',mode:'slider'}]},
   {label:'Paint',tools:[
     {id:'plant',label:'Plant trees',ico:'\u{1F333}',mode:'brush'},
     {id:'warm',label:'Warmer',ico:'\u2600\uFE0F',mode:'brush'},
@@ -7283,8 +7792,18 @@ const CATS=[
     {id:'wet',label:'Wetter',ico:'\u{1F4A7}',mode:'brush'},
     {id:'dry',label:'Drier',ico:'\u{1F335}',mode:'brush'},
     land('Ocean',DEEP),land('Shallows',WATER),land('Beach',SAND),land('Grass',GRASS),land('Forest',FOREST),land('Jungle',JUNGLE),
-    land('Pines',PINE),land('Savanna',SAVANNA),land('Desert',DESERT),land('Tundra',TUNDRA),land('Swamp',SWAMP),land('Hills',HILL),
+    land('Pines',PINE),land('Savanna',SAVANNA),land('Desert',DESERT),land('Tundra',TUNDRA),land('Ice',ICE),land('Swamp',SWAMP),land('Hills',HILL),
     land('Mountain',MOUNT),land('River',RIVER),land('Lava',LAVA)]},
+  {label:'Riches',tools:[
+    {id:'ore1',label:'Copper',ico:'\u{1F949}',mode:'tap',r:COPPER},
+    {id:'ore2',label:'Iron',ico:'\u26CF\uFE0F',mode:'tap',r:IRON},
+    {id:'ore3',label:'Horses',ico:'\u{1F40E}',mode:'tap',r:HORSES},
+    {id:'ore4',label:'Gold',ico:'\u{1FA99}',mode:'tap',r:GOLD},
+    {id:'ore5',label:'Marble',ico:'\u{1F3DB}\uFE0F',mode:'tap',r:MARBLE},
+    {id:'ore6',label:'Coal',ico:'\u{1FAA8}',mode:'tap',r:COAL},
+    {id:'ore7',label:'Oil',ico:'\u{1F6E2}\uFE0F',mode:'tap',r:OIL},
+    {id:'ore8',label:'Uranium',ico:'\u2622\uFE0F',mode:'tap',r:URANIUM},
+    {id:'ore0',label:'Remove',ico:'\u{1F9F9}',mode:'tap',r:0}]},
   {label:'Life',tools:[
     {id:'human',label:'Humans',ico:'\uD83E\uDDD1',mode:'spawn',type:HUMAN},
     {id:'elf',label:'Elves',ico:'\uD83E\uDDDD',mode:'spawn',type:ELF},
@@ -7347,10 +7866,12 @@ function buildTools(reset){
   el.scrollLeft=reset?0:keep;
   $('brushRow').hidden=!(tool.mode==='brush'||tool.mode==='spawn');
   $('strRow').hidden=!tool.sculpt;
-  $('seaRow').hidden=tool.mode!=='slider'||view3d;
+  $('seaRow').hidden=tool.id!=='sea'||view3d;
+  $('climRow').hidden=$('climBtns').hidden=tool.id!=='climate'||view3d;
   $('reliefRow').hidden=!view3d;
   if(view3d){$('brushRow').hidden=true;$('strRow').hidden=true;}
-  if(tool.mode==='slider'){$('seaIn').value=seaGoal-100;$('seaVal').textContent=fmtM((seaGoal-100)*60);}
+  if(tool.id==='sea'){$('seaIn').value=seaBase-100;$('seaVal').textContent=fmtM((seaBase-100)*60);}
+  if(tool.id==='climate')climUi();
 }
 
 /* ---------- input ---------- */
@@ -7382,8 +7903,8 @@ function tapAt(p){
   const t=toTile(p),ok=inB(t.x,t.y);
   switch(tool.id){
     case'spring':if(ok)snd('water',t.x,t.y,.8);if(ok&&makeRiver(t.x,t.y))chron('A new river springs from the earth'+nearName(t.x,t.y),'disaster',{x:t.x,y:t.y});break;
-    case'flood':snd('water');if(seaGoal<SL)seaGoal=SL;if(seaGoal>=118){toast('The seas can rise no higher.');break;}seaGoal=Math.min(118,seaGoal+6);chron('The heavens open and the seas begin to rise','disaster');break;
-    case'ebb':if(seaGoal>SL)seaGoal=SL;if(seaGoal<=82){toast('The seas can fall no lower.');break;}seaGoal=Math.max(82,seaGoal-6);chron('The seas draw back from the shores','disaster');break;
+    case'flood':snd('water');if(seaBase>=118){toast('The seas can rise no higher.');break;}seaBase=Math.min(118,seaBase+6);seaByGod=true;updSea();chron('The heavens open and the seas begin to rise','disaster');break;
+    case'ebb':if(seaBase<=82){toast('The seas can fall no lower.');break;}seaBase=Math.max(82,seaBase-6);seaByGod=true;updSea();chron('The seas draw back from the shores','disaster');break;
     case'storm':if(ok){storms.push({x:t.x,y:t.y,r:5+brush*1.5,t:0,life:(3+Math.random()*4)*YEAR|0,thunder:true,id:uid++});chron('A great storm gathers'+nearName(t.x,t.y),'disaster',{x:t.x,y:t.y});}break;
     case'inspect':inspect(t.x,t.y);break;
     case'bolt':strike(t.x,t.y);break;
@@ -7393,6 +7914,7 @@ function tapAt(p){
     case'volcano':if(t.x>3&&t.y>3&&t.x<W-4&&t.y<H-4)erupt(t.x,t.y);break;
     case'war':stirWar(t.x,t.y);break;
     case'peace':calmRealm(t.x,t.y);break;
+    default:if(tool.r!==undefined&&ok)placeOre(t.x,t.y,tool.r);
   }
 }
 ovc.addEventListener('pointerdown',e=>{
@@ -7478,7 +8000,26 @@ $('brush').addEventListener('input',e=>{brush=+e.target.value;$('brushVal').text
 $('strength').addEventListener('input',e=>{sculptStr=+e.target.value;$('strVal').textContent=sculptStr;});
 $('reliefIn').addEventListener('input',e=>{V3.relief=+e.target.value/10;$('reliefVal').textContent=(+e.target.value/10).toFixed(1)+'x';});
 $('exit3d').addEventListener('click',()=>setView3d(false));
-$('seaIn').addEventListener('input',e=>{seaGoal=100+(+e.target.value);$('seaVal').textContent=fmtM((+e.target.value)*60);});
+$('seaIn').addEventListener('input',e=>{seaBase=100+(+e.target.value);seaByGod=true;updSea();$('seaVal').textContent=fmtM((+e.target.value)*60);});
+/* ---------- the climate tool: the god's own warming or cooling, and the ice caps ---------- */
+function degTxt(d){return(d>0?'+':d<0?'\u2212':'')+Math.abs(d).toFixed(Math.abs(d)%1?1:0)+' \u00b0C';}
+function climUi(){$('climIn').value=uWarm/C_DEG;$('climVal').textContent=degTxt(uWarm/C_DEG);$('climInfo').textContent=climateText();}
+$('climIn').addEventListener('input',e=>{setGodWarm(+e.target.value);$('climVal').textContent=degTxt(+e.target.value);$('climInfo').textContent=climateText();});
+$('climIn').addEventListener('change',e=>{const d=+e.target.value;if(d)chron('The heavens '+(d>0?'warm':'chill')+' the world by '+Math.abs(d)+' degree'+(Math.abs(d)===1?'':'s'),'disaster');});
+$('meltBtn').addEventListener('click',()=>{snd('water');const n=meltCaps();if(n)toast('The ice caps melt. The seas will rise over the coming years.');climUi();});
+$('iceBtn').addEventListener('click',()=>{setGodWarm(-5);climateKick(2);chron('The heavens bring an ice age. Glaciers creep south and the seas draw back','disaster');toast('An ice age begins. Ice will spread and the seas will fall over the coming years.');climUi();});
+$('climReset').addEventListener('click',()=>{setGodWarm(0);chron('The heavens let the world find its own climate again','disaster');climUi();});
+/* the god places riches in the earth, or takes them away */
+function placeOre(x,y,r){
+  const i=y*W+x;
+  if(!r){let n=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)if(inB(x+dx,y+dy)&&ore[(y+dy)*W+x+dx]){setOre((y+dy)*W+x+dx,0);n++;}if(!n)toast('There are no riches here to take.');return;}
+  if(tile[i]<=WATER||tile[i]===RIVER||tile[i]===LAVA){toast('Riches can only be placed on dry land.');return;}
+  if(bmap[i]){const b=bmap[i];if(b.kind==='hall'){toast('Not under a town hall.');return;}destroyBld(b);}
+  if(road[i]){road[i]=0;}
+  setOre(i,r);snd('click');
+  const k=oreOwner(i);
+  toast(RES[r].n+' placed'+(k?' in the lands of '+k.name+(k.age<RES[r].use?'. They can use it from the '+AGE_NAME[RES[r].use]:''):'')+'.');
+}
 window.addEventListener('keydown',e=>{
   const tg=e.target&&e.target.tagName;if(tg==='TEXTAREA'||tg==='INPUT')return;
   if(e.key===' '){e.preventDefault();setSpeed(speed?0:1);}
@@ -7504,13 +8045,57 @@ function drawHistory(chartOnly){
   const cvh=$('hChart');if(!cvh)return;
   if(!chartOnly)histPanels();
   drawHistChart(cvh);
+  const cc=$('cChart');if(cc)drawClimChart(cc);
+}
+/* the climate as two small charts over the same years: temperature above, sea level below */
+let climHover=-1;
+function drawClimChart(cvh){
+  const css=getComputedStyle(document.body),v=n=>css.getPropertyValue(n).trim();
+  const ink=v('--ink')||'#12263f',muted=v('--muted')||'#4d6577',surf=v('--panel')||'#d7ebe4',cW=v('--viz-warm')||'#eb6834',cS=v('--viz-sea')||'#2a78d6';
+  const r=window.devicePixelRatio||1,w=cvh.clientWidth||400,h=cvh.clientHeight||200;
+  if(cvh.width!==Math.round(w*r)||cvh.height!==Math.round(h*r)){cvh.width=Math.round(w*r);cvh.height=Math.round(h*r);}
+  const c=cvh.getContext('2d');c.setTransform(r,0,0,r,0,0);c.clearRect(0,0,w,h);c.font='12px '+FONT;
+  const d=climHist;
+  if(d.length<2){c.fillStyle=muted;c.textBaseline='middle';c.fillText('The climate has not been recorded for long enough yet.',8,h/2);return;}
+  const y0=d[0][0],y1=d[d.length-1][0],L=48,R=74,T=18,gap=26,B=20,ph=(h-T-B-gap)/2,pw=w-L-R;
+  const X=yr=>L+(yr-y0)/Math.max(1,y1-y0)*pw;
+  const panels=[
+    {name:'World temperature',col:cW,get:p=>p[1],fmt:x=>degTxt(Math.round(x*10)/10),top:T,unit:1},
+    {name:'Sea level',col:cS,get:p=>p[2]*60,fmt:x=>(x>0?'+':x<0?'\u2212':'')+fmtM(Math.abs(x)),top:T+ph+gap,unit:60}];
+  for(const P of panels){
+    let lo=0,hi=0;for(const p of d){const x=P.get(p);if(x<lo)lo=x;if(x>hi)hi=x;}
+    const pad=P.unit;lo=Math.min(lo,-pad*.5);hi=Math.max(hi,pad);
+    const Y=x=>P.top+ph-(x-lo)/(hi-lo)*ph;
+    c.fillStyle=ink;c.textAlign='left';c.textBaseline='bottom';c.font='600 12px '+FONT;c.fillText(P.name,L,P.top-4);c.font='12px '+FONT;
+    /* a quiet zero line, labelled on the axis */
+    c.strokeStyle=muted;c.globalAlpha=.35;c.lineWidth=1;const yz=Math.round(Y(0))+.5;c.beginPath();c.moveTo(L,yz);c.lineTo(L+pw,yz);c.stroke();c.globalAlpha=1;
+    c.fillStyle=muted;c.textAlign='right';c.textBaseline='middle';c.fillText(P.fmt(0).replace(/^\u2212?/,''),L-6,yz);c.fillText(P.fmt(hi),L-6,Y(hi));
+    c.beginPath();d.forEach((p,n)=>{const x=X(p[0]),y=Y(P.get(p));if(n)c.lineTo(x,y);else c.moveTo(x,y);});
+    c.lineJoin='round';c.lineCap='round';c.strokeStyle=P.col;c.lineWidth=2;c.stroke();
+    const last=d[d.length-1],ex=X(last[0]),ey=Y(P.get(last));
+    c.fillStyle=surf;c.beginPath();c.arc(ex,ey,5,0,6.283);c.fill();c.fillStyle=P.col;c.beginPath();c.arc(ex,ey,4,0,6.283);c.fill();
+    c.fillStyle=ink;c.textAlign='left';c.textBaseline='middle';c.fillText(P.fmt(P.get(last)),ex+9,ey);
+    P.Y=Y;
+  }
+  c.fillStyle=muted;c.textAlign='center';c.textBaseline='top';
+  const step=Math.max(10,Math.pow(10,Math.floor(Math.log10(Math.max(10,y1-y0))))/(y1-y0>300?1:2));
+  for(let yr=Math.ceil(y0/step)*step;yr<=y1;yr+=step)c.fillText('Year '+yr,X(yr),h-B+4);
+  const tip=$('cTip');
+  if(climHover>=L&&climHover<=L+pw){
+    const yr=Math.round(y0+(climHover-L)/pw*(y1-y0));let p=d[0];for(const q of d){if(q[0]<=yr)p=q;else break;}
+    const x=Math.round(X(p[0]))+.5;c.strokeStyle=ink;c.globalAlpha=.5;c.lineWidth=1;c.beginPath();c.moveTo(x,T);c.lineTo(x,h-B);c.stroke();c.globalAlpha=1;
+    for(const P of panels){const y=P.Y(P.get(p));c.fillStyle=surf;c.beginPath();c.arc(x,y,5,0,6.283);c.fill();c.fillStyle=P.col;c.beginPath();c.arc(x,y,4,0,6.283);c.fill();}
+    tip.innerHTML='<b>Year '+p[0]+'</b><br>'+panels.map(P=>P.name+': '+P.fmt(P.get(p))).join('<br>');
+    tip.hidden=false;tip.style.left=Math.max(0,Math.min(w-170,climHover+10))+'px';tip.style.top='8px';
+  }else if(tip)tip.hidden=true;
 }
 function histPanels(){
   let tot=0,realms=0,wars2=0,best=-1;
   for(const k of kingdoms)if(k.alive){realms++;tot+=kCitizens(k);if(k.wars.size)wars2++;if(k.age>best)best=k.age;}
   const wn=Object.keys(wonderOf).filter(id=>wonderOf[id].prog>=1).length;
   $('hTiles').innerHTML='<div><dt>People in the world</dt><dd>'+fmtPop(tot)+'</dd></div><div><dt>Realms standing</dt><dd>'+realms+'</dd></div>'+
-    '<div><dt>Most advanced</dt><dd style="font-size:17px">'+(best<0?'None yet':AGE_NAME[best])+'</dd></div><div><dt>Wonders standing</dt><dd>'+wn+' of '+WONDERS.length+'</dd></div>';
+    '<div><dt>Most advanced</dt><dd style="font-size:17px">'+(best<0?'None yet':AGE_NAME[best])+'</dd></div><div><dt>Wonders standing</dt><dd>'+wn+' of '+WONDERS.length+'</dd></div>'+
+    '<div><dt>World temperature</dt><dd>'+degTxt(Math.round(degWarm()*10)/10)+'</dd></div><div><dt>Sea level</dt><dd>'+(SL>100?'+':SL<100?'\u2212':'')+fmtM(Math.abs(SL-100)*60)+'</dd></div>';
   const ks=histSeries();
   $('hLegend').innerHTML=ks.map(k=>'<span><i style="background:'+k.color+'"></i>'+esc(k.name)+(k.alive?'':' (fallen)')+'</span>').join('');
   const ink=getComputedStyle(document.body).getPropertyValue('--ink').trim()||'#12263f',muted=getComputedStyle(document.body).getPropertyValue('--muted').trim()||'#4d6577';
@@ -7579,10 +8164,11 @@ function drawHistChart(cvh){
   }else{const tip=$('hTip');if(tip)tip.hidden=true;}
 }
 document.addEventListener('pointermove',e=>{
+  const cc=$('cChart');if(cc&&e.target===cc){const r=cc.getBoundingClientRect();climHover=e.clientX-r.left;drawClimChart(cc);return;}
   const cvh=$('hChart');if(!cvh||e.target!==cvh)return;
   const r=cvh.getBoundingClientRect();histHover=e.clientX-r.left;drawHistory(true);
 });
-document.addEventListener('pointerleave',e=>{if(e.target&&e.target.id==='hChart'){histHover=-1;drawHistory(true);}},true);
+document.addEventListener('pointerleave',e=>{if(e.target&&e.target.id==='hChart'){histHover=-1;drawHistory(true);}if(e.target&&e.target.id==='cChart'){climHover=-1;drawClimChart(e.target);}},true);
 
 /* ===== 82-camera.js ===== */
 /* ================= camera: glides, following, and the cinematic director ================= */
@@ -8352,7 +8938,7 @@ function snapshot(){
     wars:[...k.wars].map(kid),allies:[...k.allies].map(kid),target:vid(k.target),port:vid(k.port),landing:k.landing,rally:vid(k.rally),rallyUntil:k.rallyUntil,
     pauseUntil:k.pauseUntil,boatCd:k.boatCd,broke:k.broke,born:k.born,launches:k.launches,colony:k.colony,peak:k.peak,hist:k.hist,pad:k.pad?vid(k.pad.v):0,
     mem:k.mem||{},rep:repOf(k),goal:k.goal?{type:k.goal.type,o:kid(k.goal.o),why:k.goal.why,s:k.goal.s,since:k.goal.since}:null,weary:k.weary||0,
-    pacts:k.pacts||[],kin:k.kin||[],nudge:k.nudge||null,mind:k.mind||null,heard:k.heard||0,cool:k.cool||{},reigns:k.reigns||null,nat:natOf(k),culture:cultureOf(k)}));
+    pacts:k.pacts||[],kin:k.kin||[],nudge:k.nudge||null,mind:k.mind||null,heard:k.heard||0,cool:k.cool||{},reigns:k.reigns||null,nat:natOf(k),culture:cultureOf(k),clean:k.clean||0,rSeen:k.rSeen||0}));
   const vs=[];
   for(let n=1;n<vById.length;n++){
     const v=vById[n];
@@ -8365,6 +8951,7 @@ function snapshot(){
   const wo={};for(const id in wonderOf){const b=wonderOf[id];wo[id]=[b.v.id,b.v.blds.indexOf(b)];}
   const ft={};for(const n in firstTech)ft[n]=kid(firstTech[n]);
   return{v:SAVE_V,W,H,size:S.size,nature:NATURE.slice(),tick,uid,kc,SL,seaGoal,launches,dayClock,capMul,
+    ore:ore.slice(),clim:{seaBase,carbon,cWarm,uWarm,melt,ice0,warmMark,lastSummit,hist:climHist.slice(-1500),summitEver:lastSummitEver},
     tile:tile.slice(),soil:soil.slice(),elev:elev.slice(),fire:fire.slice(),road:road.slice(),vown:vown.slice(),temp:temp.slice(),moist:moist.slice(),
     kingdoms:ks,villages:vs,units:us,boats:bs,grps:[...grps.values()],
     wars:wars.map(w=>({a:kid(w.a),b:kid(w.b),start:w.start,sa:w.sa,sb:w.sb})),
@@ -8376,6 +8963,10 @@ function snapshot(){
 function restore(d){
   alloc(d.W,d.H);
   tile.set(d.tile);soil.set(d.soil);elev.set(d.elev);fire.set(d.fire);road.set(d.road);vown.set(d.vown);temp.set(d.temp);moist.set(d.moist);
+  if(d.ore)ore.set(d.ore);rebuildDeposits();
+  {const c=d.clim||{};let ni=0;for(let i=0;i<N;i++)if(tile[i]===ICE)ni++;
+   seaBase=c.seaBase===undefined?d.seaGoal:c.seaBase;carbon=c.carbon||0;cWarm=c.cWarm||0;uWarm=c.uWarm||0;gWarm=cWarm+uWarm;melt=c.melt||0;ice0=c.ice0||Math.max(1,ni);iceNow=ni;
+   warmMark=c.warmMark||0;lastSummit=c.lastSummit===undefined?-1e9:c.lastSummit;climHist=c.hist||[];lastSummitEver=!!c.summitEver;rowW=new Float32Array(d.H).fill(gWarm);climY=0;seaByGod=false;}
   units=[];vById=[null];kingdoms=[];wars=[];boats=[];twisters=d.twisters||[];towers=[];fireList=[];effects=[];sched=[];chronicle=d.chronicle||[];bubbles=[];risen=[];
   planes=[];raising=[];history=d.history||[];wonderOf={};firstTech={};storms=d.storms||[];
   relM.clear();truM.clear();counts.fill(0);dirtyWalk=[];dirtyOver=true;chronDirty=true;lastEvent=null;
@@ -8386,7 +8977,7 @@ function restore(d){
       focus:o.focus,focusUntil:o.focusUntil,restUntil:o.restUntil,ruler:{name:o.ruler.name,title:o.ruler.title,trait:TRAITS.find(t=>t.id===o.ruler.trait)||TRAITS[0],tm:o.ruler.tm||null,since:o.ruler.since,until:o.ruler.until},
       wars:new Set(),allies:new Set(),nb:[],regs:new Set(),target:null,port:null,landing:o.landing,rally:null,rallyUntil:o.rallyUntil,pauseUntil:o.pauseUntil,boatCd:o.boatCd,
       nAdult:0,nSold:0,nBarr:0,nCar:0,nSiege:0,broke:o.broke,born:o.born,launches:o.launches||0,colony:!!o.colony,peak:o.peak||0,hist:o.hist||[],pad:null,
-      mem:o.mem||{},rep:o.rep===undefined?50:o.rep,goal:null,weary:o.weary||0,pacts:o.pacts||[],kin:o.kin||[],nudge:o.nudge||null,mind:o.mind||null,heard:o.heard||0,cool:o.cool||{},reigns:o.reigns||null,nat:o.nat===undefined?null:o.nat,culture:o.culture||null};
+      mem:o.mem||{},rep:o.rep===undefined?50:o.rep,goal:null,weary:o.weary||0,pacts:o.pacts||[],kin:o.kin||[],nudge:o.nudge||null,mind:o.mind||null,heard:o.heard||0,cool:o.cool||{},reigns:o.reigns||null,nat:o.nat===undefined?null:o.nat,culture:o.culture||null,clean:o.clean||0,rSeen:o.rSeen||0};
     kingdoms.push(k);
   }
   for(const o of d.villages){
@@ -8563,7 +9154,12 @@ function bootStart(){
 toast('Shape the land, settle a people, and watch them rise from huts to starships. Pinch or scroll to zoom.');
 window.__td={step,S,get busy(){return busy;},cam,centerOn,openSheet,closeSheet,erupt,blast,spawn,
   get s(){return{W,H,units,vById,kingdoms,wars,boats,counts,chronicle,tick,twisters,wonderOf,planes,history,effects};},
-  setDay(v){dayClock=v;},whisper(k,kind){return whisper(k,kind);},get G(){return G;},
+  setDay(v){dayClock=v;},
+  dbg(){const c=new Array(RES.length).fill(0);for(const i of deposits)c[ore[i]]++;let ice=0;for(let i=0;i<N;i++)if(tile[i]===ICE)ice++;return{dep:c,ice,ice0,SL,seaGoal,gWarm,carbon,melt};},
+  dbg4(){const out=[];for(const i of deposits){if(!oreWorked(i))continue;const x=i%W,y=(i/W)|0;let b=0;for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)if(inB(x+dx,y+dy)&&bmap[(y+dy)*W+x+dx])b++;out.push({x,y,r:ore[i],b});}out.sort((p,q)=>p.b-q.b);const seen={},res=[];for(const o of out)if(!seen[o.r]){seen[o.r]=1;res.push(o);}return res;},
+  dbg3(){const out=[],seen={};for(const i of deposits){const r=ore[i];const key=r+(oreWorked(i)?'w':'');if(seen[key])continue;seen[key]=1;out.push({x:i%W,y:(i/W)|0,r,w:oreWorked(i),t:tile[i]});}return out.sort((a,b)=>b.w-a.w);},
+  dbg2(){let best=null,bn=0;for(const i of deposits){const x=i%W,y=(i/W)|0;let n=0;for(const j of deposits){const dx=j%W-x,dy=((j/W)|0)-y;if(dx*dx+dy*dy<64)n++;}if(n>bn){bn=n;best={x,y};}}return best;},
+  climate:{get carbon(){return carbon;},set uw(v){setGodWarm(v);},melt:()=>meltCaps(),kick:n=>climateKick(n),text:()=>climateText(),get seaBase(){return seaBase;},set seaBase(v){seaBase=v;}},whisper(k,kind){return whisper(k,kind);},get G(){return G;},
   /* test hook: use any tool at a tile, as a tap or one brush stamp */
   use(id,x,y){let t=null;for(const c of CATS)for(const o of c.tools)if(o.id===id)t=o;if(!t)return false;
     if(t.mode==='brush')applyBrush(x,y,t);else if(t.mode==='spawn')spawnBrush(x,y,t.type);

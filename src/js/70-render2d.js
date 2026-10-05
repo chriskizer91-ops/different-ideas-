@@ -24,6 +24,12 @@ function drawDetail(ox,oy,z,x0,y0,x1,y1){
       }
       if(bmap[i]||fire[i]||road[i])continue;
       const h=hsh(x,y),px=ox+x*z;
+      if(ore[i]){
+        const r=ore[i],wk=oreWorked(i);
+        ctx.fillStyle=wk?'#3a2a1c':'#4a4440';ctx.fillRect((px+z*.2)|0,(py+z*.45)|0,Math.ceil(z*.6),Math.ceil(z*.4));
+        ctx.fillStyle=RES[r].col;ctx.fillRect((px+z*.32)|0,(py+z*.5)|0,Math.ceil(z*.36),Math.ceil(z*.24));
+        continue;
+      }
       switch(t){
         case GRASS:
           if(h<.14){ctx.fillStyle='#5f9a40';ctx.fillRect((px+z*h*4)|0,(py+z*.5)|0,Math.max(1,z*.14),Math.ceil(z*.26));}

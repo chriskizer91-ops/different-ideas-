@@ -18,6 +18,20 @@ Open `Tiny_Dominion.html` in any modern browser. Nothing to install, no network 
 - Nine world wonders, from the Standing Stones to the Star Gate, each raised over years.
 - Trade caravans, goods trains, freight trucks and merchant fleets. Armies carry clubs, spears, swords, muskets and rifles; catapults, cannons and tanks besiege walls; bombers fly in the Modern Age; rockets launch in the Space Age, until a colony ship leaves for the stars.
 
+**Riches of the earth**
+- Copper, iron, horses, gold, marble, coal, oil and uranium lie in the hills, mountains, plains, deserts and ice. Each shows on the map as a deposit, and from far away as a coloured spot.
+- When a realm's towns take in a deposit and it reaches the right age, it works it: mines with ore carts, marble quarries, horse paddocks and nodding oil pumps appear.
+- Riches matter. Copper, iron, horses and oil make armies stronger, and bombers need oil. Gold and coal fill the treasury, coal speeds research, marble speeds wonders and uranium speeds the space programme.
+- Settlers seek out unclaimed riches, rulers set their sights on new lands rich in them, and wars are fought to seize a neighbour's iron or oil. Allies and trade partners share what they have.
+
+**Climate, ice and the seas**
+- The far north is polar, with sea ice and an ice sheet; high cold land is iced too.
+- From the Industrial Age, factories and cities burn coal and oil. Smog hangs over the smokiest towns, and the smoke warms the world.
+- As the world warms, ice sheets melt and the meltwater raises the seas, which can swallow coastal towns. Snow lines retreat, and forests, grasslands and deserts shift. A colder world grows ice again and the seas fall.
+- Modern realms can choose clean power, and when the world grows warm enough they meet at summits to cut their smoke. Some refuse.
+- The god can warm or chill the world (from 6 °C colder to 8 °C warmer), melt the ice caps at once or bring an ice age, on top of setting the sea level directly.
+- The history page charts world temperature and sea level over the years.
+
 **Rulers who think**
 - Each realm runs its own decision-making, and each nation has a character of its own that outlives its rulers. When you make a world you choose whether each people (humans, elves, dwarves and orcs) is peaceful, average or warlike.
 - Every ruler has a temperament made of eight dispositions (aggression, caution, ambition, greed, zeal, honour, curiosity and cunning). It is born near the character of their nation, coloured by their own nature, and partly inherited from the ruler before. Rulers who share a name take regnal numbers.
@@ -29,12 +43,13 @@ Open `Tiny_Dominion.html` in any modern browser. Nothing to install, no network 
 
 **Terrain sandbox**
 - Sculpt with raise, lower, smooth, flatten (to the height where the stroke began), ridges, valleys, terraces, roughen and erosion, each with a size and strength slider.
-- Water flows: basins fill into lakes and rivers follow the real drainage of the land down to the sea. Move the sea level with a slider, or start from a flat plain or an empty ocean.
+- Water flows: basins fill into lakes and rivers follow the real drainage of the land down to the sea. Move the sea level with a slider, change the world's temperature with the climate tool, or start from a flat plain or an empty ocean.
 - Topographic map: elevation bands, contour lines every 5 steps (index contours every 25), sea-depth bands, peak heights in metres, a map grid and a height readout under the pointer. Contour lines can also sit over the normal view.
 - 3D view: the world as a tabletop model you can orbit, with adjustable relief, a glossy sea, layered earth sides, and towns, trees and people standing up on the land. Cities light up at night.
 
 **Your powers**
-- Paint: plant forests, make places warmer, colder, wetter or drier, or paint any terrain directly.
+- Paint: plant forests, make places warmer, colder, wetter or drier, or paint any terrain directly, ice included.
+- Riches: place or remove copper, iron, horses, gold, marble, coal, oil and uranium.
 - Place peoples and creatures, and call down rain, storms, fire, lightning, meteors, volcanoes, tornadoes, plague, war and peace.
 
 **Watching**
@@ -55,7 +70,7 @@ Open `Tiny_Dominion.html` in any modern browser. Nothing to install, no network 
 | Topographic map | Topo map button (Shape) | T |
 | 3D view | 3D view button; drag to turn, pinch to zoom, two fingers to move | V; drag, right-drag to move, scroll to zoom |
 
-Settings include graphics (HD or Classic), sharpness, day and night, seasons, weather, clouds, sound, music, world size, land shape, climate, peoples, the nature of each people (peaceful, average or warlike), the temper of the times and a head start of up to 300 years.
+Settings include graphics (HD or Classic), sharpness, day and night, seasons, weather, clouds, sound, music, world size, land shape, climate, peoples, the nature of each people (peaceful, average or warlike), the temper of the times, how much smoke industry makes, and a head start of up to 300 years.
 
 ## Building
 
@@ -79,9 +94,11 @@ Source layout (files are concatenated in name order into one script):
 | `src/js/20-units.js` | People, beasts, siege engines, caravans, ships |
 | `src/js/30-civ.js` | Towns, street planning, buildings, walls, wonders, economy |
 | `src/js/40-rulers.js` | Diplomacy and war, succession, ages and discoveries, space programme, history |
-| `src/js/45-mind.js` | The minds of rulers: temperament, memory, aims, yearly decisions, peace terms, whispers |
+| `src/js/45-mind.js` | The minds of rulers: temperament, memory, aims, yearly decisions, peace terms, whispers, clean power |
+| `src/js/47-riches.js` | Deposits of the eight resources: where they lie, who works them, what they give, what rulers and settlers want |
 | `src/js/50-nature.js` | Fire, disasters, the simulation tick |
 | `src/js/55-terra.js` | Terraforming and sculpting, climate, sea level, lakes and rivers, storms, heights in metres |
+| `src/js/57-climate.js` | Smoke, world warming, ice sheets that melt and grow, sea level from melted ice, summits, the god's climate controls |
 | `src/js/60-powers.js` | God powers and inspection |
 | `src/js/68-gfx.js` | Canvases, camera, day and night |
 | `src/js/70-render2d.js` | Classic 2D renderer (fallback) and map labels |

@@ -9,13 +9,57 @@ function drawHistory(chartOnly){
   const cvh=$('hChart');if(!cvh)return;
   if(!chartOnly)histPanels();
   drawHistChart(cvh);
+  const cc=$('cChart');if(cc)drawClimChart(cc);
+}
+/* the climate as two small charts over the same years: temperature above, sea level below */
+let climHover=-1;
+function drawClimChart(cvh){
+  const css=getComputedStyle(document.body),v=n=>css.getPropertyValue(n).trim();
+  const ink=v('--ink')||'#12263f',muted=v('--muted')||'#4d6577',surf=v('--panel')||'#d7ebe4',cW=v('--viz-warm')||'#eb6834',cS=v('--viz-sea')||'#2a78d6';
+  const r=window.devicePixelRatio||1,w=cvh.clientWidth||400,h=cvh.clientHeight||200;
+  if(cvh.width!==Math.round(w*r)||cvh.height!==Math.round(h*r)){cvh.width=Math.round(w*r);cvh.height=Math.round(h*r);}
+  const c=cvh.getContext('2d');c.setTransform(r,0,0,r,0,0);c.clearRect(0,0,w,h);c.font='12px '+FONT;
+  const d=climHist;
+  if(d.length<2){c.fillStyle=muted;c.textBaseline='middle';c.fillText('The climate has not been recorded for long enough yet.',8,h/2);return;}
+  const y0=d[0][0],y1=d[d.length-1][0],L=48,R=74,T=18,gap=26,B=20,ph=(h-T-B-gap)/2,pw=w-L-R;
+  const X=yr=>L+(yr-y0)/Math.max(1,y1-y0)*pw;
+  const panels=[
+    {name:'World temperature',col:cW,get:p=>p[1],fmt:x=>degTxt(Math.round(x*10)/10),top:T,unit:1},
+    {name:'Sea level',col:cS,get:p=>p[2]*60,fmt:x=>(x>0?'+':x<0?'\u2212':'')+fmtM(Math.abs(x)),top:T+ph+gap,unit:60}];
+  for(const P of panels){
+    let lo=0,hi=0;for(const p of d){const x=P.get(p);if(x<lo)lo=x;if(x>hi)hi=x;}
+    const pad=P.unit;lo=Math.min(lo,-pad*.5);hi=Math.max(hi,pad);
+    const Y=x=>P.top+ph-(x-lo)/(hi-lo)*ph;
+    c.fillStyle=ink;c.textAlign='left';c.textBaseline='bottom';c.font='600 12px '+FONT;c.fillText(P.name,L,P.top-4);c.font='12px '+FONT;
+    /* a quiet zero line, labelled on the axis */
+    c.strokeStyle=muted;c.globalAlpha=.35;c.lineWidth=1;const yz=Math.round(Y(0))+.5;c.beginPath();c.moveTo(L,yz);c.lineTo(L+pw,yz);c.stroke();c.globalAlpha=1;
+    c.fillStyle=muted;c.textAlign='right';c.textBaseline='middle';c.fillText(P.fmt(0).replace(/^\u2212?/,''),L-6,yz);c.fillText(P.fmt(hi),L-6,Y(hi));
+    c.beginPath();d.forEach((p,n)=>{const x=X(p[0]),y=Y(P.get(p));if(n)c.lineTo(x,y);else c.moveTo(x,y);});
+    c.lineJoin='round';c.lineCap='round';c.strokeStyle=P.col;c.lineWidth=2;c.stroke();
+    const last=d[d.length-1],ex=X(last[0]),ey=Y(P.get(last));
+    c.fillStyle=surf;c.beginPath();c.arc(ex,ey,5,0,6.283);c.fill();c.fillStyle=P.col;c.beginPath();c.arc(ex,ey,4,0,6.283);c.fill();
+    c.fillStyle=ink;c.textAlign='left';c.textBaseline='middle';c.fillText(P.fmt(P.get(last)),ex+9,ey);
+    P.Y=Y;
+  }
+  c.fillStyle=muted;c.textAlign='center';c.textBaseline='top';
+  const step=Math.max(10,Math.pow(10,Math.floor(Math.log10(Math.max(10,y1-y0))))/(y1-y0>300?1:2));
+  for(let yr=Math.ceil(y0/step)*step;yr<=y1;yr+=step)c.fillText('Year '+yr,X(yr),h-B+4);
+  const tip=$('cTip');
+  if(climHover>=L&&climHover<=L+pw){
+    const yr=Math.round(y0+(climHover-L)/pw*(y1-y0));let p=d[0];for(const q of d){if(q[0]<=yr)p=q;else break;}
+    const x=Math.round(X(p[0]))+.5;c.strokeStyle=ink;c.globalAlpha=.5;c.lineWidth=1;c.beginPath();c.moveTo(x,T);c.lineTo(x,h-B);c.stroke();c.globalAlpha=1;
+    for(const P of panels){const y=P.Y(P.get(p));c.fillStyle=surf;c.beginPath();c.arc(x,y,5,0,6.283);c.fill();c.fillStyle=P.col;c.beginPath();c.arc(x,y,4,0,6.283);c.fill();}
+    tip.innerHTML='<b>Year '+p[0]+'</b><br>'+panels.map(P=>P.name+': '+P.fmt(P.get(p))).join('<br>');
+    tip.hidden=false;tip.style.left=Math.max(0,Math.min(w-170,climHover+10))+'px';tip.style.top='8px';
+  }else if(tip)tip.hidden=true;
 }
 function histPanels(){
   let tot=0,realms=0,wars2=0,best=-1;
   for(const k of kingdoms)if(k.alive){realms++;tot+=kCitizens(k);if(k.wars.size)wars2++;if(k.age>best)best=k.age;}
   const wn=Object.keys(wonderOf).filter(id=>wonderOf[id].prog>=1).length;
   $('hTiles').innerHTML='<div><dt>People in the world</dt><dd>'+fmtPop(tot)+'</dd></div><div><dt>Realms standing</dt><dd>'+realms+'</dd></div>'+
-    '<div><dt>Most advanced</dt><dd style="font-size:17px">'+(best<0?'None yet':AGE_NAME[best])+'</dd></div><div><dt>Wonders standing</dt><dd>'+wn+' of '+WONDERS.length+'</dd></div>';
+    '<div><dt>Most advanced</dt><dd style="font-size:17px">'+(best<0?'None yet':AGE_NAME[best])+'</dd></div><div><dt>Wonders standing</dt><dd>'+wn+' of '+WONDERS.length+'</dd></div>'+
+    '<div><dt>World temperature</dt><dd>'+degTxt(Math.round(degWarm()*10)/10)+'</dd></div><div><dt>Sea level</dt><dd>'+(SL>100?'+':SL<100?'\u2212':'')+fmtM(Math.abs(SL-100)*60)+'</dd></div>';
   const ks=histSeries();
   $('hLegend').innerHTML=ks.map(k=>'<span><i style="background:'+k.color+'"></i>'+esc(k.name)+(k.alive?'':' (fallen)')+'</span>').join('');
   const ink=getComputedStyle(document.body).getPropertyValue('--ink').trim()||'#12263f',muted=getComputedStyle(document.body).getPropertyValue('--muted').trim()||'#4d6577';
@@ -84,7 +128,8 @@ function drawHistChart(cvh){
   }else{const tip=$('hTip');if(tip)tip.hidden=true;}
 }
 document.addEventListener('pointermove',e=>{
+  const cc=$('cChart');if(cc&&e.target===cc){const r=cc.getBoundingClientRect();climHover=e.clientX-r.left;drawClimChart(cc);return;}
   const cvh=$('hChart');if(!cvh||e.target!==cvh)return;
   const r=cvh.getBoundingClientRect();histHover=e.clientX-r.left;drawHistory(true);
 });
-document.addEventListener('pointerleave',e=>{if(e.target&&e.target.id==='hChart'){histHover=-1;drawHistory(true);}},true);
+document.addEventListener('pointerleave',e=>{if(e.target&&e.target.id==='hChart'){histHover=-1;drawHistory(true);}if(e.target&&e.target.id==='cChart'){climHover=-1;drawClimChart(e.target);}},true);

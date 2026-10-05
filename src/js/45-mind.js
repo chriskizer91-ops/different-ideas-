@@ -106,6 +106,7 @@ const SAY={
   war_sly:['While {O} bleeds elsewhere, we strike.','They will never see it coming.'],
   war_goal:['The time has come. {O} falls.','For years we have prepared. Now, {O}!'],
   war_fear:['Strike {O} before {O} strikes us.'],
+  war_res:['The {X} of {O} will be ours.','Our {ARMY} need their {X}.','Why should {O} keep all that {X}?'],
   war_betray:['Alliances are for the weak. {O} is ours.'],
   peace_weary:['Enough blood. Let there be peace with {O}.','Our people are tired of war.'],
   peace_losing:['We cannot win this. Seek terms with {O}.'],
@@ -119,6 +120,7 @@ const SAY={
   pact:['Let our caravans roll to {O}.','Trade makes us both rich.'],
   marry:['Our houses are joined.','A royal wedding! Let the bells ring.'],
   patron:['Knowledge is our greatest treasure.','Build schools, not swords.'],
+  clean:['Clear skies for our children.','The seas will not take our cities.','Wind and sun will power us now.'],
   refuse_war:['The heavens ask too much. We will not fight.','War? Not while I live.'],
   refuse_peace:['Peace? Not while {O} stands.','The heavens are wrong. We fight on.'],
   refuse_lore:['Books will not fill our granaries.','We have no time for scrolls.'],
@@ -136,11 +138,13 @@ function chooseGoal(k){
   const tm=tmOf(k),opts=[],maxV=5+k.age+(k.ruler.trait.id==='builder'?2:0);
   opts.push({type:'prosper',s:.15+tm.greed*.55,why:'a merchant’s heart'});
   opts.push({type:'enlighten',s:.1+tm.curio*.6+(wonderFor(k)?.08:0),why:'a curious mind'});
-  if(k.villages.length<maxV)opts.push({type:'expand',s:.12+tm.ambi*.5,why:'room to grow'});
+  if(k.villages.length<maxV){const fr=freeRiches(k,60);opts.push({type:'expand',s:.12+tm.ambi*.5+(fr?fr.v*.5:0),why:fr&&fr.v>.12?'the '+RES[fr.r].n.toLowerCase()+' in the wilds':'room to grow'});}
   for(const n of k.nb){
     const o=n.k;if(!o.alive||!canReach(k,o))continue;
     const adv=allyStr(k)/(allyStr(o)+1),g=grudge(k,o),f=fearOf(k,o);
-    if(adv>1.3&&!k.allies.has(o))opts.push({type:'conquer',o,s:tm.ambi*.3+tm.aggr*.3+covet(k,o)*.25+Math.min(.25,(adv-1)*.2)-tm.caut*.25+(natOf(k)-1)*.08,why:adv>2?'they are weak':covet(k,o)>.3?'their riches':'room to grow'});
+    const rw=resWant(k,o);
+    if(adv>1.3&&!k.allies.has(o))opts.push({type:'conquer',o,s:tm.ambi*.3+tm.aggr*.3+covet(k,o)*.25+(rw?rw.v*.5:0)+Math.min(.25,(adv-1)*.2)-tm.caut*.25+(natOf(k)-1)*.08,
+      why:rw&&rw.v>.18?'their '+RES[rw.r].n.toLowerCase():adv>2?'they are weak':covet(k,o)>.3?'their riches':'room to grow'});
     if(g>25)opts.push({type:'avenge',o,s:g/100*(.7+tm.aggr*.4)-tm.honor*.05,why:memOf(k,o).why||'old wrongs'});
     if(f>.25)opts.push({type:'defend',o,s:f*(.6+tm.caut*.6),why:'they grow too strong'});
   }
@@ -168,6 +172,7 @@ function weighWar(k,o){
   if(adv>1)f.push(['they are weaker',Math.min(.45,(adv-1)*.3)*(1-tm.caut*.5)]);else f.push(['they are stronger',-(1/Math.max(.2,adv)-1)*.35*(.5+tm.caut)]);
   if(g>5)f.push(['old grudge',g/100*.55]);
   const cv=covet(k,o);if(cv>.05)f.push(['covets their land',cv*tm.ambi*.55]);
+  const rw=resWant(k,o);if(rw)f.push(['their '+RES[rw.r].n.toLowerCase(),rw.v*(.45+tm.greed*.35+tm.ambi*.25)]);
   if(o.race!==k.race&&tm.zeal>.5)f.push(['zeal against the '+SPEC[o.race].pl.toLowerCase(),(tm.zeal-.5)*.5]);
   if(o.wars.size)f.push(['they are busy at war',tm.cunning*.3]);
   if(goal)f.push(['it is our goal',.4]);
@@ -236,6 +241,7 @@ function weighPact(k,o){
   const tm=tmOf(k),f=[['greed',tm.greed*.4],['friendship',rel(k,o)/100*.3]];
   let m=0;for(const v of k.villages)if(v.market)m++;
   if(!m)f.push(['no markets yet',-.3]);
+  const rw=resWant(k,o);if(rw)f.push(['to trade for their '+RES[rw.r].n.toLowerCase(),rw.v*.7]);
   return{kind:'pact',o,u:sumWhy(f)-.1,f};
 }
 function weighMarriage(k,o){
@@ -280,6 +286,7 @@ function rulerThink(k){
     if((x=weighMarriage(k,o)))opts.push(x);
   }
   if(!k.wars.size&&k.gold>320)opts.push({kind:'festival',o:null,u:.1+Math.min(.4,k.gold/4000)-tm.greed*.2,f:[['a full treasury',Math.min(.4,k.gold/4000)],['greed',-tm.greed*.2]]});
+  {const c=weighClean(k);if(c)opts.push(c);}
   if(k.gold>250&&tm.curio>.45)opts.push({kind:'patron',o:null,u:tm.curio*.45-tm.greed*.15,f:[['curiosity',tm.curio*.45],['greed',-tm.greed*.15]]});
   opts.sort((a,b)=>b.u-a.u);
   const best=opts[0];
@@ -291,6 +298,18 @@ function rulerThink(k){
   for(const p of opts){if(shown.length>=5)break;if((per[p.kind]=(per[p.kind]||0)+1)<=2||p===best)shown.push(p);}
   k.mind={y:yearNow(),bar,opts:shown.map(p=>({kind:p.kind,o:p.o?p.o.id:0,u:p.u,f:p.f.filter(x=>Math.abs(x[1])>.02).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,4),done:p===best&&!!did})),did};
 }
+/* clean power: weighed by realms of the Modern Age once smoke and rising seas trouble them */
+function weighClean(k,atSummit){
+  if(k.age<7||(k.clean||0)>=.95||(!atSummit&&k.gold<180))return null;
+  const tm=tmOf(k),deg=degWarm(),f=[];
+  if(deg>.4)f.push(['the world is warming',Math.min(.5,(deg-.4)*.16)]);
+  if(SL>100){let c=0;for(const v of k.villages)if(v.dock)c++;f.push(['the seas are rising',Math.min(.45,(SL-100)*.06)*(.3+Math.min(1,c/Math.max(1,k.villages.length))*1.2)]);}
+  if((k.smoke||0)>8)f.push(['smog over our cities',Math.min(.25,(k.smoke-8)*.012)]);
+  f.push(['curiosity',tm.curio*.15]);f.push(['caution',tm.caut*.1]);
+  f.push(['the cost',-.2-tm.greed*.25]);
+  if(hasRes(k,OIL)||hasRes(k,COAL))f.push(['our own coal and oil',-.1]);
+  return{kind:'clean',o:null,u:sumWhy(f),f};
+}
 const WAR_WHY={'a warlike temper':'for glory','a warlike people':'as warlike peoples do','they are weaker':'seeing their weakness','old grudge':'to avenge old wrongs','covets their land':'coveting their land','they are busy at war':'while they are busy elsewhere',
   'it is our goal':'as long planned','the heavens urge war':'urged on by the heavens','a bloodthirsty age':'in a bloodthirsty age'};
 function lead(f){let b=null;for(const x of f)if(x[1]>0&&(!b||x[1]>b[1]))b=x;return b?b[0]:'';}
@@ -299,9 +318,9 @@ function act(k,p){
   switch(p.kind){
     case'war':{
       const betray=k.allies.has(o);
-      const key=betray?'war_betray':why==='old grudge'?'war_grudge':why==='they are weaker'?'war_weak':why==='covets their land'?'war_covet':why.indexOf('zeal')===0?'war_zeal':why==='they are busy at war'?'war_sly':why==='it is our goal'?'war_goal':'war_weak';
-      const ph=why.indexOf('zeal')===0?'out of zeal':WAR_WHY[why]||'';
-      if(declareWar(k,o,rulerName(k)+' of '+k.name+' declares war on '+o.name+(ph?', '+ph:''))){say(k,SAY[key],o,memOf(k,o).why);return'war on '+o.name;}
+      const key=betray?'war_betray':why==='old grudge'?'war_grudge':why==='they are weaker'?'war_weak':why==='covets their land'?'war_covet':why.indexOf('zeal')===0?'war_zeal':why==='they are busy at war'?'war_sly':why==='it is our goal'?'war_goal':why.indexOf('their ')===0?'war_res':'war_weak';
+      const ph=why.indexOf('zeal')===0?'out of zeal':why.indexOf('their ')===0?'to seize '+why:WAR_WHY[why]||'';
+      if(declareWar(k,o,rulerName(k)+' of '+k.name+' declares war on '+o.name+(ph?', '+ph:''))){say(k,SAY[key],o,key==='war_res'?why.slice(6):memOf(k,o).why);return'war on '+o.name;}
       return null;
     }
     case'peace':{
@@ -369,6 +388,12 @@ function act(k,p){
       chron(k.name+' holds a grand festival','peace',k,true);
       return'a grand festival';
     }
+    case'clean':{
+      const cost=Math.round(120+k.gold*.12);k.gold-=cost;k.clean=Math.min(1,(k.clean||0)+.25);
+      chron(k.name+(k.age>=8?' lights its cities with fusion power':k.clean>=.9?' runs almost wholly on wind and sun':' builds wind farms and solar fields')+', cutting its smoke','tech',k);
+      say(k,SAY.clean,null);
+      return'clean power';
+    }
     case'patron':{
       const g=Math.round(k.gold*.3);k.gold-=g;k.lore+=g*.25;
       chron(rulerName(k)+' of '+k.name+' pours '+g+' gold into scholars and libraries','tech',k);say(k,SAY.patron,null);
@@ -428,5 +453,5 @@ function whisper(k,kind){
 /* describe a weighed option for the realm page */
 function optLabel(p){
   const o=p.o?kingdoms[p.o-1]:null,n=o?o.name:'';
-  return{war:'War on '+n,peace:'Peace with '+n,ally:'Alliance with '+n,tribute:'Demand tribute from '+n,gift:'Send gifts to '+n,pact:'Trade pact with '+n,marry:'Royal marriage with '+n,festival:'Hold a festival',patron:'Fund scholars'}[p.kind]||p.kind;
+  return{war:'War on '+n,peace:'Peace with '+n,ally:'Alliance with '+n,tribute:'Demand tribute from '+n,gift:'Send gifts to '+n,clean:'Build clean power',pact:'Trade pact with '+n,marry:'Royal marriage with '+n,festival:'Hold a festival',patron:'Fund scholars'}[p.kind]||p.kind;
 }

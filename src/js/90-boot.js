@@ -74,7 +74,12 @@ function bootStart(){
 toast('Shape the land, settle a people, and watch them rise from huts to starships. Pinch or scroll to zoom.');
 window.__td={step,S,get busy(){return busy;},cam,centerOn,openSheet,closeSheet,erupt,blast,spawn,
   get s(){return{W,H,units,vById,kingdoms,wars,boats,counts,chronicle,tick,twisters,wonderOf,planes,history,effects};},
-  setDay(v){dayClock=v;},whisper(k,kind){return whisper(k,kind);},get G(){return G;},
+  setDay(v){dayClock=v;},
+  dbg(){const c=new Array(RES.length).fill(0);for(const i of deposits)c[ore[i]]++;let ice=0;for(let i=0;i<N;i++)if(tile[i]===ICE)ice++;return{dep:c,ice,ice0,SL,seaGoal,gWarm,carbon,melt};},
+  dbg4(){const out=[];for(const i of deposits){if(!oreWorked(i))continue;const x=i%W,y=(i/W)|0;let b=0;for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)if(inB(x+dx,y+dy)&&bmap[(y+dy)*W+x+dx])b++;out.push({x,y,r:ore[i],b});}out.sort((p,q)=>p.b-q.b);const seen={},res=[];for(const o of out)if(!seen[o.r]){seen[o.r]=1;res.push(o);}return res;},
+  dbg3(){const out=[],seen={};for(const i of deposits){const r=ore[i];const key=r+(oreWorked(i)?'w':'');if(seen[key])continue;seen[key]=1;out.push({x:i%W,y:(i/W)|0,r,w:oreWorked(i),t:tile[i]});}return out.sort((a,b)=>b.w-a.w);},
+  dbg2(){let best=null,bn=0;for(const i of deposits){const x=i%W,y=(i/W)|0;let n=0;for(const j of deposits){const dx=j%W-x,dy=((j/W)|0)-y;if(dx*dx+dy*dy<64)n++;}if(n>bn){bn=n;best={x,y};}}return best;},
+  climate:{get carbon(){return carbon;},set uw(v){setGodWarm(v);},melt:()=>meltCaps(),kick:n=>climateKick(n),text:()=>climateText(),get seaBase(){return seaBase;},set seaBase(v){seaBase=v;}},whisper(k,kind){return whisper(k,kind);},get G(){return G;},
   /* test hook: use any tool at a tile, as a tap or one brush stamp */
   use(id,x,y){let t=null;for(const c of CATS)for(const o of c.tools)if(o.id===id)t=o;if(!t)return false;
     if(t.mode==='brush')applyBrush(x,y,t);else if(t.mode==='spawn')spawnBrush(x,y,t.type);

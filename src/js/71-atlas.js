@@ -1897,5 +1897,59 @@ function extras(){
   {cv(6,16);vl(1,0,16,M.wood[1]);px(1,0,M.gold[3]);banner(2,1,3,8);add('banner',1,15);}
 }
 GENS.push(extras);
+
+/* ---------- riches of the earth: raw deposits, the works that mine them, and smog ---------- */
+function depositArt(){
+  const M=MT;
+  const rock=(name,base,spk,n)=>{cv(14,10);seed=name.length*13+n;sph(6,9,5,5.6,base,{clipY:9});sph(10,9,3.2,3.6,base,{clipY:9});
+    for(let q=0;q<n;q++){const x=rint(2,12),y=rint(4,8);if(getPx(x,y))px(x,y,spk[q%spk.length]);}
+    px(5,4,base[4]);add(name,7,9);};
+  rock('ore_1',M.rock,[hex('#e08a40'),hex('#4fb090'),hex('#c86a30')],9);
+  rock('ore_2',M.rock,[hex('#b04a2a'),hex('#7a2e1e'),hex('#d06a3a')],10);
+  rock('ore_4',M.rock,[M.gold[4],M.gold[3],hex('#fff6c0'),M.gold[2]],9);
+  rock('ore_6',ramp('#18161a #242228 #333138 #45434a #59575e'),[hex('#0a0a0c'),hex('#7a7880'),hex('#0a0a0c')],8);
+  rock('ore_8',ramp('#2e3a2c #44523e #5e6a52 #788468 #929c80'),[emi('#7dff6a'),emi('#c0ff80'),hex('#3a8a30')],8);
+  /* horses grazing */
+  const horse=(x,yb,c,cd,dir)=>{
+    rc(x+1,yb-4,6,3,c[2]);hl(x+1,yb-4,6,c[3]);hl(x+1,yb-2,6,c[1]);
+    for(const lx of[1,2,5,6])vl(x+lx,yb-1,2,cd);
+    if(dir>0){rc(x+7,yb-3,2,2,c[2]);px(x+8,yb-1,c[2]);px(x+7,yb-4,cd);px(x,yb-4,cd);px(x,yb-3,cd);}
+    else{rc(x-1,yb-3,2,2,c[2]);px(x-1,yb-1,c[2]);px(x,yb-4,cd);px(x+7,yb-4,cd);px(x+7,yb-3,cd);}
+  };
+  {cv(20,9);const B=ramp('#4a2a16 #6a3e22 #8a5a34 #a87448 #c49264'),Wt=ramp('#9a9488 #bcb6aa #dcd6ca #eee8dc #fcf8ee');
+    horse(1,8,B,hex('#2a1a10'),1);horse(11,7,Wt,hex('#5a5048'),-1);add('ore_3',10,8);}
+  /* marble outcrop */
+  {cv(14,10);const Wm=M.wstone;rc(1,4,5,5,Wm[2]);hl(1,4,5,Wm[4]);vl(5,4,5,Wm[1]);
+    rc(5,2,6,7,Wm[2]);hl(5,2,6,Wm[4]);vl(10,2,7,Wm[1]);ln(6,4,9,7,Wm[1]);rc(9,6,4,3,Wm[3]);hl(9,6,4,Wm[4]);hl(0,9,14,M.rock[1]);add('ore_5',7,9);}
+  /* an oil seep */
+  {cv(14,6);ell(7,3,6,2.4,hex('#120e16'));ell(6,3,3,1.2,hex('#1e1824'));px(4,2,hex('#6a4a9a'));px(5,2,hex('#2a7a8a'));px(9,3,hex('#8a6a2a'));
+    px(1,1,hex('#4a4038'));px(12,2,hex('#4a4038'));px(12,1,hex('#6a5a48'));add('ore_7',7,5);}
+  /* a mine head: timber frame, wheel, dark adit and a cart of ore */
+  const mine=(name,ore)=>{cv(18,16);const yb=15,Wd=M.wood;
+    sph(9,yb,7,4,M.rock,{clipY:yb});rc(7,yb-4,4,4,HOLE);hl(6,yb-5,6,Wd[3]);vl(6,yb-4,4,Wd[2]);vl(11,yb-4,4,Wd[1]);
+    ln(5,yb-5,9,yb-13,Wd[2]);ln(13,yb-5,9,yb-13,Wd[1]);hl(7,yb-9,5,Wd[2]);
+    ell(9,yb-13,2,2,M.iron[3]);px(9,yb-13,M.iron[1]);vl(9,yb-11,6,M.iron[2]);
+    rc(13,yb-3,4,2,M.iron[2]);hl(13,yb-4,4,ore[0]);px(14,yb-5,ore[1]);px(15,yb-4,ore[2]||ore[0]);px(13,yb-1,M.iron[0]);px(16,yb-1,M.iron[0]);
+    add(name,9,yb);};
+  mine('work_1',[hex('#e08a40'),hex('#4fb090')]);mine('work_2',[hex('#b04a2a'),hex('#d06a3a')]);mine('work_4',[M.gold[4],M.gold[3]]);
+  mine('work_6',[hex('#0e0e10'),hex('#3a383e')]);mine('work_8',[emi('#7dff6a'),hex('#3a8a30')]);
+  /* a paddock with horses */
+  {cv(20,12);const yb=11,Wd=M.lwood;hl(1,yb-6,18,Wd[3]);hl(1,yb-3,18,Wd[2]);for(let x=1;x<20;x+=4)vl(x,yb-7,7,Wd[1]);
+    horse(4,yb-1,ramp('#4a2a16 #6a3e22 #8a5a34 #a87448 #c49264'),hex('#2a1a10'),1);add('work_3',10,yb);}
+  /* a marble quarry: cut terraces and a block on a hoist */
+  {cv(18,14);const yb=13,Wm=M.wstone;rc(1,yb-4,16,5,Wm[1]);rc(3,yb-7,12,3,Wm[2]);rc(5,yb-9,8,2,Wm[3]);hl(1,yb-4,16,Wm[4]);hl(3,yb-7,12,Wm[4]);hl(5,yb-9,8,Wm[4]);
+    for(const x of[4,9,13])vl(x,yb-3,3,Wm[0]);vl(15,yb-13,10,M.wood[2]);hl(11,yb-13,5,M.wood[3]);vl(12,yb-12,2,M.iron[2]);rc(11,yb-10,3,2,Wm[4]);add('work_5',9,yb);}
+  /* an oil pump jack, four frames of its nodding beam */
+  for(let f=0;f<4;f++){cv(20,16);const yb=15,ang=[-.22,0,.22,0][f];
+    rc(2,yb-1,16,2,M.concrete[2]);hl(2,yb-1,16,M.concrete[3]);
+    ln(9,yb-1,10,yb-9,M.iron[2]);ln(12,yb-1,10,yb-9,M.iron[1]);
+    const bx=Math.cos(ang),by=Math.sin(ang);
+    for(let t=-7;t<=6;t++){const x=Math.round(10+t*bx),y=Math.round(yb-10+t*by);px(x,y,TEAM[3]);px(x,y+1,TEAM[1]);}
+    const hx=Math.round(10-7*bx),hy=Math.round(yb-10-7*by);rc(hx-1,hy-1,2,4,TEAM[2]);vl(hx-1,hy+3,yb-hy-3,M.iron[1]);
+    const cx=Math.round(10+6*bx),cy=Math.round(yb-10+6*by);ln(cx,cy+1,15,yb-4,M.iron[1]);ell(15,yb-4,2,2,M.iron[3]);px(15,yb-4,M.iron[1]);
+    rc(16,yb-7,3,6,M.steel[2]);hl(16,yb-7,3,M.steel[4]);
+    add('pump_'+f,10,yb);}
+}
+GENS.push(depositArt);
 return pack();
 }

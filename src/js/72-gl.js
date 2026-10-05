@@ -22,7 +22,7 @@ const SH_TERRAIN_FS=`#version 300 es
 precision highp float;precision highp int;
 uniform highp sampler2D uTerr,uSm,uOwn,uKPal,uBio,uNz;
 uniform vec2 uRes,uCam,uWorld,uSun,uWind;
-uniform float uZoom,uTime,uSeas,uSAmp,uBord,uCloud,uDay,uDet,uSL,uTreeA,uTopo;
+uniform float uZoom,uTime,uSeas,uSAmp,uBord,uCloud,uDay,uDet,uSL,uTreeA,uTopo,uWarm;
 uniform vec4 uSt[6];uniform int uNSt;
 out vec4 o;
 ${SH_COMMON}
@@ -38,6 +38,7 @@ vec3 BIO(int t){
   vec3 sc=mix(texelFetch(uBio,ivec2(t,a),0).rgb,texelFetch(uBio,ivec2(t,b),0).rgb,f);
   return mix(texelFetch(uBio,ivec2(t,1),0).rgb,sc,uSAmp);
 }
+const vec3 ORE[9]=vec3[9](vec3(0.),vec3(.82,.47,.23),vec3(.64,.29,.17),vec3(.54,.35,.2),vec3(.95,.77,.2),vec3(.93,.92,.88),vec3(.17,.16,.18),vec3(.23,.16,.29),vec3(.43,.88,.35));
 float segD(vec2 p,vec2 a,vec2 b){vec2 pa=p-a,ba=b-a;float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.);return length(pa-ba*h);}
 /* distance from the road's centre line inside tile t, joining every road neighbour */
 float roadD(ivec2 t,vec2 f,out int ax){
@@ -90,7 +91,7 @@ void main(){
   ivec2 t0=ivec2(floor(ap));
   vec4 T0=TT(t0);
   int ty0=B(T0.r),fl=B(T0.g),rb=B(T0.a);
-  float cold=T0.b*1.5-.25;
+  float cold=T0.b*1.5-.25+uWarm;
   int otier=B(texelFetch(uOwn,ct(t0),0).b);
   float h=hs(ai),h2=hs2(ai);
   vec3 c;
@@ -176,16 +177,30 @@ void main(){
       float n=fbm(ap*.7+vec2(uTime*.05,uTime*.03));
       c=mix(vec3(.8,.15,.03),vec3(1.,.8,.25),smoothstep(.35,.75,n));
       if(nz(ap*2.3+vec2(uTime*.02,0.))>.63)c=vec3(.28,.12,.09);
+    }else if(ty==17){
+      /* an ice sheet: wind-packed snow, blue crevasses, a glint here and there */
+      float cv=abs(fract(ap.x*.37+ap.y*.21+fbm(ap*.35)*2.2)-.5);
+      c=mix(vec3(.93,.96,.99),vec3(.83,.9,.97),nz(ap*1.3));
+      if(cv<.03)c=vec3(.58,.74,.9);else if(cv<.055)c*=.94;
+      if(fract(ap.y*3.1+nz(ap*.8)*2.)<.1)c*=.975;
+      if(h2>.992)c=vec3(1.);
     }else if(ty==9){
       if(h>.9)c*=.8;
       if(h2>.985)c=mix(vec3(1.,.35,.05),vec3(1.,.7,.2),hs(ai+ivec2(int(uTime*5.),0)));
     }
-    bool cliff=ty==6||ty==7;
+    bool cliff=ty==6||ty==7||ty==17;
     if(!cliff&&land<.6&&river<.3){
       vec3 sand=cold<.12?vec3(.66,.66,.64):texelFetch(uBio,ivec2(2,1),0).rgb;
       c=land<.535?sand*.86:sand*(h>.85?.94:1.);
     }
     if(river>.12&&land<.64)c=mix(c,vec3(.42,.5,.3),.45);
+    /* a deposit: a patch of bare, ore-flecked ground, and from afar a clear coloured spot */
+    int oreT=B(texelFetch(uOwn,ct(t0),0).a);
+    if(oreT>0&&uTopo<1.5){
+      vec3 oc=ORE[min(oreT,8)];vec2 f=fract(ap)-.5;float d=length(f*vec2(1.,1.25));
+      if(d<.46){c=mix(c,vec3(.45,.38,.3)*(h>.5?1.:.9),.6);if(hs(ai*3+ivec2(oreT,7))>.62)c=mix(c,oc,.9);}
+      if(d<.5)c=mix(c,oc,clamp((6.-uZoom)/4.,0.,.75));
+    }
     if((fl&2)!=0){
       vec2 f=fract(ap);bool vt=hs(t0*3)>.5;
       float rw=fract((vt?f.x:f.y)*4.);
@@ -277,6 +292,29 @@ void main(){
   if(uNSt>0&&uTopo<1.5){float st=stormAt(ap);c*=1.-st*.32;c=mix(c,vec3(dot(c,vec3(.33))),st*.35);}
   if(outW){vec2 d=max(-wp,wp-uWorld);c*=max(.7,1.-max(d.x,d.y)*.008);}
   o=vec4(c,1.);
+}`;
+
+/* smog: a smooth brown pall drifting over the smokiest towns in view */
+const SH_SMOG_FS=`#version 300 es
+precision highp float;
+uniform highp sampler2D uNz;
+uniform vec2 uRes,uCam,uWind;uniform vec3 uAmb;uniform float uZoom;
+uniform vec4 uSt[6];uniform int uNSt;
+uniform vec4 uSg[16];uniform int uNSg;
+out vec4 o;
+${SH_COMMON}
+void main(){
+  vec2 fc=vec2(gl_FragCoord.x,uRes.y-gl_FragCoord.y);
+  vec2 wp=uCam+fc/uZoom;
+  vec2 cp=(floor(wp*4.)+.5)/4.;
+  float a=0.;
+  for(int i=0;i<16;i++){if(i>=uNSg)break;vec4 s=uSg[i];float d=length((cp-s.xy)*vec2(1.,1.35))/s.z;a=max(a,(1.-smoothstep(.3,1.,d))*s.w);}
+  if(a<.01)discard;
+  float n=fbm(cp*.11+uWind*4.);
+  a*=.45+n*1.1;
+  a=floor(a*10.+bay(ivec2(fc))*.9)/10.;
+  if(a<.02)discard;
+  o=vec4(mix(vec3(.66,.58,.42),vec3(.5,.46,.38),n)*uAmb,min(a,.62));
 }`;
 
 const SH_CLOUD_FS=`#version 300 es
@@ -400,6 +438,7 @@ function glCreate(canvas){
   gl.pixelStorei(gl.UNPACK_ALIGNMENT,1);
   R.pT=program(SH_FULL_VS,SH_TERRAIN_FS);
   R.pC=program(SH_FULL_VS,SH_CLOUD_FS);
+  R.pG=program(SH_FULL_VS,SH_SMOG_FS);
   R.pD=program(SH_FULL_VS,SH_DARK_FS);
   R.pS=program(SH_SPRITE_VS,SH_SPRITE_FS);
   R.pL=program(SH_LIGHT_VS,SH_LIGHT_FS);
@@ -509,7 +548,7 @@ function glTileData(R,i){
   const rd=road[i];
   R.dT[o]=t;R.dT[o+1]=fl;R.dT[o+2]=temp[i];R.dT[o+3]=rd?((rd&3)|(Math.max(rd>>2,0)<<2)):0;
   R.dS[o]=t>WATER&&t!==RIVER?255:0;R.dS[o+1]=elev[i];R.dS[o+2]=TREE[t]?255:0;R.dS[o+3]=t===RIVER?255:0;
-  R.dO[o]=kid&255;R.dO[o+1]=kid>>8;R.dO[o+2]=tier;R.dO[o+3]=0;
+  R.dO[o]=kid&255;R.dO[o+1]=kid>>8;R.dO[o+2]=tier;R.dO[o+3]=ore?ore[i]:0;
 }
 /* a tiny stand-in atlas, used only if the art module is missing */
 function atlStub(){

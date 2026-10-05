@@ -51,6 +51,15 @@
       <input id="seaIn" type="range" min="-18" max="18" value="0">
       <output id="seaVal" for="seaIn">0 m</output>
     </div>
+    <div id="climRow" class="slideRow" hidden>
+      <label for="climIn">Temperature</label>
+      <input id="climIn" type="range" min="-6" max="8" step="0.5" value="0">
+      <output id="climVal" for="climIn">0 &deg;C</output>
+    </div>
+    <div id="climBtns" class="climBtns" hidden>
+      <button id="meltBtn" class="act">Melt the ice caps</button><button id="iceBtn" class="act">Ice age</button><button id="climReset" class="act">Restore</button>
+      <p id="climInfo"></p>
+    </div>
     <div id="tools" role="toolbar" aria-label="Tools"></div>
     <div id="tabs" role="tablist" aria-label="Tool groups"></div>
   </div>
