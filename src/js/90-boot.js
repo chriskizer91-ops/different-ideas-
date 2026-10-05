@@ -26,6 +26,7 @@ function startWorld(){
   const seed=st?hashStr(st):(Math.random()*2147483647)|0;
   busy=true;veil(true,'Shaping the world','Raising mountains and filling seas');
   setTimeout(()=>{
+    natureFromSettings();
     genWorld(seed,{size:S.size,land:S.land,climate:S.climate,peoples:S.peoples,wild:S.wild});
     resize();cam.z=clampZ(Math.max(6,minZ*1.9));
     if(startSpot)centerOn(startSpot.x,startSpot.y);else centerOn(W/2,H/2);

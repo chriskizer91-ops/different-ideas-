@@ -19,7 +19,8 @@ Open `Tiny_Dominion.html` in any modern browser. Nothing to install, no network 
 - Trade caravans, goods trains, freight trucks and merchant fleets. Armies carry clubs, spears, swords, muskets and rifles; catapults, cannons and tanks besiege walls; bombers fly in the Modern Age; rockets launch in the Space Age, until a colony ship leaves for the stars.
 
 **Rulers who think**
-- Every ruler has a temperament made of eight dispositions (aggression, caution, ambition, greed, zeal, honour, curiosity and cunning), shaped by their nature and people and partly inherited by their heirs. Rulers who share a name take regnal numbers.
+- Each realm runs its own decision-making, and each nation has a character of its own that outlives its rulers. When you make a world you choose whether each people (humans, elves, dwarves and orcs) is peaceful, average or warlike.
+- Every ruler has a temperament made of eight dispositions (aggression, caution, ambition, greed, zeal, honour, curiosity and cunning). It is born near the character of their nation, coloured by their own nature, and partly inherited from the ruler before. Rulers who share a name take regnal numbers.
 - Rulers remember. A war declared, a town taken, a broken truce, an ally who stayed home: each leaves a grudge that fades over the years. Gifts, trade and help in war leave gratitude. A realm that betrays allies or breaks truces loses its good name, and others stop trusting it.
 - Each ruler commits to a long-term aim: conquer a weak neighbour, avenge a wrong, defend against a rising power, grow rich, seek knowledge or settle new land. The aim steers the realm's focus and its choices.
 - Once a year every ruler weighs their real options (war, peace, alliances, tribute, gifts, trade pacts, royal marriages, festivals, funding scholars). Each option is scored from named reasons, and the ruler acts only when the case is strong enough for their temperament.
@@ -54,7 +55,7 @@ Open `Tiny_Dominion.html` in any modern browser. Nothing to install, no network 
 | Topographic map | Topo map button (Shape) | T |
 | 3D view | 3D view button; drag to turn, pinch to zoom, two fingers to move | V; drag, right-drag to move, scroll to zoom |
 
-Settings include graphics (HD or Classic), sharpness, day and night, seasons, weather, clouds, sound, music, world size, land shape, climate, peoples and a head start of up to 300 years.
+Settings include graphics (HD or Classic), sharpness, day and night, seasons, weather, clouds, sound, music, world size, land shape, climate, peoples, the nature of each people (peaceful, average or warlike), the temper of the times and a head start of up to 300 years.
 
 ## Building
 

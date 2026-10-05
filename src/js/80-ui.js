@@ -44,8 +44,10 @@ function temperWords(tm){
 function mindHtml(k){
   const tm=tmOf(k),m=k.mind,bar=.28+tm.caut*.15-tm.aggr*.08,sc=u=>Math.max(0,Math.min(100,u*70));
   $('rGoal').textContent='Aim: '+goalText(k.goal)+(k.goal?', for '+Math.max(1,Math.round((tick-k.goal.since)/YEAR))+(Math.round((tick-k.goal.since)/YEAR)>1?' years':' year'):'');
-  $('rChar').textContent=temperWords(tm)+'.';
-  $('rTemper').innerHTML=TEMPER.map(a=>'<span>'+TEMPER_NAME[a]+'</span><div class="meter" role="img" aria-label="'+TEMPER_NAME[a]+' '+Math.round(tm[a]*100)+' of 100"><i style="width:'+Math.round(tm[a]*100)+'%"></i></div>').join('');
+  const cu=cultureOf(k),nt=natOf(k);
+  $('rChar').textContent='The ruler is '+lc1(temperWords(tm))+'.';
+  $('rPeople').textContent='The '+SPEC[k.race].pl.toLowerCase()+' of '+k.name+' are '+(nt!==1?'a '+NATURES[nt]+' people: ':'')+lc1(temperWords(cu))+'.';
+  $('rTemper').innerHTML=TEMPER.map(a=>'<span>'+TEMPER_NAME[a]+'</span><div class="meter" role="img" aria-label="'+TEMPER_NAME[a]+': ruler '+Math.round(tm[a]*100)+', people '+Math.round(cu[a]*100)+' of 100"><i style="width:'+Math.round(tm[a]*100)+'%"></i><s style="left:'+Math.round(cu[a]*100)+'%"></s></div>').join('');
   if(!m||m.small){$('rWeighH').textContent='Weighing this year';$('rDid').textContent=m||k.pop<8?'The realm is too small for statecraft. Its ruler only tends to its people.':'The ruler has not yet sat in council.';$('rWeigh').innerHTML='';}
   else{
     $('rWeighH').textContent='Weighing, year '+m.y;
@@ -90,7 +92,7 @@ function optRow(label,key,opts){
   return '<div class="row"><span>'+label+'</span><div class="opts" data-key="'+key+'">'+
     opts.map(o=>'<button data-v="'+o[0]+'" aria-pressed="'+(String(S[key])===String(o[0]))+'">'+o[1]+'</button>').join('')+'</div></div>';
 }
-const ONOFF=[['true','On'],['false','Off']];
+const ONOFF=[['true','On'],['false','Off']],NAT_OPTS=[['peaceful','Peaceful'],['average','Average'],['warlike','Warlike']];
 function buildSheet(){
   const body=$('sheetBody');body.scrollTop=0;
   if(sheetMode==='realms'){
@@ -99,7 +101,8 @@ function buildSheet(){
     const k=sheetK;
     body.innerHTML='<div class="rhead"><i style="background:'+k.color+'"></i><div><b id="rRuler"></b><small id="rNature"></small></div></div>'+
       '<dl id="rStats" class="stats"></dl><p id="rFocus" class="note"></p>'+
-      '<h3>The ruler\u2019s mind</h3><p id="rGoal" class="goal"></p><p id="rChar" class="char"></p><div id="rTemper" class="temper"></div>'+
+      '<h3>The ruler\u2019s mind</h3><p id="rGoal" class="goal"></p><p id="rChar" class="char"></p><p id="rPeople" class="char"></p><div id="rTemper" class="temper"></div>'+
+      '<p class="fine">Bars show the ruler. The dark mark on each bar is the character of the people, which outlives its rulers; each new ruler is born near it.</p>'+
       '<h3 id="rWeighH">Weighing this year</h3><p id="rDid" class="note"></p><div id="rWeigh"></div>'+
       '<p class="fine">Each option is scored from the reasons under it. The red line is how strong a case this ruler needs before acting; bolder rulers need less.</p>'+
       '<h3>Memory</h3><p id="rRep" class="note"></p><div id="rMem"></div>'+
@@ -124,7 +127,7 @@ function buildSheet(){
       optRow('Day and night','night',ONOFF)+optRow('Seasons','seasons',ONOFF)+optRow('Weather','weather',ONOFF)+optRow('Clouds','clouds',ONOFF)+optRow('Contour lines','contours',ONOFF)+optRow('Names on the map','labels',ONOFF)+
       optRow('Realm borders','borders',ONOFF)+optRow('Minimap','minimap',ONOFF)+optRow('Trees and peaks up close','detail',ONOFF)+
       optRow('Disasters','disasters',[['off','Off'],['rare','Rare'],['wild','Wild']])+
-      optRow('Temper of rulers','mood',[['gentle','Gentle'],['normal','Normal'],['bloodthirsty','Bloodthirsty']])+
+      optRow('Temper of the times','mood',[['gentle','Gentle'],['normal','Normal'],['bloodthirsty','Bloodthirsty']])+
       optRow('Population limit','popcap',[['small','Small'],['normal','Normal'],['large','Large']])+
       '<h3>How to play</h3><p class="note">Raise land and paint the world with the Shape and Paint tools. Drop a few people from the Life tab on good land and they will found a realm. Speed time up and watch it grow through nine ages, from huts to cities and rockets. Tap Watch to let the camera follow the action.</p>'+
       '<h3>Sound</h3>'+optRow('Sound','sound',ONOFF)+optRow('Music','music',ONOFF)+
@@ -134,6 +137,9 @@ function buildSheet(){
       optRow('Land','land',[['islands','Islands'],['continents','Continents'],['pangea','One landmass'],['flat','Flat plain'],['ocean','Empty ocean']])+
       optRow('Climate','climate',[['cold','Cold'],['temperate','Temperate'],['hot','Hot']])+
       optRow('Peoples','peoples',[['none','None'],['few','A few'],['many','Many']])+
+      '<p class="sub">Nature of each people</p>'+
+      optRow('Humans','natHuman',NAT_OPTS)+optRow('Elves','natElf',NAT_OPTS)+optRow('Dwarves','natDwarf',NAT_OPTS)+optRow('Orcs','natOrc',NAT_OPTS)+
+      '<p class="fine">Peaceful peoples raise gentler rulers who trade and make friends. Warlike peoples raise conquerors. Every realm still grows its own character.</p>'+
       optRow('Head start','history',[['0','None'],['60','60 yrs'],['150','150 yrs'],['300','300 yrs']])+
       optRow('Wildlife','wild',ONOFF)+
       '<div class="row"><label for="seedIn">Seed word</label><input id="seedIn" type="text" maxlength="24" placeholder="Leave empty for random" autocomplete="off"></div>'+
@@ -155,7 +161,7 @@ function refreshSheet(){
     list.innerHTML=alive.map(k=>{
       const vs=k.villages.length,st=k.wars.size?'At war':k.allies.size?'Allied':'At peace';
       return '<button class="realm" data-k="'+k.id+'"><i style="background:'+k.color+'"></i><span class="rn">'+esc(k.name)+'</span>'+
-        '<span class="rs'+(k.wars.size?' hot':'')+'">'+st+'</span><span class="rm">'+SPEC[k.race].pl+', '+fmtPop(kCitizens(k))+' people, '+vs+(vs===1?' town, ':' towns, ')+AGE_NAME[k.age]+'</span>'+
+        '<span class="rs'+(k.wars.size?' hot':'')+'">'+st+'</span><span class="rm">'+(natOf(k)!==1?cap1(NATURES[natOf(k)])+' '+SPEC[k.race].pl.toLowerCase():SPEC[k.race].pl)+', '+fmtPop(kCitizens(k))+' people, '+vs+(vs===1?' town, ':' towns, ')+AGE_NAME[k.age]+'</span>'+
         '<span class="rm rg">'+esc(rulerName(k))+': '+esc(lc1(goalText(k.goal)))+'</span></button>';
     }).join('');
   }else if(sheetMode==='realm'){

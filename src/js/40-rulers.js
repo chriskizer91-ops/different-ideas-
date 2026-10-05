@@ -6,6 +6,7 @@ function baseRel(a,b){
   if(a.race!==b.race){if(ta==='zealot')r-=22;if(tb==='zealot')r-=22;}
   if(ta==='merchant')r+=10;if(tb==='merchant')r+=10;
   if(ta==='conqueror')r-=8;if(tb==='conqueror')r-=8;
+  r+=(2-natOf(a)-natOf(b))*8;
   return r;
 }
 function rel(a,b){const v=relM.get(pk(a,b));return v===undefined?baseRel(a,b):v;}
@@ -114,6 +115,7 @@ function secede(k,why){
   for(let n=1;n<k.villages.length;n++){const o=k.villages[n],d=d2(o,cap);if(d>bd){bd=d;v=o;}}
   if(!v)return;
   const nk=newKingdom(k.race,kingdoms.some(o=>o.alive&&o.name===v.name)?'Free '+v.name:v.name);
+  nk.nat=natOf(k);nk.culture=driftCulture(cultureOf(k));nk.ruler=newRuler(nk.race,null,null,nk.culture,nk.nat);
   k.villages.splice(k.villages.indexOf(v),1);v.k=nk;nk.villages.push(v);
   nk.age=k.age;nk.lore=k.lore*.8;nk.restUntil=tick+10*YEAR;nk.regs.add(region[v.y*W+v.x]);
   for(const u of units)if(u.v===v){u.k=nk;u.soldier=false;}
@@ -125,7 +127,7 @@ const ROMAN=['','I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','X
 function succession(k){
   const old=rulerName(k),tr=k.ruler.trait;
   const tm=k.ruler.tm,base=k.ruler.name.replace(/ [IVX]+$/,'');
-  k.ruler=newRuler(k.race,tr,tm);k.goal=null;k.nudge=null;
+  k.ruler=newRuler(k.race,tr,tm,cultureOf(k),natOf(k));k.goal=null;k.nudge=null;
   /* a name already worn by this realm's rulers takes a regnal number */
   const reign=k.reigns||(k.reigns={});reign[base]=reign[base]||1;
   if(reign[k.ruler.name]){reign[k.ruler.name]++;k.ruler.name+=' '+ROMAN[Math.min(reign[k.ruler.name],ROMAN.length-1)];}

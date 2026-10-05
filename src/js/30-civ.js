@@ -1,9 +1,9 @@
 /* ================= villages and kingdoms ================= */
 function rulerName(k){return k.ruler.title+' '+k.ruler.name;}
-function newRuler(race,keep,parentTm){
+function newRuler(race,keep,parentTm,cult,nat){
   const p=pick(RULERS[race]);
-  const trait=keep&&Math.random()<.3?keep:pick(TRAITS);
-  return{name:p[0],title:p[1],trait,tm:rollTemper(trait,race,parentTm||null),since:tick,until:tick+((16+Math.random()*30)*YEAR|0)};
+  const trait=keep&&Math.random()<.3?keep:pickTrait(nat===undefined?1:nat);
+  return{name:p[0],title:p[1],trait,tm:rollTemper(trait,race,parentTm||null,cult||null),since:tick,until:tick+((16+Math.random()*30)*YEAR|0)};
 }
 function newKingdom(race,name){
   const color=COLORS[kc++%COLORS.length];
@@ -12,8 +12,9 @@ function newKingdom(race,name){
     ruler:null,wars:new Set(),allies:new Set(),nb:[],regs:new Set(),
     target:null,port:null,landing:null,rally:null,rallyUntil:0,pauseUntil:0,boatCd:0,nAdult:0,nSold:0,nBarr:0,nCar:0,nSiege:0,broke:false,born:tick,
     launches:0,colony:false,peak:0,hist:[],
-    mem:{},rep:50,goal:null,weary:0,pacts:[],kin:[],nudge:null,mind:null,cool:{}};
-  k.ruler=newRuler(race,null);
+    mem:{},rep:50,goal:null,weary:0,pacts:[],kin:[],nudge:null,mind:null,cool:{},nat:null,culture:null};
+  natOf(k);cultureOf(k);
+  k.ruler=newRuler(race,null,null,k.culture,k.nat);
   kingdoms.push(k);
   if(!name)chron(rulerName(k)+' founds the '+SPEC[race].name.toLowerCase()+' realm of '+k.name,'found',k.villages[0]);
   return k;

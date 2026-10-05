@@ -15,16 +15,38 @@ const TRAIT_TM={
 const RACE_TM=[{ambi:.1},{curio:.15,zeal:.1,aggr:-.1},{greed:.15,honor:.15},{aggr:.2,caut:-.1,curio:-.1}];
 const ARMY_WORD=['warriors','spearmen','legions','legions','knights','musketeers','riflemen','divisions','divisions'];
 const clamp01=v=>v<0?0:v>1?1:v;
-function rollTemper(trait,race,parent){
+/* ---------- the character of a people and of each nation ----------
+   When a world is made, each people is set to be peaceful, average or warlike. Every realm then gets
+   its own national character around that, which outlives its rulers: each new ruler is born near it. */
+const NATURES=['peaceful','average','warlike'];
+let NATURE=[1,1,1,1];
+const NAT_SHIFT=[{aggr:-.26,caut:.12,honor:.12,zeal:-.1,curio:.08,greed:.04},{},{aggr:.26,caut:-.12,ambi:.1,zeal:.1,honor:-.06,curio:-.06}];
+const NAT_TRAITW=[{conqueror:.25,zealot:.6,schemer:.6,builder:1.3,merchant:1.3,scholar:1.4},{},{conqueror:2.2,zealot:1.4,schemer:1.2,builder:.8,merchant:.6,scholar:.5}];
+function natureFromSettings(){NATURE=[S.natHuman,S.natElf,S.natDwarf,S.natOrc].map(v=>Math.max(0,NATURES.indexOf(v)));}
+function rollCulture(race,nat){
+  const c={},sh=NAT_SHIFT[nat]||{};
+  for(const a of TEMPER)c[a]=Math.max(.05,Math.min(.95,.5+(RACE_TM[race][a]||0)+(sh[a]||0)+(Math.random()-.5)*.3));
+  return c;
+}
+function natOf(k){if(k.nat===undefined||k.nat===null)k.nat=NATURE[k.race]===undefined?1:NATURE[k.race];return k.nat;}
+function cultureOf(k){return k.culture||(k.culture=rollCulture(k.race,natOf(k)));}
+/* a breakaway realm keeps most of its parent's character */
+function driftCulture(c){const d={};for(const a of TEMPER)d[a]=Math.max(.05,Math.min(.95,c[a]+(Math.random()-.5)*.2));return d;}
+function pickTrait(nat){
+  const w=NAT_TRAITW[nat]||{};let t=0;for(const x of TRAITS)t+=w[x.id]||1;
+  let r=Math.random()*t;for(const x of TRAITS){r-=w[x.id]||1;if(r<=0)return x;}
+  return TRAITS[0];
+}
+function rollTemper(trait,race,parent,cult){
   const t={};
   for(const a of TEMPER){
-    let b=TRAIT_TM[trait.id][a]+(RACE_TM[race][a]||0);
-    if(parent&&parent[a]!==undefined)b=b*.6+parent[a]*.4;
-    t[a]=Math.max(.03,Math.min(.97,b+(Math.random()-.5)*.32));
+    let b=cult?TRAIT_TM[trait.id][a]*.45+cult[a]*.55:TRAIT_TM[trait.id][a]+(RACE_TM[race][a]||0);
+    if(parent&&parent[a]!==undefined)b=b*.7+parent[a]*.3;
+    t[a]=Math.max(.03,Math.min(.97,b+(Math.random()-.5)*(cult?.26:.32)));
   }
   return t;
 }
-function tmOf(k){const r=k.ruler;return r.tm||(r.tm=rollTemper(r.trait,k.race,null));}
+function tmOf(k){const r=k.ruler;return r.tm||(r.tm=rollTemper(r.trait,k.race,null,cultureOf(k)));}
 
 /* ---------- memory: grudges and debts between realms ---------- */
 function memOf(k,o){const m=k.mem||(k.mem={});return m[o.id]||(m[o.id]={g:0,d:0,why:'',dwhy:''});}
@@ -118,7 +140,7 @@ function chooseGoal(k){
   for(const n of k.nb){
     const o=n.k;if(!o.alive||!canReach(k,o))continue;
     const adv=allyStr(k)/(allyStr(o)+1),g=grudge(k,o),f=fearOf(k,o);
-    if(adv>1.3&&!k.allies.has(o))opts.push({type:'conquer',o,s:tm.ambi*.3+tm.aggr*.3+covet(k,o)*.25+Math.min(.25,(adv-1)*.2)-tm.caut*.25,why:adv>2?'they are weak':covet(k,o)>.3?'their riches':'room to grow'});
+    if(adv>1.3&&!k.allies.has(o))opts.push({type:'conquer',o,s:tm.ambi*.3+tm.aggr*.3+covet(k,o)*.25+Math.min(.25,(adv-1)*.2)-tm.caut*.25+(natOf(k)-1)*.08,why:adv>2?'they are weak':covet(k,o)>.3?'their riches':'room to grow'});
     if(g>25)opts.push({type:'avenge',o,s:g/100*(.7+tm.aggr*.4)-tm.honor*.05,why:memOf(k,o).why||'old wrongs'});
     if(f>.25)opts.push({type:'defend',o,s:f*(.6+tm.caut*.6),why:'they grow too strong'});
   }
@@ -142,6 +164,7 @@ function weighWar(k,o){
   const adv=allyStr(k)/(allyStr(o)+1),g=grudge(k,o),goal=k.goal&&k.goal.o===o&&(k.goal.type==='conquer'||k.goal.type==='avenge');
   {const t=(tm.aggr-.45)*.5;f.push([t>0?'a warlike temper':'a peaceable temper',t]);}
   if(mood<1)f.push(['peaceful times',-.3]);else if(mood>1)f.push(['a bloodthirsty age',.3]);
+  {const nt=natOf(k);if(nt!==1)f.push([nt?'a warlike people':'a peaceful people',nt?.18:-.18]);}
   if(adv>1)f.push(['they are weaker',Math.min(.45,(adv-1)*.3)*(1-tm.caut*.5)]);else f.push(['they are stronger',-(1/Math.max(.2,adv)-1)*.35*(.5+tm.caut)]);
   if(g>5)f.push(['old grudge',g/100*.55]);
   const cv=covet(k,o);if(cv>.05)f.push(['covets their land',cv*tm.ambi*.55]);
@@ -198,6 +221,7 @@ function weighTribute(k,o){
   const tm=tmOf(k),adv=allyStr(k)/(allyStr(o)+1);if(adv<1.6)return null;
   const f=[['they are far weaker',Math.min(.4,(adv-1.6)*.25)-.08],['greed',tm.greed*.3],[(tm.aggr+tm.cunning>1)?'a hard heart':'a soft heart',(tm.aggr+tm.cunning-1)*.2],['honour',-tm.honor*.25]];
   if(k.goal&&k.goal.type==='prosper')f.push(['it fills the treasury',.12]);
+  if(natOf(k)!==1)f.push([natOf(k)?'a warlike people':'a peaceful people',natOf(k)?.08:-.12]);
   return{kind:'tribute',o,u:sumWhy(f),f};
 }
 function weighGift(k,o){
@@ -267,7 +291,7 @@ function rulerThink(k){
   for(const p of opts){if(shown.length>=5)break;if((per[p.kind]=(per[p.kind]||0)+1)<=2||p===best)shown.push(p);}
   k.mind={y:yearNow(),bar,opts:shown.map(p=>({kind:p.kind,o:p.o?p.o.id:0,u:p.u,f:p.f.filter(x=>Math.abs(x[1])>.02).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,4),done:p===best&&!!did})),did};
 }
-const WAR_WHY={'a warlike temper':'for glory','they are weaker':'seeing their weakness','old grudge':'to avenge old wrongs','covets their land':'coveting their land','they are busy at war':'while they are busy elsewhere',
+const WAR_WHY={'a warlike temper':'for glory','a warlike people':'as warlike peoples do','they are weaker':'seeing their weakness','old grudge':'to avenge old wrongs','covets their land':'coveting their land','they are busy at war':'while they are busy elsewhere',
   'it is our goal':'as long planned','the heavens urge war':'urged on by the heavens','a bloodthirsty age':'in a bloodthirsty age'};
 function lead(f){let b=null;for(const x of f)if(x[1]>0&&(!b||x[1]>b[1]))b=x;return b?b[0]:'';}
 function act(k,p){
@@ -378,7 +402,7 @@ function cedeVillage(v,k){
 /* allies decide for themselves whether to answer the call */
 function answerCall(al,friend,foe,offense){
   const tm=tmOf(al),f=tm.honor*.6+debt(al,friend)/100*.5+rel(al,friend)/100*.3+grudge(al,foe)/100*.5-tm.caut*fearOf(al,foe)*.4-(al.weary||0)*.4-al.wars.size*.2+(tm.aggr-.5)*.2
-    -(inTruce(al,foe)?.2+tm.honor*.3:0)-(hasPact(al,foe)?.15:0)+(Math.random()-.5)*.15;
+    -(inTruce(al,foe)?.2+tm.honor*.3:0)-(hasPact(al,foe)?.15:0)+(natOf(al)-1)*.08+(Math.random()-.5)*.15;
   return f>(offense?.45:.12);
 }
 /* the heavens whisper to a ruler; whether they listen depends on who they are */

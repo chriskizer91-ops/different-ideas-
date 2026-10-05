@@ -71,7 +71,9 @@ canvas#ov{position:fixed;inset:0;width:100%;height:100%;display:block;touch-acti
 .goal{margin:6px 2px 2px;font-size:14px;font-weight:700}
 .char{margin:0 2px 8px;font-size:13px;color:var(--muted)}
 .temper{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:5px 8px;align-items:center;font-size:12px}
-.temper .meter{margin:0;height:9px;min-width:40px}
+.temper .meter{margin:0;height:9px;min-width:40px;position:relative}
+.temper .meter s{position:absolute;top:-4px;bottom:-4px;width:3px;margin-left:-1px;background:var(--ink)}
+.sub{margin:12px 2px 0;font-size:14px;font-weight:700}
 .opt{background:var(--panel-2);border:2px solid var(--ink);padding:6px 8px;margin-top:6px}
 .opt.chosen{box-shadow:inset 5px 0 0 var(--sun);padding-left:12px}
 .opt .ol{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:14px}
@@ -395,6 +397,7 @@ const BUILD_T={house:.34,farm:.5,wall:.5,hall:1,mine:.25,dock:.3,tower:.2,market
 /* ---------- settings ---------- */
 const SIZES={cozy:[224,144],grand:[416,240],colossal:[640,352]};
 const DEF={size:'grand',land:'continents',climate:'temperate',peoples:'few',history:'0',wild:true,
+  natHuman:'average',natElf:'average',natDwarf:'average',natOrc:'average',
   night:true,clouds:true,labels:true,borders:true,minimap:true,detail:true,disasters:'rare',mood:'normal',popcap:'normal',
   gfx:'hd',quality:'balanced',seasons:true,weather:true,sound:false,music:true,autosave:true,topo:'off',contours:false};
 const S=Object.assign({},DEF);
@@ -1224,10 +1227,10 @@ function dispatchRaid(k){
 /* ===== 30-civ.js ===== */
 /* ================= villages and kingdoms ================= */
 function rulerName(k){return k.ruler.title+' '+k.ruler.name;}
-function newRuler(race,keep,parentTm){
+function newRuler(race,keep,parentTm,cult,nat){
   const p=pick(RULERS[race]);
-  const trait=keep&&Math.random()<.3?keep:pick(TRAITS);
-  return{name:p[0],title:p[1],trait,tm:rollTemper(trait,race,parentTm||null),since:tick,until:tick+((16+Math.random()*30)*YEAR|0)};
+  const trait=keep&&Math.random()<.3?keep:pickTrait(nat===undefined?1:nat);
+  return{name:p[0],title:p[1],trait,tm:rollTemper(trait,race,parentTm||null,cult||null),since:tick,until:tick+((16+Math.random()*30)*YEAR|0)};
 }
 function newKingdom(race,name){
   const color=COLORS[kc++%COLORS.length];
@@ -1236,8 +1239,9 @@ function newKingdom(race,name){
     ruler:null,wars:new Set(),allies:new Set(),nb:[],regs:new Set(),
     target:null,port:null,landing:null,rally:null,rallyUntil:0,pauseUntil:0,boatCd:0,nAdult:0,nSold:0,nBarr:0,nCar:0,nSiege:0,broke:false,born:tick,
     launches:0,colony:false,peak:0,hist:[],
-    mem:{},rep:50,goal:null,weary:0,pacts:[],kin:[],nudge:null,mind:null,cool:{}};
-  k.ruler=newRuler(race,null);
+    mem:{},rep:50,goal:null,weary:0,pacts:[],kin:[],nudge:null,mind:null,cool:{},nat:null,culture:null};
+  natOf(k);cultureOf(k);
+  k.ruler=newRuler(race,null,null,k.culture,k.nat);
   kingdoms.push(k);
   if(!name)chron(rulerName(k)+' founds the '+SPEC[race].name.toLowerCase()+' realm of '+k.name,'found',k.villages[0]);
   return k;
@@ -1781,6 +1785,7 @@ function baseRel(a,b){
   if(a.race!==b.race){if(ta==='zealot')r-=22;if(tb==='zealot')r-=22;}
   if(ta==='merchant')r+=10;if(tb==='merchant')r+=10;
   if(ta==='conqueror')r-=8;if(tb==='conqueror')r-=8;
+  r+=(2-natOf(a)-natOf(b))*8;
   return r;
 }
 function rel(a,b){const v=relM.get(pk(a,b));return v===undefined?baseRel(a,b):v;}
@@ -1889,6 +1894,7 @@ function secede(k,why){
   for(let n=1;n<k.villages.length;n++){const o=k.villages[n],d=d2(o,cap);if(d>bd){bd=d;v=o;}}
   if(!v)return;
   const nk=newKingdom(k.race,kingdoms.some(o=>o.alive&&o.name===v.name)?'Free '+v.name:v.name);
+  nk.nat=natOf(k);nk.culture=driftCulture(cultureOf(k));nk.ruler=newRuler(nk.race,null,null,nk.culture,nk.nat);
   k.villages.splice(k.villages.indexOf(v),1);v.k=nk;nk.villages.push(v);
   nk.age=k.age;nk.lore=k.lore*.8;nk.restUntil=tick+10*YEAR;nk.regs.add(region[v.y*W+v.x]);
   for(const u of units)if(u.v===v){u.k=nk;u.soldier=false;}
@@ -1900,7 +1906,7 @@ const ROMAN=['','I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','X
 function succession(k){
   const old=rulerName(k),tr=k.ruler.trait;
   const tm=k.ruler.tm,base=k.ruler.name.replace(/ [IVX]+$/,'');
-  k.ruler=newRuler(k.race,tr,tm);k.goal=null;k.nudge=null;
+  k.ruler=newRuler(k.race,tr,tm,cultureOf(k),natOf(k));k.goal=null;k.nudge=null;
   /* a name already worn by this realm's rulers takes a regnal number */
   const reign=k.reigns||(k.reigns={});reign[base]=reign[base]||1;
   if(reign[k.ruler.name]){reign[k.ruler.name]++;k.ruler.name+=' '+ROMAN[Math.min(reign[k.ruler.name],ROMAN.length-1)];}
@@ -2055,16 +2061,38 @@ const TRAIT_TM={
 const RACE_TM=[{ambi:.1},{curio:.15,zeal:.1,aggr:-.1},{greed:.15,honor:.15},{aggr:.2,caut:-.1,curio:-.1}];
 const ARMY_WORD=['warriors','spearmen','legions','legions','knights','musketeers','riflemen','divisions','divisions'];
 const clamp01=v=>v<0?0:v>1?1:v;
-function rollTemper(trait,race,parent){
+/* ---------- the character of a people and of each nation ----------
+   When a world is made, each people is set to be peaceful, average or warlike. Every realm then gets
+   its own national character around that, which outlives its rulers: each new ruler is born near it. */
+const NATURES=['peaceful','average','warlike'];
+let NATURE=[1,1,1,1];
+const NAT_SHIFT=[{aggr:-.26,caut:.12,honor:.12,zeal:-.1,curio:.08,greed:.04},{},{aggr:.26,caut:-.12,ambi:.1,zeal:.1,honor:-.06,curio:-.06}];
+const NAT_TRAITW=[{conqueror:.25,zealot:.6,schemer:.6,builder:1.3,merchant:1.3,scholar:1.4},{},{conqueror:2.2,zealot:1.4,schemer:1.2,builder:.8,merchant:.6,scholar:.5}];
+function natureFromSettings(){NATURE=[S.natHuman,S.natElf,S.natDwarf,S.natOrc].map(v=>Math.max(0,NATURES.indexOf(v)));}
+function rollCulture(race,nat){
+  const c={},sh=NAT_SHIFT[nat]||{};
+  for(const a of TEMPER)c[a]=Math.max(.05,Math.min(.95,.5+(RACE_TM[race][a]||0)+(sh[a]||0)+(Math.random()-.5)*.3));
+  return c;
+}
+function natOf(k){if(k.nat===undefined||k.nat===null)k.nat=NATURE[k.race]===undefined?1:NATURE[k.race];return k.nat;}
+function cultureOf(k){return k.culture||(k.culture=rollCulture(k.race,natOf(k)));}
+/* a breakaway realm keeps most of its parent's character */
+function driftCulture(c){const d={};for(const a of TEMPER)d[a]=Math.max(.05,Math.min(.95,c[a]+(Math.random()-.5)*.2));return d;}
+function pickTrait(nat){
+  const w=NAT_TRAITW[nat]||{};let t=0;for(const x of TRAITS)t+=w[x.id]||1;
+  let r=Math.random()*t;for(const x of TRAITS){r-=w[x.id]||1;if(r<=0)return x;}
+  return TRAITS[0];
+}
+function rollTemper(trait,race,parent,cult){
   const t={};
   for(const a of TEMPER){
-    let b=TRAIT_TM[trait.id][a]+(RACE_TM[race][a]||0);
-    if(parent&&parent[a]!==undefined)b=b*.6+parent[a]*.4;
-    t[a]=Math.max(.03,Math.min(.97,b+(Math.random()-.5)*.32));
+    let b=cult?TRAIT_TM[trait.id][a]*.45+cult[a]*.55:TRAIT_TM[trait.id][a]+(RACE_TM[race][a]||0);
+    if(parent&&parent[a]!==undefined)b=b*.7+parent[a]*.3;
+    t[a]=Math.max(.03,Math.min(.97,b+(Math.random()-.5)*(cult?.26:.32)));
   }
   return t;
 }
-function tmOf(k){const r=k.ruler;return r.tm||(r.tm=rollTemper(r.trait,k.race,null));}
+function tmOf(k){const r=k.ruler;return r.tm||(r.tm=rollTemper(r.trait,k.race,null,cultureOf(k)));}
 
 /* ---------- memory: grudges and debts between realms ---------- */
 function memOf(k,o){const m=k.mem||(k.mem={});return m[o.id]||(m[o.id]={g:0,d:0,why:'',dwhy:''});}
@@ -2158,7 +2186,7 @@ function chooseGoal(k){
   for(const n of k.nb){
     const o=n.k;if(!o.alive||!canReach(k,o))continue;
     const adv=allyStr(k)/(allyStr(o)+1),g=grudge(k,o),f=fearOf(k,o);
-    if(adv>1.3&&!k.allies.has(o))opts.push({type:'conquer',o,s:tm.ambi*.3+tm.aggr*.3+covet(k,o)*.25+Math.min(.25,(adv-1)*.2)-tm.caut*.25,why:adv>2?'they are weak':covet(k,o)>.3?'their riches':'room to grow'});
+    if(adv>1.3&&!k.allies.has(o))opts.push({type:'conquer',o,s:tm.ambi*.3+tm.aggr*.3+covet(k,o)*.25+Math.min(.25,(adv-1)*.2)-tm.caut*.25+(natOf(k)-1)*.08,why:adv>2?'they are weak':covet(k,o)>.3?'their riches':'room to grow'});
     if(g>25)opts.push({type:'avenge',o,s:g/100*(.7+tm.aggr*.4)-tm.honor*.05,why:memOf(k,o).why||'old wrongs'});
     if(f>.25)opts.push({type:'defend',o,s:f*(.6+tm.caut*.6),why:'they grow too strong'});
   }
@@ -2182,6 +2210,7 @@ function weighWar(k,o){
   const adv=allyStr(k)/(allyStr(o)+1),g=grudge(k,o),goal=k.goal&&k.goal.o===o&&(k.goal.type==='conquer'||k.goal.type==='avenge');
   {const t=(tm.aggr-.45)*.5;f.push([t>0?'a warlike temper':'a peaceable temper',t]);}
   if(mood<1)f.push(['peaceful times',-.3]);else if(mood>1)f.push(['a bloodthirsty age',.3]);
+  {const nt=natOf(k);if(nt!==1)f.push([nt?'a warlike people':'a peaceful people',nt?.18:-.18]);}
   if(adv>1)f.push(['they are weaker',Math.min(.45,(adv-1)*.3)*(1-tm.caut*.5)]);else f.push(['they are stronger',-(1/Math.max(.2,adv)-1)*.35*(.5+tm.caut)]);
   if(g>5)f.push(['old grudge',g/100*.55]);
   const cv=covet(k,o);if(cv>.05)f.push(['covets their land',cv*tm.ambi*.55]);
@@ -2238,6 +2267,7 @@ function weighTribute(k,o){
   const tm=tmOf(k),adv=allyStr(k)/(allyStr(o)+1);if(adv<1.6)return null;
   const f=[['they are far weaker',Math.min(.4,(adv-1.6)*.25)-.08],['greed',tm.greed*.3],[(tm.aggr+tm.cunning>1)?'a hard heart':'a soft heart',(tm.aggr+tm.cunning-1)*.2],['honour',-tm.honor*.25]];
   if(k.goal&&k.goal.type==='prosper')f.push(['it fills the treasury',.12]);
+  if(natOf(k)!==1)f.push([natOf(k)?'a warlike people':'a peaceful people',natOf(k)?.08:-.12]);
   return{kind:'tribute',o,u:sumWhy(f),f};
 }
 function weighGift(k,o){
@@ -2307,7 +2337,7 @@ function rulerThink(k){
   for(const p of opts){if(shown.length>=5)break;if((per[p.kind]=(per[p.kind]||0)+1)<=2||p===best)shown.push(p);}
   k.mind={y:yearNow(),bar,opts:shown.map(p=>({kind:p.kind,o:p.o?p.o.id:0,u:p.u,f:p.f.filter(x=>Math.abs(x[1])>.02).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,4),done:p===best&&!!did})),did};
 }
-const WAR_WHY={'a warlike temper':'for glory','they are weaker':'seeing their weakness','old grudge':'to avenge old wrongs','covets their land':'coveting their land','they are busy at war':'while they are busy elsewhere',
+const WAR_WHY={'a warlike temper':'for glory','a warlike people':'as warlike peoples do','they are weaker':'seeing their weakness','old grudge':'to avenge old wrongs','covets their land':'coveting their land','they are busy at war':'while they are busy elsewhere',
   'it is our goal':'as long planned','the heavens urge war':'urged on by the heavens','a bloodthirsty age':'in a bloodthirsty age'};
 function lead(f){let b=null;for(const x of f)if(x[1]>0&&(!b||x[1]>b[1]))b=x;return b?b[0]:'';}
 function act(k,p){
@@ -2418,7 +2448,7 @@ function cedeVillage(v,k){
 /* allies decide for themselves whether to answer the call */
 function answerCall(al,friend,foe,offense){
   const tm=tmOf(al),f=tm.honor*.6+debt(al,friend)/100*.5+rel(al,friend)/100*.3+grudge(al,foe)/100*.5-tm.caut*fearOf(al,foe)*.4-(al.weary||0)*.4-al.wars.size*.2+(tm.aggr-.5)*.2
-    -(inTruce(al,foe)?.2+tm.honor*.3:0)-(hasPact(al,foe)?.15:0)+(Math.random()-.5)*.15;
+    -(inTruce(al,foe)?.2+tm.honor*.3:0)-(hasPact(al,foe)?.15:0)+(natOf(al)-1)*.08+(Math.random()-.5)*.15;
   return f>(offense?.45:.12);
 }
 /* the heavens whisper to a ruler; whether they listen depends on who they are */
@@ -7001,8 +7031,10 @@ function temperWords(tm){
 function mindHtml(k){
   const tm=tmOf(k),m=k.mind,bar=.28+tm.caut*.15-tm.aggr*.08,sc=u=>Math.max(0,Math.min(100,u*70));
   $('rGoal').textContent='Aim: '+goalText(k.goal)+(k.goal?', for '+Math.max(1,Math.round((tick-k.goal.since)/YEAR))+(Math.round((tick-k.goal.since)/YEAR)>1?' years':' year'):'');
-  $('rChar').textContent=temperWords(tm)+'.';
-  $('rTemper').innerHTML=TEMPER.map(a=>'<span>'+TEMPER_NAME[a]+'</span><div class="meter" role="img" aria-label="'+TEMPER_NAME[a]+' '+Math.round(tm[a]*100)+' of 100"><i style="width:'+Math.round(tm[a]*100)+'%"></i></div>').join('');
+  const cu=cultureOf(k),nt=natOf(k);
+  $('rChar').textContent='The ruler is '+lc1(temperWords(tm))+'.';
+  $('rPeople').textContent='The '+SPEC[k.race].pl.toLowerCase()+' of '+k.name+' are '+(nt!==1?'a '+NATURES[nt]+' people: ':'')+lc1(temperWords(cu))+'.';
+  $('rTemper').innerHTML=TEMPER.map(a=>'<span>'+TEMPER_NAME[a]+'</span><div class="meter" role="img" aria-label="'+TEMPER_NAME[a]+': ruler '+Math.round(tm[a]*100)+', people '+Math.round(cu[a]*100)+' of 100"><i style="width:'+Math.round(tm[a]*100)+'%"></i><s style="left:'+Math.round(cu[a]*100)+'%"></s></div>').join('');
   if(!m||m.small){$('rWeighH').textContent='Weighing this year';$('rDid').textContent=m||k.pop<8?'The realm is too small for statecraft. Its ruler only tends to its people.':'The ruler has not yet sat in council.';$('rWeigh').innerHTML='';}
   else{
     $('rWeighH').textContent='Weighing, year '+m.y;
@@ -7047,7 +7079,7 @@ function optRow(label,key,opts){
   return '<div class="row"><span>'+label+'</span><div class="opts" data-key="'+key+'">'+
     opts.map(o=>'<button data-v="'+o[0]+'" aria-pressed="'+(String(S[key])===String(o[0]))+'">'+o[1]+'</button>').join('')+'</div></div>';
 }
-const ONOFF=[['true','On'],['false','Off']];
+const ONOFF=[['true','On'],['false','Off']],NAT_OPTS=[['peaceful','Peaceful'],['average','Average'],['warlike','Warlike']];
 function buildSheet(){
   const body=$('sheetBody');body.scrollTop=0;
   if(sheetMode==='realms'){
@@ -7056,7 +7088,8 @@ function buildSheet(){
     const k=sheetK;
     body.innerHTML='<div class="rhead"><i style="background:'+k.color+'"></i><div><b id="rRuler"></b><small id="rNature"></small></div></div>'+
       '<dl id="rStats" class="stats"></dl><p id="rFocus" class="note"></p>'+
-      '<h3>The ruler\u2019s mind</h3><p id="rGoal" class="goal"></p><p id="rChar" class="char"></p><div id="rTemper" class="temper"></div>'+
+      '<h3>The ruler\u2019s mind</h3><p id="rGoal" class="goal"></p><p id="rChar" class="char"></p><p id="rPeople" class="char"></p><div id="rTemper" class="temper"></div>'+
+      '<p class="fine">Bars show the ruler. The dark mark on each bar is the character of the people, which outlives its rulers; each new ruler is born near it.</p>'+
       '<h3 id="rWeighH">Weighing this year</h3><p id="rDid" class="note"></p><div id="rWeigh"></div>'+
       '<p class="fine">Each option is scored from the reasons under it. The red line is how strong a case this ruler needs before acting; bolder rulers need less.</p>'+
       '<h3>Memory</h3><p id="rRep" class="note"></p><div id="rMem"></div>'+
@@ -7081,7 +7114,7 @@ function buildSheet(){
       optRow('Day and night','night',ONOFF)+optRow('Seasons','seasons',ONOFF)+optRow('Weather','weather',ONOFF)+optRow('Clouds','clouds',ONOFF)+optRow('Contour lines','contours',ONOFF)+optRow('Names on the map','labels',ONOFF)+
       optRow('Realm borders','borders',ONOFF)+optRow('Minimap','minimap',ONOFF)+optRow('Trees and peaks up close','detail',ONOFF)+
       optRow('Disasters','disasters',[['off','Off'],['rare','Rare'],['wild','Wild']])+
-      optRow('Temper of rulers','mood',[['gentle','Gentle'],['normal','Normal'],['bloodthirsty','Bloodthirsty']])+
+      optRow('Temper of the times','mood',[['gentle','Gentle'],['normal','Normal'],['bloodthirsty','Bloodthirsty']])+
       optRow('Population limit','popcap',[['small','Small'],['normal','Normal'],['large','Large']])+
       '<h3>How to play</h3><p class="note">Raise land and paint the world with the Shape and Paint tools. Drop a few people from the Life tab on good land and they will found a realm. Speed time up and watch it grow through nine ages, from huts to cities and rockets. Tap Watch to let the camera follow the action.</p>'+
       '<h3>Sound</h3>'+optRow('Sound','sound',ONOFF)+optRow('Music','music',ONOFF)+
@@ -7091,6 +7124,9 @@ function buildSheet(){
       optRow('Land','land',[['islands','Islands'],['continents','Continents'],['pangea','One landmass'],['flat','Flat plain'],['ocean','Empty ocean']])+
       optRow('Climate','climate',[['cold','Cold'],['temperate','Temperate'],['hot','Hot']])+
       optRow('Peoples','peoples',[['none','None'],['few','A few'],['many','Many']])+
+      '<p class="sub">Nature of each people</p>'+
+      optRow('Humans','natHuman',NAT_OPTS)+optRow('Elves','natElf',NAT_OPTS)+optRow('Dwarves','natDwarf',NAT_OPTS)+optRow('Orcs','natOrc',NAT_OPTS)+
+      '<p class="fine">Peaceful peoples raise gentler rulers who trade and make friends. Warlike peoples raise conquerors. Every realm still grows its own character.</p>'+
       optRow('Head start','history',[['0','None'],['60','60 yrs'],['150','150 yrs'],['300','300 yrs']])+
       optRow('Wildlife','wild',ONOFF)+
       '<div class="row"><label for="seedIn">Seed word</label><input id="seedIn" type="text" maxlength="24" placeholder="Leave empty for random" autocomplete="off"></div>'+
@@ -7112,7 +7148,7 @@ function refreshSheet(){
     list.innerHTML=alive.map(k=>{
       const vs=k.villages.length,st=k.wars.size?'At war':k.allies.size?'Allied':'At peace';
       return '<button class="realm" data-k="'+k.id+'"><i style="background:'+k.color+'"></i><span class="rn">'+esc(k.name)+'</span>'+
-        '<span class="rs'+(k.wars.size?' hot':'')+'">'+st+'</span><span class="rm">'+SPEC[k.race].pl+', '+fmtPop(kCitizens(k))+' people, '+vs+(vs===1?' town, ':' towns, ')+AGE_NAME[k.age]+'</span>'+
+        '<span class="rs'+(k.wars.size?' hot':'')+'">'+st+'</span><span class="rm">'+(natOf(k)!==1?cap1(NATURES[natOf(k)])+' '+SPEC[k.race].pl.toLowerCase():SPEC[k.race].pl)+', '+fmtPop(kCitizens(k))+' people, '+vs+(vs===1?' town, ':' towns, ')+AGE_NAME[k.age]+'</span>'+
         '<span class="rm rg">'+esc(rulerName(k))+': '+esc(lc1(goalText(k.goal)))+'</span></button>';
     }).join('');
   }else if(sheetMode==='realm'){
@@ -8309,7 +8345,7 @@ function snapshot(){
     wars:[...k.wars].map(kid),allies:[...k.allies].map(kid),target:vid(k.target),port:vid(k.port),landing:k.landing,rally:vid(k.rally),rallyUntil:k.rallyUntil,
     pauseUntil:k.pauseUntil,boatCd:k.boatCd,broke:k.broke,born:k.born,launches:k.launches,colony:k.colony,peak:k.peak,hist:k.hist,pad:k.pad?vid(k.pad.v):0,
     mem:k.mem||{},rep:repOf(k),goal:k.goal?{type:k.goal.type,o:kid(k.goal.o),why:k.goal.why,s:k.goal.s,since:k.goal.since}:null,weary:k.weary||0,
-    pacts:k.pacts||[],kin:k.kin||[],nudge:k.nudge||null,mind:k.mind||null,heard:k.heard||0,cool:k.cool||{},reigns:k.reigns||null}));
+    pacts:k.pacts||[],kin:k.kin||[],nudge:k.nudge||null,mind:k.mind||null,heard:k.heard||0,cool:k.cool||{},reigns:k.reigns||null,nat:natOf(k),culture:cultureOf(k)}));
   const vs=[];
   for(let n=1;n<vById.length;n++){
     const v=vById[n];
@@ -8321,7 +8357,7 @@ function snapshot(){
   const bs=boats.filter(b=>!b.dead).map(b=>({k:kid(b.k),path:b.path,pi:b.pi,x:b.x,y:b.y,cargo:b.cargo.map(unitOut),mode:b.mode,land:b.land,dir:b.dir,to:kid(b.to),cargoGold:b.cargoGold||0}));
   const wo={};for(const id in wonderOf){const b=wonderOf[id];wo[id]=[b.v.id,b.v.blds.indexOf(b)];}
   const ft={};for(const n in firstTech)ft[n]=kid(firstTech[n]);
-  return{v:SAVE_V,W,H,size:S.size,tick,uid,kc,SL,seaGoal,launches,dayClock,capMul,
+  return{v:SAVE_V,W,H,size:S.size,nature:NATURE.slice(),tick,uid,kc,SL,seaGoal,launches,dayClock,capMul,
     tile:tile.slice(),soil:soil.slice(),elev:elev.slice(),fire:fire.slice(),road:road.slice(),vown:vown.slice(),temp:temp.slice(),moist:moist.slice(),
     kingdoms:ks,villages:vs,units:us,boats:bs,grps:[...grps.values()],
     wars:wars.map(w=>({a:kid(w.a),b:kid(w.b),start:w.start,sa:w.sa,sb:w.sb})),
@@ -8336,14 +8372,14 @@ function restore(d){
   units=[];vById=[null];kingdoms=[];wars=[];boats=[];twisters=d.twisters||[];towers=[];fireList=[];effects=[];sched=[];chronicle=d.chronicle||[];bubbles=[];risen=[];
   planes=[];raising=[];history=d.history||[];wonderOf={};firstTech={};storms=d.storms||[];
   relM.clear();truM.clear();counts.fill(0);dirtyWalk=[];dirtyOver=true;chronDirty=true;lastEvent=null;
-  tick=d.tick;uid=d.uid;kc=d.kc;SL=d.SL;seaGoal=d.seaGoal;launches=d.launches||0;dayClock=d.dayClock||18;capMul=d.capMul||1;
+  NATURE=Array.isArray(d.nature)?d.nature.slice(0,4):[1,1,1,1];tick=d.tick;uid=d.uid;kc=d.kc;SL=d.SL;seaGoal=d.seaGoal;launches=d.launches||0;dayClock=d.dayClock||18;capMul=d.capMul||1;
   const K=id=>id?kingdoms[id-1]:null,V=id=>id?vById[id]:null;
   for(const o of d.kingdoms){
     const k={id:o.id,name:o.name,race:o.race,color:o.color,rgb:hexRgb(o.color),villages:[],alive:o.alive,gold:o.gold,lore:o.lore,age:o.age,tech:o.tech||0,pow:1,pop:0,str:0,
       focus:o.focus,focusUntil:o.focusUntil,restUntil:o.restUntil,ruler:{name:o.ruler.name,title:o.ruler.title,trait:TRAITS.find(t=>t.id===o.ruler.trait)||TRAITS[0],tm:o.ruler.tm||null,since:o.ruler.since,until:o.ruler.until},
       wars:new Set(),allies:new Set(),nb:[],regs:new Set(),target:null,port:null,landing:o.landing,rally:null,rallyUntil:o.rallyUntil,pauseUntil:o.pauseUntil,boatCd:o.boatCd,
       nAdult:0,nSold:0,nBarr:0,nCar:0,nSiege:0,broke:o.broke,born:o.born,launches:o.launches||0,colony:!!o.colony,peak:o.peak||0,hist:o.hist||[],pad:null,
-      mem:o.mem||{},rep:o.rep===undefined?50:o.rep,goal:null,weary:o.weary||0,pacts:o.pacts||[],kin:o.kin||[],nudge:o.nudge||null,mind:o.mind||null,heard:o.heard||0,cool:o.cool||{},reigns:o.reigns||null};
+      mem:o.mem||{},rep:o.rep===undefined?50:o.rep,goal:null,weary:o.weary||0,pacts:o.pacts||[],kin:o.kin||[],nudge:o.nudge||null,mind:o.mind||null,heard:o.heard||0,cool:o.cool||{},reigns:o.reigns||null,nat:o.nat===undefined?null:o.nat,culture:o.culture||null};
     kingdoms.push(k);
   }
   for(const o of d.villages){
@@ -8472,6 +8508,7 @@ function startWorld(){
   const seed=st?hashStr(st):(Math.random()*2147483647)|0;
   busy=true;veil(true,'Shaping the world','Raising mountains and filling seas');
   setTimeout(()=>{
+    natureFromSettings();
     genWorld(seed,{size:S.size,land:S.land,climate:S.climate,peoples:S.peoples,wild:S.wild});
     resize();cam.z=clampZ(Math.max(6,minZ*1.9));
     if(startSpot)centerOn(startSpot.x,startSpot.y);else centerOn(W/2,H/2);
