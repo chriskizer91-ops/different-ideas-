@@ -178,7 +178,12 @@ function nbr(i){
 }
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function yearNow(){return 1+Math.floor(tick/YEAR);}
-function fx(e){if(effects.length<700)effects.push(e);}
+function fx(e){
+  if(effects.length<700)effects.push(e);
+  if(e.k==='boom')snd(e.r>3.5?'bigboom':'boom',e.x,e.y,Math.min(1,.4+e.r/5));
+}
+/* sound is optional: the audio module may be missing or switched off */
+function snd(n,x,y,v){if(S.sound&&!quiet&&typeof AU!=='undefined')AU.sfx(n,x,y,v);}
 function genName(race){
   for(let n=0;n<30;n++){
     const s=pick(NAME1[race])+pick(NAME2[race]);let used=false;

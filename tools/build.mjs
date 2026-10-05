@@ -1,5 +1,5 @@
 // Builds the single-file game: inlines src/style.css and src/js/*.js into Tiny_Dominion.html
-import { readFileSync, writeFileSync, readdirSync, mkdtempSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, mkdtempSync, mkdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
@@ -24,4 +24,15 @@ if (chk.status !== 0) { console.error(chk.stderr); process.exit(1); }
 
 const out = process.env.OUT || join(root, 'Tiny_Dominion.html');
 writeFileSync(out, html);
+
+// artifact flavour: the host wraps the page in its own document, so ship only title, fonts, style, body and script
+if (!process.env.OUT) {
+  const head = read('head.html');
+  const keep = head.split('\n').filter(l => /<title>|<link /.test(l)).join('\n');
+  const art = keep + '\n<style>\n' + read('style.css').trimEnd() + '\n</style>\n' + read('body.html').trimEnd() +
+    '\n\n<script>\n(function(){\n\'use strict\';\n' + js.trimEnd() + '\n})();\n</script>\n';
+  mkdirSync(join(root, 'dist'), { recursive: true });
+  writeFileSync(join(root, 'dist', 'tiny-dominion.html'), art);
+  console.log(`built dist/tiny-dominion.html (${(art.length / 1024).toFixed(1)} KB, artifact page)`);
+}
 console.log(`built ${out} (${(html.length / 1024).toFixed(1)} KB, ${jsFiles.length} js parts)`);

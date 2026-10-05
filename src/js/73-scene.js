@@ -427,6 +427,7 @@ function glOverlay(cx,cy){
       ctx.beginPath();ctx.arc(px,py,e.r*z*(.2+.8*p),0,6.283);ctx.stroke();ctx.globalAlpha=1;
     }else if(e.k==='fireworks'){
       const el=e.T-e.t,r=mulberry(e.x*977+e.y*31);
+      if(el%11===1)snd('firework',e.x,e.y,.6);
       ctx.globalCompositeOperation='lighter';
       for(let b=0;b*11<=el;b++){
         const bx=e.x+(r()-.5)*12,by=e.y-3-r()*7,col=FW_COL[(r()*FW_COL.length)|0],age=el-b*11;

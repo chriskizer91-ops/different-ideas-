@@ -133,6 +133,7 @@ function foundVillage(u){
   }
   if(g&&g.from&&g.from.alive)buildRoad(v,g.from);
   if(k.villages.length>1)chron(k.name+' settles '+v.name,'found',v);
+  snd('found',v.x,v.y,.6);
 }
 function ownOK(v,i){const o=vown[i];if(!o||o===v.id)return true;const ov=vById[o];return!!ov&&ov.alive&&ov.k===v.k;}
 function clearAround(x,y){
@@ -296,7 +297,7 @@ function ruinVillage(v){
   const k=v.k,n=k.villages.indexOf(v);if(n>=0)k.villages.splice(n,1);
   for(const u of units)if(u.v===v){u.v=null;u.soldier=false;}
   v.pop=0;dirtyAll=true;
-  chron(v.name+' lies in ruins','ruin',v);
+  chron(v.name+' lies in ruins','ruin',v);snd('ruin',v.x,v.y,.8);
   if(k.villages.length===0)killKingdom(k);
 }
 function killKingdom(k){
@@ -334,7 +335,7 @@ function chop(v){
   const a=Math.random()*6.283,r=Math.random()*(v.rad+2);
   const x=Math.round(v.x+Math.cos(a)*r),y=Math.round(v.y+Math.sin(a)*r);
   if(!inB(x,y))return;const i=y*W+x;
-  if(TREE[tile[i]]&&!bmap[i]&&!fire[i]&&vown[i]===v.id){setTile(i,soil[i]);v.res+=2;}
+  if(TREE[tile[i]]&&!bmap[i]&&!fire[i]&&vown[i]===v.id){setTile(i,soil[i]);v.res+=2;if(Math.random()<.3)snd('chop',x,y,.4);}
 }
 function farFromVillages(x,y){
   for(let n=1;n<vById.length;n++){const o=vById[n];if(o.alive&&(o.x-x)*(o.x-x)+(o.y-y)*(o.y-y)<MINVD*MINVD)return false;}
@@ -462,7 +463,8 @@ function raiseStep(){
     b.prog+=(b.rate||BUILD_T[b.kind]||.25)*(b.rate?1:.7+.3*Math.min(1,v.pop/8));
     if(b.prog>=1){
       b.prog=1;
-      if(b.kind==='wonder'){
+      snd('build',b.x,b.y,.5);
+      if(b.kind==='wonder'){snd('wonder',b.x,b.y,1);
         const wd=WMAP[b.wid];
         chron(v.k.name+' completes '+wd.n+' in '+v.name+'. It will be remembered for a thousand years','age',v);
         bubble(v.k,'Behold '+wd.n+'!');

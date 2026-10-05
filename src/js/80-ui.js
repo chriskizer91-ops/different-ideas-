@@ -12,7 +12,7 @@ let bannerTimer=0,worldAge=-1;
 function banner(kicker,title,sub){
   if(quiet)return;
   $('bannerKicker').textContent=kicker;$('bannerTitle').textContent=title;$('bannerSub').textContent=sub||'';
-  const el=$('banner');el.hidden=false;clearTimeout(bannerTimer);bannerTimer=setTimeout(()=>{el.hidden=true;},5200);
+  const el=$('banner');el.classList.add('on');clearTimeout(bannerTimer);bannerTimer=setTimeout(()=>{el.classList.remove('on');},5200);
 }
 let infoTimer=0;
 function showInfo(html){const el=$('info');el.innerHTML=html;el.hidden=false;clearTimeout(infoTimer);infoTimer=setTimeout(hideInfo,6500);}
@@ -221,6 +221,7 @@ const CATS=[
     {id:'pan',label:'Move',ico:'\u270B',mode:'pan'},
     {id:'inspect',label:'Inspect',ico:'\uD83D\uDD0E',mode:'tap'},
     {id:'watch',label:'Watch',ico:'\u{1F3AC}',mode:'action'},
+    {id:'sound',label:'Sound',ico:'\u{1F50A}',mode:'action'},
     {id:'realms',label:'Realms',ico:'\uD83D\uDC51',mode:'action'},
     {id:'chronicle',label:'Chronicle',ico:'\uD83D\uDCDC',mode:'action'},
     {id:'history',label:'History',ico:'\uD83D\uDCC8',mode:'action'},
@@ -281,10 +282,13 @@ function buildTools(reset){
     const b=document.createElement('button');b.className='tool';
     if(t.mode!=='action')b.setAttribute('aria-pressed',String(t===tool));
     const ic=document.createElement('span');
-    if(t.sw){ic.className='sw';ic.style.background=t.sw;}else{ic.className='ico';ic.textContent=t.ico;}
+    if(t.sw){ic.className='sw';ic.style.background=t.sw;}else{ic.className='ico';ic.textContent=t.id==='sound'?(S.sound?'\u{1F50A}':'\u{1F507}'):t.ico;}
+    if(t.id==='sound'){b.setAttribute('aria-pressed',String(!!S.sound));}
     const lb=document.createElement('span');lb.textContent=t.label;
     b.appendChild(ic);b.appendChild(lb);
     b.addEventListener('click',()=>{
+      if(typeof AU!=='undefined')AU.unlock();snd('click');
+      if(t.id==='sound'){S.sound=!S.sound;saveSettings();if(typeof AU!=='undefined'){AU.unlock();AU.setOn(S.sound);AU.setMusic(S.music);}toast(S.sound?'Sound on.':'Sound off.');buildTools(false);return;}
       if(t.id==='watch'){setWatch(!watching);return;}
       if(t.mode==='action'){if(sheetMode===t.id)closeSheet();else openSheet(t.id);return;}
       tool=t;buildTools(false);
@@ -323,8 +327,8 @@ function holdBrush(){
 function tapAt(p){
   const t=toTile(p),ok=inB(t.x,t.y);
   switch(tool.id){
-    case'spring':if(ok&&makeRiver(t.x,t.y))chron('A new river springs from the earth'+nearName(t.x,t.y),'disaster',{x:t.x,y:t.y});break;
-    case'flood':if(seaGoal<SL)seaGoal=SL;if(seaGoal>=118){toast('The seas can rise no higher.');break;}seaGoal=Math.min(118,seaGoal+6);chron('The heavens open and the seas begin to rise','disaster');break;
+    case'spring':if(ok)snd('water',t.x,t.y,.8);if(ok&&makeRiver(t.x,t.y))chron('A new river springs from the earth'+nearName(t.x,t.y),'disaster',{x:t.x,y:t.y});break;
+    case'flood':snd('water');if(seaGoal<SL)seaGoal=SL;if(seaGoal>=118){toast('The seas can rise no higher.');break;}seaGoal=Math.min(118,seaGoal+6);chron('The heavens open and the seas begin to rise','disaster');break;
     case'ebb':if(seaGoal>SL)seaGoal=SL;if(seaGoal<=82){toast('The seas can fall no lower.');break;}seaGoal=Math.max(82,seaGoal-6);chron('The seas draw back from the shores','disaster');break;
     case'storm':if(ok){storms.push({x:t.x,y:t.y,r:5+brush*1.5,t:0,life:(3+Math.random()*4)*YEAR|0,thunder:true,id:uid++});chron('A great storm gathers'+nearName(t.x,t.y),'disaster',{x:t.x,y:t.y});}break;
     case'inspect':inspect(t.x,t.y);break;

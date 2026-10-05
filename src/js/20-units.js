@@ -129,6 +129,7 @@ function strikeFoe(u,f,s){
       if(u.k){dmg*=u.k.pow;const vid=vown[u.y*W+u.x];if(vid&&vById[vid].k===u.k)dmg*=1.25;}
       if(f.t===ELF&&!far&&TREE[tile[f.y*W+f.x]])dmg*=.65;
       hit(f,dmg,u);
+      snd(far?(u.k&&u.k.age>=5?'shot':'arrow'):'clash',f.x,f.y,.5);
       if(far){const gun=!!(u.k&&u.k.age>=5);fx({k:'arrow',x:u.x,y:u.y,x2:f.x,y2:f.y,t:gun?3:5,T:gun?3:5,gun});if(gun&&Math.random()<.5)fx({k:'spark',x:u.x,y:u.y,t:2});}
       else if(Math.random()<.25)fx({k:'spark',x:f.x,y:f.y,t:4});
     }
@@ -220,7 +221,7 @@ function updSiege(u,s){
     if(b){
       u.cd=k.age>=7?7:k.age>=5?10:14;u.dir=b.x>=u.x?1:-1;
       const tier=TIER[k.age]||0;
-      fx({k:'shot',x:u.x,y:u.y,x2:b.x,y2:b.y,t:8,T:8,s:tier>=3?'shell':'stone'});
+      fx({k:'shot',x:u.x,y:u.y,x2:b.x,y2:b.y,t:8,T:8,s:tier>=3?'shell':'stone'});snd('cannon',u.x,u.y,.7);
       sched.push({t:tick+3,f:'shell',x:b.x,y:b.y,k,d:s.atk*k.pow*(tier>=4?1.6:1)});
       return;
     }
@@ -267,6 +268,7 @@ function updDragon(u){
       ignite(i);const j=nbr(i);if(j>=0)ignite(j);
       const v=nearest(u,2,o=>o.t!==DRAGON);if(v)hit(v,30,u);
       fx({k:'boom',x:u.x,y:u.y,r:1.6,t:10,T:10});
+      if(Math.random()<.15)snd('roar',u.x,u.y,.8);
     }
   }
 }

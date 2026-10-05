@@ -69,6 +69,7 @@ function declareWar(a,b,why){
   chron(why||(rulerName(a)+' of '+a.name+' declares war on '+b.name),'war',nearestVillageOf(b,a.villages[0]?a.villages[0].x:0,a.villages[0]?a.villages[0].y:0)||b);
   if(!why){const tid=a.ruler.trait.id;bubble(a,tid==='conqueror'?'Their lands will be ours.':tid==='zealot'?'Drive the outsiders from our borders!':tid==='schemer'?'They will never see it coming.':'To arms! We march on '+b.name+'.');}
   a.focus='army';b.focus='army';
+  {const c=b.villages[0];snd('horn',c?c.x:undefined,c?c.y:undefined,.9);}
   pickTarget(a);pickTarget(b);
   if(!why){
     for(const al of[...b.allies])if(al!==a&&al.alive&&!al.wars.has(a)&&Math.random()<.75)declareWar(al,a,al.name+' honors its alliance with '+b.name+' and joins the war');
@@ -88,7 +89,7 @@ function makePeace(a,b,quietly){
     if(!k.wars.size){standDown(k);k.restUntil=tick+((4+Math.random()*6)*YEAR|0);if(tick>k.focusUntil)k.focus=k.ruler.trait.focus;}
     else pickTarget(k);
   }
-  if(!quietly){chron('Peace between '+a.name+' and '+b.name+' after '+yrs+(yrs===1?' year':' years')+' of war','peace');bubble(a,'Enough blood. Let there be peace.');}
+  if(!quietly){chron('Peace between '+a.name+' and '+b.name+' after '+yrs+(yrs===1?' year':' years')+' of war','peace');snd('peace');bubble(a,'Enough blood. Let there be peace.');}
 }
 function makeAlliance(a,b){
   if(a===b||a.allies.has(b)||a.wars.has(b))return false;
@@ -186,13 +187,13 @@ function rulersStep(){
     k.nb.sort((p,q)=>p.d-q.d);
     while(k.tech<TECH_LORE.length&&k.lore>=TECH_LORE[k.tech]){
       const nm=TECHS[(k.tech/3)|0][k.tech%3];
-      if(!firstTech[nm]){firstTech[nm]=k;chron(k.name+' is the first realm to discover '+nm,'tech',k);}
+      if(!firstTech[nm]){firstTech[nm]=k;chron(k.name+' is the first realm to discover '+nm,'tech',k);snd('tech');}
       k.tech++;
     }
     if(k.age<AGES.length-1&&k.lore>=AGE_T[k.age]){
       const t0=TIER[k.age];
       k.age++;updPow(k);
-      chron(k.name+' enters the '+AGE_NAME[k.age],'age',k);
+      chron(k.name+' enters the '+AGE_NAME[k.age],'age',k);snd('fanfare',k.villages[0]?k.villages[0].x:undefined,k.villages[0]?k.villages[0].y:undefined,1);
       if(k.age>worldAge){worldAge=k.age;if(k.age>0)banner('A new age dawns','The '+AGE_NAME[k.age],k.name+' leads the world into it');}bubble(k,AGE_SAY[k.age]||'A new age dawns for '+k.name+'.');
       for(const v of k.villages){const h=v.blds[0];if(h&&h.kind==='hall')h.hp=hallHp(v);}
       if(TIER[k.age]!==t0)upgradeRoads(k);else dirtyAll=true;
@@ -228,7 +229,7 @@ function spaceProgram(k){
   if(Math.random()>.22)return;
   const colony=k.tech>=TECH_LORE.length&&!k.colony;
   k.launches++;launches++;
-  effects.push({k:'rocket',x:pad.x+1,y:pad.y+1,t:420,T:420,team:k,colony});
+  effects.push({k:'rocket',x:pad.x+1,y:pad.y+1,t:420,T:420,team:k,colony});snd('rocket',pad.x+1,pad.y+1,1);
   if(colony){
     k.colony=true;
     chron(k.name+' launches a colony ship to the stars. A new chapter of history begins beyond the sky','age',pad.v);
@@ -341,7 +342,8 @@ async function holdCouncil(){
   if(!ks.length){toast('There are no realms to call to council yet.');return;}
   councilBusy=true;councilUi();
   const prompt='You are playing every ruler in a fantasy god-simulation called Tiny Dominion. It is year '+yearNow()+
-    '. For each realm below, decide that ruler\'s policy for the coming years, in character with their nature and their situation. '+
+    '. Realms advance through nine ages, from the Stone Age to the Space Age; speak in the voice of each realm\'s current age. '+
+    'For each realm below, decide that ruler\'s policy for the coming years, in character with their nature and their situation. '+
     'Rulers act in their own interest: the weak seek allies or peace, the strong and warlike strike hated or weaker neighbours, merchants and scholars avoid costly wars. '+
     'A realm cannot attack a neighbour it has a truce with or cannot reach. Not every realm should start a war.\n\nRealms:\n'+
     JSON.stringify(ks.map(realmBrief))+

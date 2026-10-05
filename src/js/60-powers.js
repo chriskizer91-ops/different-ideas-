@@ -18,7 +18,9 @@ function kingdomAt(tx,ty){
   const vid=vown[ty*W+tx];if(!vid)return null;
   const v=vById[vid];return v&&v.alive?v.k:null;
 }
+let lastBrushSnd=0;
 function applyBrush(tx,ty,tool){
+  if(now()-lastBrushSnd>180){lastBrushSnd=now();const id=tool.id;snd(id==='raise'||id==='lower'||id==='flatten'?'rumble':id==='fire'?'fire':id==='rain'?'water':id==='smite'?'boom':'paint',tx,ty,.5);}
   if(tool.tile!==undefined){forBrush(tx,ty,i=>setTile(i,tool.tile,true));return;}
   switch(tool.id){
     case'raise':raiseLand(tx,ty,1);break;
@@ -56,6 +58,7 @@ function applyBrush(tx,ty,tool){
   }
 }
 function spawnBrush(tx,ty,type){
+  snd(type===DRAGON?'roar':type===ZOMBIE?'zombie':'spawn',tx,ty,.6);
   const n=brush<=1?1:brush+1,r=brush-1;
   for(let k=0;k<n;k++){
     const x=tx+Math.round((Math.random()*2-1)*r),y=ty+Math.round((Math.random()*2-1)*r);
@@ -65,7 +68,7 @@ function spawnBrush(tx,ty,type){
 }
 function strike(tx,ty){
   if(!inB(tx,ty))return;
-  fx({k:'bolt',x:tx,y:ty,t:10,seed:(Math.random()*1e6)|0});
+  fx({k:'bolt',x:tx,y:ty,t:10,seed:(Math.random()*1e6)|0});snd('thunder',tx,ty,.9);
   const i=ty*W+tx;ignite(i);
   const b=bmap[i];if(b)damageBld(b,45,null);
   killNear(tx,ty,1.6);

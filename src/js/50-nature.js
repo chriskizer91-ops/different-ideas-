@@ -82,7 +82,7 @@ function disasters(){
     if(!vs.length)return;
     const v=pick(vs);let c=0;
     for(const u of units){if(u.v===v&&!u.sick&&!u.immune){u.sick=200;if(++c>=4)break;}}
-    if(c)chron('Plague breaks out in '+v.name,'disaster',v);
+    if(c){chron('Plague breaks out in '+v.name,'disaster',v);snd('plague',v.x,v.y,.8);}
   }else if(r<.8){
     const i=randomTile(j=>WALK[tile[j]]===1,100);if(i<0)return;
     twisters.push({x:i%W,y:(i/W)|0,dx:Math.random()<.5?1:-1,dy:0,t:170});
@@ -99,7 +99,7 @@ function disasters(){
     if(!vs.length)return;
     const v=pick(vs);let c=0;
     for(let m=0;m<8;m++){const x=v.x+((Math.random()*17)|0)-8,y=v.y+((Math.random()*17)|0)-8;if(walkable(x,y)&&spawn(ZOMBIE,x,y))c++;}
-    if(c)chron('The dead rise outside '+v.name,'disaster',v);
+    if(c){chron('The dead rise outside '+v.name,'disaster',v);snd('zombie',v.x,v.y,.9);}
   }
 }
 function erupt(tx,ty){

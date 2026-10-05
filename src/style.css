@@ -152,7 +152,7 @@ body.watching #stopWatch{display:block}
 #info .act{min-height:36px;margin-top:6px;padding:0 10px;font-size:13px}
 #banner{position:fixed;z-index:4;left:50%;top:calc(76px + env(safe-area-inset-top,0px));transform:translateX(-50%);text-align:center;pointer-events:none;
   background:rgba(11,24,40,.82);color:#fff6d6;border:2px solid var(--sun);box-shadow:0 3px 0 var(--shadow);padding:10px 22px 12px;max-width:calc(100% - 24px);transition:opacity .8s}
-#banner[hidden]{display:block;opacity:0}
+#banner{opacity:0}#banner.on{opacity:1}
 #banner small{display:block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--sun)}
 #banner b{display:block;font-size:30px;line-height:1.1;margin:2px 0}
 #banner span{display:block;font-size:14px;color:#cfe3dc}
