@@ -9,6 +9,8 @@ import { SoilDefs } from './SoilGauge.jsx';
 import { Sky } from './Sky.jsx';
 import { WeekPlanner } from './WeekPlanner.jsx';
 import { Climate } from './Climate.jsx';
+import { Calendar } from './Calendar.jsx';
+import { PlantProfile } from './PlantProfile.jsx';
 import { TimerBar, timerState, totalRun } from './Timer.jsx';
 import { unlockSound, chime, keepAwake } from './sound.js';
 import { PlacePicker, SampleControls, HowItWorks, Footer } from './Panels.jsx';
@@ -22,6 +24,8 @@ import { buildAlerts } from '../model/alerts.js';
 import { climateStats, historyStart } from '../model/climate.js';
 import { climateNormals, normalsStart, doyIndex } from '../model/normals.js';
 import { howToWater, timerPhases } from '../model/watering.js';
+import { frostDatesFrom } from '../model/calendar.js';
+import { allProfiles, profileById, plantsPatch } from '../model/profiles.js';
 import { recentWeather, chartData, needsHistory, RANGES } from '../model/summary.js';
 import { isPot } from '../model/tables.js';
 import {
@@ -223,6 +227,8 @@ export function App() {
   const [notice, setNotice] = useState(null);
   const [timers, setTimers] = useState([]);
   const [toast, setToast] = useState(null);
+  const [customFrost, setCustomFrost] = useState(null);
+  const [profileId, setProfileId] = useState(null);
   const chartRef = useRef(null);
 
   useEffect(() => {
@@ -234,6 +240,7 @@ export function App() {
       if (RANGES.some((r) => r.key === s.chartRange)) setChartRange(s.chartRange);
       if (s.chartBedId) setChartBedId(s.chartBedId);
       if (Array.isArray(s.timers)) setTimers(s.timers.filter((t) => t && t.bedId && Array.isArray(t.phases)));
+      if (s.customFrost && /^\d\d-\d\d$/.test(s.customFrost.last) && /^\d\d-\d\d$/.test(s.customFrost.first)) setCustomFrost(s.customFrost);
       if (s.migratedFrom)
         setNotice('Your beds and pots moved over from the previous version. There are more soil types now, so check each bed’s soil in its settings.');
     }
@@ -243,9 +250,9 @@ export function App() {
 
   useEffect(() => {
     if (!ready) return;
-    const t = setTimeout(() => saveState({ units, place, beds, chartRange, chartBedId, timers }), 400);
+    const t = setTimeout(() => saveState({ units, place, beds, chartRange, chartBedId, timers, customFrost }), 400);
     return () => clearTimeout(t);
-  }, [ready, units, place, beds, chartRange, chartBedId, timers]);
+  }, [ready, units, place, beds, chartRange, chartBedId, timers, customFrost]);
 
   // ---- weather: live or saved forecast for the place, otherwise sample ----
   const fc = useForecast(place, ready, now);
@@ -325,6 +332,28 @@ export function App() {
   );
   const plans = useMemo(() => Object.fromEntries(rows.map((r) => [r.bed.id, planAhead(r.sim, days, T)])), [rows, days, T]);
   const sunsets = useMemo(() => Object.fromEntries(days.map((d) => [d.date, d.sunset])), [days]);
+
+  // ---- planting calendar ----
+  const frost = useMemo(() => frostDatesFrom({ custom: customFrost, normals, climate }), [customFrost, normals, climate]);
+  const bedPlantIds = useMemo(() => new Set(beds.flatMap((b) => b.plants || [])), [beds]);
+  const addPlant = (plantId, target) => {
+    const p = profileById(plantId);
+    if (!p) return;
+    if (target === 'new-bed' || target === 'new-pot') {
+      const pot = target === 'new-pot';
+      const b = newBed({ site: pot ? 'pot' : 'ground', name: p.name });
+      const patched = { ...b, ...plantsPatch(b, [plantId]) };
+      setBeds((bs) => [...bs, patched]);
+      setOpenId(patched.id);
+      say(`Added a ${pot ? 'pot' : 'bed'} for ${p.name}.`);
+      setTimeout(() => jumpTo(patched.id), 80);
+      return;
+    }
+    const bed = beds.find((b) => b.id === target);
+    if (!bed) return;
+    update(target, plantsPatch(bed, [...(bed.plants || []), plantId]));
+    say(`Added ${p.name} to ${bed.name}.`);
+  };
   const recent = useMemo(() => recentWeather(days, T), [days, T]);
 
   const selected = rows.find((r) => r.bed.id === chartBedId) || rows.find((r) => r.sim.status === 'water') || rows[0] || null;
@@ -385,6 +414,7 @@ export function App() {
     setChartBedId(null);
     setNotice(null);
     setTimers([]);
+    setCustomFrost(null);
     setShowPicker(true);
   };
   const backup = () => {
@@ -591,6 +621,7 @@ export function App() {
                       setOpenId((o) => (o === row.bed.id ? null : row.bed.id));
                     }}
                     onShowChart={() => showChart(row.bed.id)}
+                    onOpenProfile={setProfileId}
                     onUpdate={(patch) => update(row.bed.id, patch)}
                     onLog={(field, action, date) => log(row.bed.id, field, action, date)}
                     onRemove={() => {
@@ -611,6 +642,16 @@ export function App() {
                 </button>
               ))}
             </div>
+            <Calendar
+              frost={frost}
+              today={today}
+              profiles={allProfiles()}
+              bedPlantIds={bedPlantIds}
+              onOpen={setProfileId}
+              custom={!!customFrost}
+              onSetFrost={setCustomFrost}
+              loading={!wx.sample && norm.status === 'loading'}
+            />
             <Weather s={recent} units={units} />
             <WaterChart
               rows={rows}
@@ -648,6 +689,18 @@ export function App() {
         <div class="toast" role="status">
           {toast}
         </div>
+      )}
+      {profileId && profileById(profileId) && (
+        <PlantProfile
+          profile={profileById(profileId)}
+          frost={frost}
+          today={today}
+          units={units}
+          normals={normals}
+          beds={beds}
+          onAdd={addPlant}
+          onClose={() => setProfileId(null)}
+        />
       )}
       <SoilDefs />
     </div>

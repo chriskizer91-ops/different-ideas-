@@ -465,6 +465,89 @@ button.alert-day { cursor: pointer; }
 .footer { margin-top: 40px; font-size: 14px; color: var(--stem); display: flex; flex-direction: column; gap: 8px; }
 .footer-actions { display: flex; flex-wrap: wrap; gap: 16px; }
 
+/* planting calendar */
+.cal-frost { margin-top: 6px; }
+.cal-edit { margin-top: 10px; padding: 12px; }
+.cal-edit .grid2 { margin-top: 8px; }
+.cal-panel { margin-top: 10px; padding: 12px; }
+.sub.first { margin-top: 0; }
+.plant-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.plant-chip { display: inline-flex; flex-direction: column; align-items: flex-start; text-align: left; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--rule); background: var(--field); font-size: 14px; line-height: 1.25; }
+.plant-chip.is-now { border-color: var(--leaf); box-shadow: inset 3px 0 0 var(--leaf); }
+.plant-chip .xs { color: var(--stem); }
+.plant-chip.slim { flex-direction: row; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; font-weight: 550; }
+.plant-chip.slim.is-now { box-shadow: none; }
+.plant-chip.more { background: none; border-style: dashed; color: var(--stem); }
+.pn-group + .pn-group { margin-top: 12px; }
+.pn-title { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--stem); margin: 0 0 4px; }
+.pn-cluster + .pn-cluster { margin-top: 8px; }
+.pn-when { display: block; margin-bottom: 4px; }
+.cal-search { margin-top: 14px; }
+.cal-filter { margin-top: 14px; }
+.pick.small { font-size: 13px; padding: 4px 10px; }
+.cal { display: grid; gap: 2px; }
+.cal-row { display: grid; grid-template-columns: minmax(84px, 34%) 1fr; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 3px 0; border-radius: 6px; }
+.cal-row:not(.cal-head):hover { background: var(--fog); }
+.cal-row.is-now .cal-name { font-weight: 700; }
+.cal-name { display: flex; align-items: center; gap: 4px; min-width: 0; font-size: 13.5px; }
+.cal-track { position: relative; height: 18px; border-radius: 4px; background: var(--fog); }
+.cal-head .cal-track { background: none; height: 14px; }
+.cal-month { position: absolute; top: 0; font-size: 10.5px; color: var(--stem); transform: translateX(2px); }
+.cal-grid { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--rule); opacity: 0.7; }
+.cal-bar { position: absolute; top: 3px; bottom: 3px; border-radius: 3px; opacity: 0.55; }
+.cal-bar.best { opacity: 1; }
+.cal-bar.sd, .cal-key-sd { background: #4f9a62; }
+.cal-bar.tr, .cal-key-tr { background: var(--rain); }
+.cal-bar.ct, .cal-key-ct { background: #9b6b43; }
+.cal-bar.sod, .cal-key-sod { background: #6aa84f; }
+.cal-today, .cal-key-today { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--ink); border-radius: 1px; }
+.cal-key-today { position: static; display: inline-block; height: 10px; vertical-align: -1px; }
+.cal-more { margin-top: 8px; }
+.badge-native { display: inline-block; flex-shrink: 0; width: 8px; height: 8px; border-radius: 999px; background: #c2693e; box-shadow: 0 0 0 1.5px var(--panel); }
+.badge-native.inline { vertical-align: 0; margin-left: 2px; }
+
+/* plant picker in bed settings */
+.picker-plants { margin-top: 6px; }
+.plant-tag { display: inline-flex; align-items: center; border-radius: 999px; background: var(--leaf-pale); color: var(--leaf); font-size: 13px; font-weight: 600; }
+.plant-tag-name { padding: 4px 4px 4px 10px; }
+.plant-tag-x { display: inline-flex; padding: 6px 8px 6px 4px; }
+.picker-plants > .link { margin-top: 6px; }
+.pp-panel { margin-top: 8px; padding: 10px; border-radius: 12px; background: var(--fog); }
+.pp-groups { margin-top: 8px; }
+.pp-list { list-style: none; margin: 8px 0 0; padding: 0; max-height: 300px; overflow-y: auto; display: grid; gap: 4px; }
+.pp-item { width: 100%; text-align: left; display: flex; flex-direction: column; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--rule); background: var(--field); }
+.pp-item.on { border-color: var(--leaf); background: var(--leaf-pale); }
+.pp-name { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; }
+.pp-meta { font-size: 12px; color: var(--stem); }
+
+/* plant profile sheet */
+.sheet-back { position: fixed; inset: 0; z-index: 30; background: rgba(10, 20, 14, 0.45); display: flex; align-items: flex-end; justify-content: center; }
+.sheet {
+  width: min(34rem, 100%); max-height: 88vh; overflow-y: auto; background: var(--panel); color: var(--ink);
+  border-radius: 18px 18px 0 0; padding: 18px 16px calc(24px + env(safe-area-inset-bottom)); box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.25);
+}
+@media (min-width: 640px) {
+  .sheet-back { align-items: center; }
+  .sheet { border-radius: 18px; }
+}
+.sheet-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.sci { font-style: italic; color: var(--stem); font-size: 14px; }
+.sheet .tags { margin-top: 10px; }
+.tag-native { background: #c2693e; border-color: #c2693e; color: #fff; }
+.sheet-line { margin-top: 6px; }
+.win-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 14px; }
+.win-list li { padding: 6px 10px; border-radius: 10px; background: var(--fog); }
+.win-list li.is-now { background: var(--leaf-pale); }
+.now-pill, .soon-pill { margin-left: 6px; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--leaf); color: var(--panel); }
+.soon-pill { background: var(--straw); color: #1d2b24; }
+.facts { margin: 14px 0 0; display: grid; gap: 6px; font-size: 14px; }
+.facts > div { display: grid; grid-template-columns: 84px 1fr; gap: 8px; }
+.facts dt { color: var(--stem); font-weight: 600; }
+.facts dd { margin: 0; }
+.sheet-add { margin-top: 6px; padding-top: 4px; border-top: 1px solid var(--rule); }
+.sources { margin-top: 14px; word-break: break-word; }
+.sources a { color: var(--rain-ink); }
+
 @media (max-width: 380px) {
   .h1 { font-size: 32px; }
   .gauge, .soil { width: 54px; }
@@ -623,15 +706,15 @@ button.alert-day { cursor: pointer; }
     };
   }
   function q(n2, u4, t3, i3, r3, o3, e3, f4, c3, a3) {
-    var s3, h3, p3, v3, y3, d3, _2, k3, x3, M, I2, P2, A3, H3, T3, j3, F2 = u4.type;
+    var s3, h3, p3, v3, y3, d3, _2, k3, x3, M, I2, P2, A3, H3, T4, j3, F3 = u4.type;
     if (void 0 !== u4.constructor) return null;
     128 & t3.__u && (c3 = !!(32 & t3.__u), o3 = [f4 = u4.__e = t3.__e]), (s3 = l.__b) && s3(u4);
-    n: if ("function" == typeof F2) {
+    n: if ("function" == typeof F3) {
       h3 = e3.length;
       try {
-        if (x3 = u4.props, M = F2.prototype && F2.prototype.render, I2 = (s3 = F2.contextType) && i3[s3.__c], P2 = s3 ? I2 ? I2.props.value : s3.__ : i3, t3.__c ? k3 = (p3 = u4.__c = t3.__c).__ = p3.__E : (M ? u4.__c = p3 = new F2(x3, P2) : (u4.__c = p3 = new C(x3, P2), p3.constructor = F2, p3.render = Q), I2 && I2.sub(p3), p3.state || (p3.state = {}), p3.__n = i3, v3 = p3.__d = true, p3.__h = [], p3._sb = []), M && null == p3.__s && (p3.__s = p3.state), M && null != F2.getDerivedStateFromProps && (p3.__s == p3.state && (p3.__s = m({}, p3.__s)), m(p3.__s, F2.getDerivedStateFromProps(x3, p3.__s))), y3 = p3.props, d3 = p3.state, p3.__v = u4, v3) M && null == F2.getDerivedStateFromProps && null != p3.componentWillMount && p3.componentWillMount(), M && null != p3.componentDidMount && p3.__h.push(p3.componentDidMount);
+        if (x3 = u4.props, M = F3.prototype && F3.prototype.render, I2 = (s3 = F3.contextType) && i3[s3.__c], P2 = s3 ? I2 ? I2.props.value : s3.__ : i3, t3.__c ? k3 = (p3 = u4.__c = t3.__c).__ = p3.__E : (M ? u4.__c = p3 = new F3(x3, P2) : (u4.__c = p3 = new C(x3, P2), p3.constructor = F3, p3.render = Q), I2 && I2.sub(p3), p3.state || (p3.state = {}), p3.__n = i3, v3 = p3.__d = true, p3.__h = [], p3._sb = []), M && null == p3.__s && (p3.__s = p3.state), M && null != F3.getDerivedStateFromProps && (p3.__s == p3.state && (p3.__s = m({}, p3.__s)), m(p3.__s, F3.getDerivedStateFromProps(x3, p3.__s))), y3 = p3.props, d3 = p3.state, p3.__v = u4, v3) M && null == F3.getDerivedStateFromProps && null != p3.componentWillMount && p3.componentWillMount(), M && null != p3.componentDidMount && p3.__h.push(p3.componentDidMount);
         else {
-          if (M && null == F2.getDerivedStateFromProps && x3 !== y3 && null != p3.componentWillReceiveProps && p3.componentWillReceiveProps(x3, P2), u4.__v == t3.__v || !p3.__e && null != p3.shouldComponentUpdate && false === p3.shouldComponentUpdate(x3, p3.__s, P2)) {
+          if (M && null == F3.getDerivedStateFromProps && x3 !== y3 && null != p3.componentWillReceiveProps && p3.componentWillReceiveProps(x3, P2), u4.__v == t3.__v || !p3.__e && null != p3.shouldComponentUpdate && false === p3.shouldComponentUpdate(x3, p3.__s, P2)) {
             u4.__v != t3.__v && (p3.props = x3, p3.state = p3.__s, p3.__d = false), u4.__e = t3.__e, u4.__k = t3.__k, u4.__k.some(function(n3) {
               n3 && (n3.__ = u4);
             }), w.push.apply(p3.__h, p3._sb), p3._sb = [], p3.__h.length && e3.push(p3), f4 = $(t3);
@@ -645,7 +728,7 @@ button.alert-day { cursor: pointer; }
         else do {
           p3.__d = false, A3 && A3(u4), s3 = p3.render(p3.props, p3.state, p3.context), p3.state = p3.__s;
         } while (p3.__d && ++H3 < 25);
-        p3.state = p3.__s, null != p3.getChildContext && (i3 = m(m({}, i3), p3.getChildContext())), M && !v3 && null != p3.getSnapshotBeforeUpdate && (_2 = p3.getSnapshotBeforeUpdate(y3, d3)), T3 = null != s3 && s3.type === S && null == s3.key ? E(s3.props.children) : s3, f4 = L(n2, g(T3) ? T3 : [T3], u4, t3, i3, r3, o3, e3, f4, c3, a3), p3.base = u4.__e, u4.__u &= -161, p3.__h.length && e3.push(p3), k3 && (p3.__E = p3.__ = null);
+        p3.state = p3.__s, null != p3.getChildContext && (i3 = m(m({}, i3), p3.getChildContext())), M && !v3 && null != p3.getSnapshotBeforeUpdate && (_2 = p3.getSnapshotBeforeUpdate(y3, d3)), T4 = null != s3 && s3.type === S && null == s3.key ? E(s3.props.children) : s3, f4 = L(n2, g(T4) ? T4 : [T4], u4, t3, i3, r3, o3, e3, f4, c3, a3), p3.base = u4.__e, u4.__u &= -161, p3.__h.length && e3.push(p3), k3 && (p3.__E = p3.__ = null);
       } catch (n3) {
         if (e3.length = h3, u4.__v = null, c3 || null != o3) {
           if (n3.then) {
@@ -1863,6 +1946,373 @@ button.alert-day { cursor: pointer; }
     return `${h12}:${String(m3).padStart(2, "0")} ${ap}`;
   }
 
+  // src/data/plants.js
+  var F2 = (f4) => f4 == null ? null : Math.round((f4 - 32) * 5 / 9 * 10) / 10;
+  var ROOTS = { shallow: 300, medium: 450, deep: 600 };
+  var WATER = { "very low": [0.15, 0.65], low: [0.3, 0.6], medium: [0.5, 0.5], high: [0.7, 0.4] };
+  var win = (anchor, how, from, to, best) => ({ anchor, how, from, to, best: !!best });
+  var SEASONS = {
+    // container trees, shrubs and perennials: fall is best in North Texas, late winter to spring works
+    fall: [win("first", "container", -6, 2, true), win("last", "container", -8, 4)],
+    // bare-root fruit trees and roses while dormant
+    bareroot: [win("last", "bare-root", -10, -3, true), win("first", "container", -6, 2)],
+    // wildflower seed sown in fall to sprout with fall rains and bloom in spring
+    wildflower: [win("first", "seed", -11, -3, true)],
+    // warm-season annual flowers after frost
+    warmAnnual: [win("last", "transplant", 2, 10, true)],
+    // cool-season annual flowers for fall, winter and spring color
+    coolAnnual: [win("first", "transplant", -7, -2, true), win("last", "transplant", -8, -4)],
+    // warm-season lawns from sod or seed once soil is warm
+    warmLawn: [win("last", "sod or seed", 4, 16, true)],
+    // cool-season lawns seeded in early fall
+    coolLawn: [win("first", "seed", -9, -6, true)],
+    // succulents and cold-tender perennials: spring, so roots settle before winter
+    spring: [win("last", "container", 2, 12, true)]
+  };
+  function edible(e3) {
+    const windows = [];
+    if (e3.spring) windows.push(win("last", e3.spring[0], e3.spring[1], e3.spring[2]));
+    if (e3.fall) windows.push(win("first", e3.fall[0], e3.fall[1], e3.fall[2]));
+    if (e3.plantRule) windows.push(...SEASONS[e3.plantRule]);
+    return {
+      life: e3.season === "perennial" ? "perennial" : "annual",
+      base: e3.group === "fruit" && e3.season === "perennial" ? "trees" : e3.season === "perennial" ? "shrubs" : "veg",
+      potBase: e3.potBase === void 0 ? e3.season === "perennial" ? "shrubs" : "veg" : e3.potBase,
+      feedEvery: e3.season === "perennial" ? 60 : 28,
+      native: false,
+      water: e3.kc >= 1 ? "high" : e3.kc >= 0.6 ? "medium" : "low",
+      ...e3,
+      rootMm: ROOTS[e3.roots] || e3.rootMm || 450,
+      damageC: F2(e3.damageF),
+      killC: F2(e3.killF),
+      heatC: F2(e3.heatF),
+      windows
+    };
+  }
+  var BASE = { tree: "trees", shrub: "shrubs", perennial: "shrubs", grass: "shrubs", groundcover: "shrubs", vine: "shrubs", succulent: "natives", annual: "flowers" };
+  var POT = { shrub: "shrubs", perennial: "shrubs", grass: "shrubs", groundcover: "shrubs", vine: "shrubs", succulent: "natives", annual: "flowers" };
+  var LAND_ROOTS = { tree: 600, shrub: 450, perennial: 300, grass: 450, groundcover: 200, vine: 450, succulent: 300, annual: 250 };
+  function landscape(l3) {
+    const [kc, p3] = WATER[l3.water] || WATER.medium;
+    return {
+      life: l3.type === "annual" ? "annual" : "perennial",
+      group: l3.type === "annual" ? "flower" : l3.type,
+      base: l3.type === "lawn" ? l3.lawnBase : BASE[l3.type],
+      potBase: l3.potBase !== void 0 ? l3.potBase : POT[l3.type] || null,
+      kc,
+      p: p3,
+      rootMm: LAND_ROOTS[l3.type] || 300,
+      feedEvery: l3.type === "annual" ? 28 : 0,
+      frost: l3.type === "annual" && l3.season === "warm" ? "tender" : null,
+      ...l3,
+      // warm-season annuals are hurt by frost itself
+      damageC: F2(l3.damageF != null ? l3.damageF : l3.type === "annual" && l3.season === "warm" ? 32 : null),
+      killC: F2(l3.coldF),
+      heatC: F2(l3.heatF),
+      windows: SEASONS[l3.plantRule] || SEASONS.fall
+    };
+  }
+  var PLANT_LIBRARY = [
+    // ---- vegetables ----
+    edible({
+      id: "tomato",
+      name: "Tomato",
+      sci: "Solanum lycopersicum",
+      group: "vegetable",
+      season: "warm",
+      kc: 1.15,
+      p: 0.4,
+      roots: "deep",
+      spring: ["transplant", 1, 6],
+      fall: ["transplant", -22, -18],
+      frost: "tender",
+      damageF: 32,
+      heatF: 92,
+      heatShort: ["sets little fruit", "set little fruit"],
+      heat: "Flowers drop without setting fruit when days stay above about 92°F or nights above 75°F.",
+      days: "70–85 days from transplant",
+      tips: "Plant early so fruit sets before the summer heat; a second crop planted in early summer bears in fall."
+    }),
+    edible({
+      id: "pepper",
+      name: "Pepper",
+      sci: "Capsicum annuum",
+      group: "vegetable",
+      season: "warm",
+      kc: 1.05,
+      p: 0.3,
+      roots: "medium",
+      spring: ["transplant", 2, 7],
+      fall: ["transplant", -20, -16],
+      frost: "tender",
+      damageF: 32,
+      heatF: 95,
+      heatShort: ["drops its blossoms", "drop their blossoms"],
+      heat: "Blossoms drop in the hottest weeks; plants pick up again as nights cool.",
+      days: "65–80 days from transplant"
+    }),
+    edible({
+      id: "basil",
+      name: "Basil",
+      sci: "Ocimum basilicum",
+      group: "herb",
+      season: "warm",
+      kc: 0.95,
+      p: 0.4,
+      roots: "shallow",
+      spring: ["transplant", 2, 10],
+      frost: "tender",
+      damageF: 35,
+      days: "60–75 days"
+    }),
+    edible({
+      id: "kale",
+      name: "Kale",
+      sci: "Brassica oleracea (Acephala)",
+      group: "vegetable",
+      season: "cool",
+      kc: 1.05,
+      p: 0.45,
+      roots: "medium",
+      spring: ["transplant", -6, -2],
+      fall: ["transplant", -14, -8],
+      frost: "hardy",
+      damageF: 15,
+      heatF: 85,
+      heatShort: ["turns tough and bitter", "turn tough and bitter"],
+      days: "50–65 days"
+    }),
+    edible({
+      id: "spinach",
+      name: "Spinach",
+      sci: "Spinacia oleracea",
+      group: "vegetable",
+      season: "cool",
+      kc: 1,
+      p: 0.2,
+      roots: "shallow",
+      spring: ["seed", -8, -4],
+      fall: ["seed", -12, -6],
+      frost: "hardy",
+      damageF: 15,
+      heatF: 80,
+      heatShort: ["bolts", "bolt"],
+      days: "40–50 days"
+    }),
+    edible({
+      id: "lettuce",
+      name: "Lettuce",
+      sci: "Lactuca sativa",
+      group: "vegetable",
+      season: "cool",
+      kc: 1,
+      p: 0.3,
+      roots: "shallow",
+      spring: ["seed", -6, -2],
+      fall: ["seed", -12, -6],
+      frost: "semi-hardy",
+      damageF: 28,
+      heatF: 80,
+      heatShort: ["bolts and turns bitter", "bolt and turn bitter"],
+      days: "45–60 days"
+    }),
+    edible({
+      id: "garlic",
+      name: "Garlic",
+      sci: "Allium sativum",
+      group: "vegetable",
+      season: "cool",
+      kc: 1,
+      p: 0.3,
+      roots: "shallow",
+      fall: ["cloves", -8, -3],
+      frost: "hardy",
+      damageF: 10,
+      days: "Harvest in late May or June"
+    }),
+    // ---- landscape ----
+    landscape({
+      id: "live-oak",
+      name: "Live oak",
+      sci: "Quercus virginiana and Q. fusiformis",
+      type: "tree",
+      native: true,
+      water: "low",
+      sun: "full",
+      coldF: 0,
+      potBase: null
+    }),
+    landscape({
+      id: "turks-cap",
+      name: "Turk's cap",
+      sci: "Malvaviscus arboreus var. drummondii",
+      type: "shrub",
+      native: true,
+      water: "low",
+      sun: "part to shade",
+      coldF: 25,
+      dieback: true
+    }),
+    landscape({
+      id: "texas-sage",
+      name: "Texas sage (cenizo)",
+      sci: "Leucophyllum frutescens",
+      type: "shrub",
+      native: false,
+      water: "very low",
+      sun: "full",
+      coldF: 10
+    }),
+    landscape({
+      id: "bermuda",
+      name: "Bermudagrass",
+      sci: "Cynodon dactylon",
+      type: "lawn",
+      lawnBase: "lawnWarm",
+      native: false,
+      water: "medium",
+      sun: "full",
+      coldF: null,
+      plantRule: "warmLawn",
+      potBase: null
+    }),
+    landscape({
+      id: "bluebonnet",
+      name: "Texas bluebonnet",
+      sci: "Lupinus texensis",
+      type: "annual",
+      native: true,
+      water: "low",
+      sun: "full",
+      plantRule: "wildflower"
+    }),
+    edible({
+      id: "meyer-lemon",
+      name: "Meyer lemon",
+      sci: "Citrus × meyeri",
+      group: "fruit",
+      season: "perennial",
+      kc: 0.7,
+      p: 0.5,
+      roots: "medium",
+      plantRule: "spring",
+      potBase: "trees",
+      damageF: 28,
+      killF: 22,
+      frost: "semi-hardy"
+    })
+  ];
+
+  // src/model/profiles.js
+  var BY_ID = new Map(PLANT_LIBRARY.map((p3) => [p3.id, p3]));
+  var profileById = (id) => BY_ID.get(id) || null;
+  var profilesOf = (bed) => Array.isArray(bed && bed.plants) ? bed.plants.map(profileById).filter(Boolean) : [];
+  var allProfiles = () => PLANT_LIBRARY;
+  var GROUPS = {
+    vegetable: "Vegetables",
+    herb: "Herbs",
+    fruit: "Fruit",
+    flower: "Flowers",
+    perennial: "Perennials and wildflowers",
+    grass: "Grasses",
+    groundcover: "Groundcovers",
+    succulent: "Succulents",
+    shrub: "Shrubs",
+    tree: "Trees",
+    vine: "Vines",
+    lawn: "Lawn grasses"
+  };
+  var GROUP_ONE = {
+    vegetable: "Vegetable",
+    herb: "Herb",
+    fruit: "Fruit",
+    flower: "Annual flower",
+    perennial: "Perennial",
+    grass: "Ornamental grass",
+    groundcover: "Groundcover",
+    succulent: "Succulent",
+    shrub: "Shrub",
+    tree: "Tree",
+    vine: "Vine",
+    lawn: "Lawn grass"
+  };
+  function waterTraits(profiles) {
+    if (!profiles.length) return null;
+    return {
+      kc: Math.max(...profiles.map((p3) => p3.kc)),
+      rootMm: Math.min(...profiles.map((p3) => p3.rootMm)),
+      p: Math.min(...profiles.map((p3) => p3.p))
+    };
+  }
+  var T3 = (c3) => `{{t:${c3}}}`;
+  var names = (list) => {
+    const n2 = list.map((p3) => p3.name);
+    return n2.length <= 1 ? n2.join("") : `${n2.slice(0, -1).join(", ")} and ${n2[n2.length - 1]}`;
+  };
+  var plural = (list, one, many) => list.length > 1 ? many : one;
+  var EDIBLE = /* @__PURE__ */ new Set(["vegetable", "herb", "fruit"]);
+  function coldOutcome(p3, low) {
+    const tender = p3.frost === "tender";
+    if (tender && p3.damageC != null) {
+      if (low <= p3.damageC - 2) return "kill";
+      if (low <= p3.damageC + 2) return "damage";
+      return "fine";
+    }
+    if (p3.killC != null && low <= p3.killC) return p3.dieback ? "dieback" : "kill";
+    if (p3.damageC != null && low <= p3.damageC) return "damage";
+    return "fine";
+  }
+  function coldNote(bed, profiles, low, pot) {
+    const by = { kill: [], dieback: [], damage: [], fine: [] };
+    for (const p3 of profiles) by[coldOutcome(p3, low)].push(p3);
+    const out = [];
+    if (by.kill.length) {
+      const annual = by.kill.every((p3) => p3.frost === "tender" || p3.life === "annual");
+      const food = by.kill.some((p3) => EDIBLE.has(p3.group));
+      if (pot) out.push(`${names(by.kill)} can die in this cold: bring the pot inside.`);
+      else if (annual)
+        out.push(`${names(by.kill)} ${plural(by.kill, "dies", "die")} at these temperatures${food ? ": pick what's ripe; covers" : ". Covers"} only buy a degree or two.`);
+      else
+        out.push(
+          `${names(by.kill)} can be killed below about ${T3(Math.max(...by.kill.map((p3) => p3.killC)))}: mulch the roots and wrap ${plural(by.kill, "it", "them")} with frost cloth.`
+        );
+    }
+    if (by.dieback.length)
+      out.push(`${names(by.dieback)} will freeze back to the ground but usually ${plural(by.dieback, "regrows", "regrow")} from the roots in spring. Mulch the base.`);
+    if (by.damage.length) {
+      const at = Math.max(...by.damage.map((p3) => p3.damageC != null ? p3.damageC : 0));
+      out.push(pot ? `${names(by.damage)} ${plural(by.damage, "is", "are")} hurt below about ${T3(at)}: move the pot against the house or inside.` : `${names(by.damage)}: cover overnight (hurt below about ${T3(at)}).`);
+    }
+    if (!out.length) return null;
+    if (by.fine.length) {
+      const hardy = by.fine.filter((p3) => p3.damageC != null);
+      if (hardy.length) out.push(`${names(hardy)} ${plural(hardy, "is", "are")} fine to about ${T3(Math.min(...hardy.map((p3) => p3.damageC)))}.`);
+    }
+    return out.join(" ");
+  }
+  function heatNote(bed, profiles, high) {
+    const hit = profiles.filter((p3) => p3.heatC != null && high >= p3.heatC && p3.heatShort);
+    if (!hit.length) return null;
+    const groups = /* @__PURE__ */ new Map();
+    for (const p3 of hit) {
+      const key = [].concat(p3.heatShort).join("|");
+      if (!groups.has(key)) groups.set(key, { forms: [].concat(p3.heatShort), list: [] });
+      groups.get(key).list.push(p3);
+    }
+    return [...groups.values()].map(({ forms, list }) => `${names(list)} ${list.length > 1 ? forms[forms.length - 1] : forms[0]} in this heat.`).join(" ");
+  }
+  function plantsPatch(bed, ids) {
+    const patch = { plants: ids };
+    const had = (bed.plants || []).filter((id) => BY_ID.has(id)).length;
+    if (!had && ids.length) {
+      const p3 = BY_ID.get(ids[0]);
+      const base = p3 && (bed.site === "pot" ? p3.potBase : p3.base);
+      if (base) patch.plant = base;
+      if (p3 && p3.feedEvery != null) patch.feedEvery = p3.feedEvery;
+    }
+    return patch;
+  }
+
   // src/model/tables.js
   var PLANTS = {
     veg: {
@@ -2112,7 +2562,9 @@ button.alert-day { cursor: pointer; }
     return clamp(p3 + 0.04 * (5 - etcMm), 0.1, 0.8);
   }
   function groundModel(bed) {
-    const plant = PLANTS[bed.plant] || PLANTS.veg;
+    const category = PLANTS[bed.plant] || PLANTS.veg;
+    const traits = waterTraits(profilesOf(bed));
+    const plant = traits ? { ...category, kc: traits.kc, rootMm: traits.rootMm, p: traits.p } : category;
     const soil = SOILS[bed.soil] || SOILS.loam;
     const sun = SUN[bed.sun] || SUN.full;
     const slope = SLOPES[bed.slope] || SLOPES.flat;
@@ -2155,7 +2607,9 @@ button.alert-day { cursor: pointer; }
     };
   }
   function potModel(bed) {
-    const plant = POT_PLANTS[bed.plant] || POT_PLANTS.veg;
+    const category = POT_PLANTS[bed.plant] || POT_PLANTS.veg;
+    const traits = waterTraits(profilesOf(bed));
+    const plant = traits ? { ...category, kc: traits.kc, p: traits.p } : category;
     const size = POT_SIZES[bed.potSize] || POT_SIZES.l;
     const mix = POT_MIXES[bed.mix] || POT_MIXES.potting;
     const wall = POT_MATERIALS[bed.material] || POT_MATERIALS.plastic;
@@ -2319,21 +2773,21 @@ button.alert-day { cursor: pointer; }
     const plan = todayPlan(m3, days, todayIdx, series, eventsOn(days[todayIdx].date), { hour, fracOf, horizon, t7 });
     return { model: m3, series, ...plan };
   }
-  function todayPlan(m3, days, T3, series, events, { hour, fracOf, horizon, t7 }) {
+  function todayPlan(m3, days, T4, series, events, { hour, fracOf, horizon, t7 }) {
     const n2 = days.length;
-    const s3 = series[T3];
-    const date = days[T3].date;
+    const s3 = series[T4];
+    const date = days[T4].date;
     const watered = events.length > 0;
     const nowFrac = fracOf(date, hour);
     const day2 = { etc: s3.etc, rainIn: s3.rainIn, taw: s3.taw, raw: s3.raw };
     const DendDry = runDay(s3.Dstart, day2, [], 1);
     const Dnow = runDay(s3.Dstart, day2, events, nowFrac);
     let rainSoon = 0;
-    for (let i3 = T3; i3 <= Math.min(T3 + 1, n2 - 1); i3++) {
+    for (let i3 = T4; i3 <= Math.min(T4 + 1, n2 - 1); i3++) {
       const prob = days[i3].prob != null ? days[i3].prob : 100;
       if (prob >= 50) rainSoon += m3.rain(days[i3].rain || 0, days[i3].rainHours, days[i3].et0 || 0).eff * (prob / 100);
     }
-    const last = Math.min(n2 - 1, T3 + horizon);
+    const last = Math.min(n2 - 1, T4 + horizon);
     const firstDue = (from) => {
       for (let i3 = from; i3 <= last; i3++) if (series[i3].D >= series[i3].raw) return i3;
       return null;
@@ -2342,7 +2796,7 @@ button.alert-day { cursor: pointer; }
       for (let i3 = from; i3 <= last; i3++) if (days[i3].tmax == null || days[i3].tmax >= COLD_WATER_C) return i3;
       return null;
     };
-    const cold = days[T3].tmax != null && days[T3].tmax < COLD_WATER_C;
+    const cold = days[T4].tmax != null && days[T4].tmax < COLD_WATER_C;
     const partial = watered && events[events.length - 1].mm != null;
     let status;
     let dueIdx = null;
@@ -2358,27 +2812,27 @@ button.alert-day { cursor: pointer; }
           }
         }
       }
-      dueIdx = againAt != null ? null : firstDue(T3 + 1);
+      dueIdx = againAt != null ? null : firstDue(T4 + 1);
       amountMm = dueIdx != null ? series[dueIdx].Dstart : 0;
     } else if (watered || DendDry >= s3.raw) {
       amountMm = Dnow;
-      const next = series[T3 + 1] || s3;
+      const next = series[T4 + 1] || s3;
       const tomorrowDry = DendDry + next.etc < 0.85 * s3.taw;
       if (!watered && rainSoon >= 0.6 * DendDry && tomorrowDry) status = "wait";
       else if (cold) {
         status = "cold";
-        dueIdx = warmDay(T3 + 1);
+        dueIdx = warmDay(T4 + 1);
       } else {
         status = "water";
-        dueIdx = T3;
+        dueIdx = T4;
       }
     } else {
-      dueIdx = firstDue(T3 + 1);
+      dueIdx = firstDue(T4 + 1);
       status = dueIdx == null ? "ok" : "later";
       amountMm = dueIdx != null ? series[dueIdx].Dstart : 0;
     }
     let lastRain = null;
-    for (let i3 = T3 - 1; i3 >= 0; i3--) {
+    for (let i3 = T4 - 1; i3 >= 0; i3--) {
       if (series[i3].rain >= 2.5) {
         lastRain = { date: series[i3].date, rain: series[i3].rain, soaked: series[i3].rainIn, runoff: series[i3].runoff, lost: series[i3].lost };
         break;
@@ -2389,7 +2843,7 @@ button.alert-day { cursor: pointer; }
     return {
       status,
       dueIdx,
-      daysUntil: dueIdx != null ? dueIdx - T3 : null,
+      daysUntil: dueIdx != null ? dueIdx - T4 : null,
       amountMm,
       rainSoon,
       taw: s3.taw,
@@ -2400,7 +2854,7 @@ button.alert-day { cursor: pointer; }
       kcToday: s3.kc,
       etcToday: s3.etc,
       growth: m3.growth(date),
-      dormancy: m3.dormancy(t7[T3]),
+      dormancy: m3.dormancy(t7[T4]),
       nowFrac,
       Dstart: s3.Dstart,
       Dnow,
@@ -2421,12 +2875,12 @@ button.alert-day { cursor: pointer; }
       lastRain
     };
   }
-  function planAhead(sim, days, T3, { horizon = HORIZON } = {}) {
+  function planAhead(sim, days, T4, { horizon = HORIZON } = {}) {
     const s3 = sim.series;
     const out = [];
-    let D3 = s3[T3].Dstart;
-    for (let k3 = 0; k3 < horizon && T3 + k3 < days.length; k3++) {
-      const i3 = T3 + k3;
+    let D3 = s3[T4].Dstart;
+    for (let k3 = 0; k3 < horizon && T4 + k3 < days.length; k3++) {
+      const i3 = T4 + k3;
       const p3 = s3[i3];
       const day2 = { etc: p3.etc, rainIn: p3.rainIn, taw: p3.taw, raw: p3.raw };
       const tmax = days[i3].tmax;
@@ -2486,9 +2940,15 @@ button.alert-day { cursor: pointer; }
   }
 
   // src/ui/text.js
+  var fillTemps = (s3, units) => s3 ? s3.replace(/\{\{t:(-?\d+(?:\.\d+)?)\}\}/g, (_2, c3) => fmt.tempUnit(Number(c3), units)) : s3;
   var cap = (s3) => s3 ? s3[0].toUpperCase() + s3.slice(1) : s3;
   var listWords = (a3) => a3.length <= 1 ? a3.join("") : `${a3.slice(0, -1).join(", ")} and ${a3[a3.length - 1]}`;
+  var plantNames = (bed) => {
+    const n2 = profilesOf(bed).map((p3) => p3.name);
+    return n2.length ? listWords(n2.length > 3 ? [...n2.slice(0, 3), `${n2.length - 3} more`] : n2) : null;
+  };
   function bedLine(bed, units) {
+    const named = plantNames(bed);
     if (isPot(bed)) {
       const size = POT_SIZES[bed.potSize] || POT_SIZES.l;
       const wall = POT_MATERIALS[bed.material] || POT_MATERIALS.plastic;
@@ -2497,13 +2957,13 @@ button.alert-day { cursor: pointer; }
       const n2 = potCount(bed);
       const where = ["in", size.short[units === "imperial" ? "imperial" : "metric"], wall.word, size.noun || "pot"].filter(Boolean).join(" ");
       const extra = [(SUN[bed.sun] || SUN.full).label.toLowerCase(), rain.note, n2 > 1 ? `${n2} like this` : ""].filter(Boolean);
-      return `${plant2.label} ${where}, ${extra.join(", ")}`;
+      return `${named || plant2.label} ${where}, ${extra.join(", ")}`;
     }
     const plant = PLANTS[bed.plant] || PLANTS.veg;
     const soil = SOILS[bed.soil] || SOILS.loam;
     const bits = [(SUN[bed.sun] || SUN.full).label.toLowerCase()];
     if (bed.mulch && plant.mulchKc) bits.push("mulched");
-    return `${plant.label} in ${soil.label.toLowerCase()}, ${bits.join(", ")}`;
+    return `${named || plant.label} in ${soil.label.toLowerCase()}, ${bits.join(", ")}`;
   }
   function minutesText(min) {
     if (!(min > 0)) return "0 minutes";
@@ -2573,8 +3033,8 @@ button.alert-day { cursor: pointer; }
       extra = " Go slowly or water in two rounds so it soaks in.";
     return { act, plan, depth, extra };
   }
-  function statusText(sim, bed, days, T3, units, how) {
-    const today = days[T3].date;
+  function statusText(sim, bed, days, T4, units, how) {
+    const today = days[T4].date;
     const pot = sim.model.pot;
     const w3 = waterWords(how, bed, sim.model, units);
     const due = sim.dueIdx != null ? days[sim.dueIdx].date : null;
@@ -2917,6 +3377,38 @@ button.alert-day { cursor: pointer; }
     const n2 = normals && normals[doyIndex(date)];
     return n2 && n2.hi && n2.lo ? { high: n2.hi[50], low: n2.lo[50], pFreeze: n2.pFreeze, pHot: n2.pHot } : null;
   }
+  function hourlyCurve(lo, hi, nextLo, prevHi) {
+    const out = new Array(24);
+    for (let h3 = 0; h3 < 24; h3++) {
+      if (h3 < 6) out[h3] = lo + (prevHi - lo) * (1 + Math.cos(Math.PI * (h3 + 9) / 15)) / 2;
+      else if (h3 <= 15) out[h3] = lo + (hi - lo) * (1 - Math.cos(Math.PI * (h3 - 6) / 9)) / 2;
+      else out[h3] = nextLo + (hi - nextLo) * (1 + Math.cos(Math.PI * (h3 - 15) / 15)) / 2;
+    }
+    return out;
+  }
+  function chillHours(days, lat) {
+    const months = lat >= 0 ? [11, 12, 1, 2] : [5, 6, 7, 8];
+    const byWinter = /* @__PURE__ */ new Map();
+    for (let i3 = 1; i3 + 1 < days.length; i3++) {
+      const d3 = days[i3];
+      const m3 = +d3.date.slice(5, 7);
+      if (!months.includes(m3) || d3.tmin == null || d3.tmax == null) continue;
+      const y3 = +d3.date.slice(0, 4);
+      const winter = lat >= 0 ? m3 >= 11 ? y3 : y3 - 1 : y3;
+      const prev = days[i3 - 1];
+      const next = days[i3 + 1];
+      const curve = hourlyCurve(d3.tmin, d3.tmax, next.tmin != null ? next.tmin : d3.tmin, prev.tmax != null ? prev.tmax : d3.tmax);
+      let h3 = 0;
+      for (const t3 of curve) if (t3 >= 0 && t3 <= 7.2) h3++;
+      const w3 = byWinter.get(winter) || { hours: 0, days: 0 };
+      w3.hours += h3;
+      w3.days++;
+      byWinter.set(winter, w3);
+    }
+    const full = [...byWinter.values()].filter((w3) => w3.days >= 115).map((w3) => w3.hours).sort(byNumber);
+    if (full.length < 5) return null;
+    return { typical: Math.round(interp(full, 0.5)), low: Math.round(interp(full, 0.1)), high: Math.round(interp(full, 0.9)), winters: full.length };
+  }
   function climateNormals(days, lat) {
     if (!days || days.length < 3650) return null;
     const daily = dailyNormals(days);
@@ -2928,6 +3420,7 @@ button.alert-day { cursor: pointer; }
       hard: frostOdds(days, lat, COLD_AT.hard),
       frost: frostOdds(days, lat, COLD_AT.frost),
       zone: hardiness(days, lat),
+      chill: chillHours(days, lat),
       daily,
       p02Low: interp(
         days.map((d3) => d3.tmin).filter((t3) => t3 != null).sort(byNumber),
@@ -3009,7 +3502,9 @@ button.alert-day { cursor: pointer; }
     "Leaves can scorch even in moist soil. Move pots into afternoon shade, put shade cloth over vegetables, and give trees and shrubs a slow, deep soak the day before. Tomatoes and peppers may drop their flowers; they recover when it cools.",
     "Leaves can scorch even in moist soil. Move pots into afternoon shade, put shade cloth over vegetables, and give trees and shrubs a slow, deep soak before it starts and once a week while it lasts. Tomatoes and peppers may drop their flowers; they recover when it cools."
   ];
-  function coldRisk(bed, level, sim) {
+  function coldRisk(bed, level, sim, low) {
+    const profiles = profilesOf(bed);
+    if (profiles.length && low != null) return coldNote(bed, profiles, low, isPot(bed));
     const plant = plantOf(bed);
     const young = sim && sim.growth < 1;
     if (isPot(bed)) {
@@ -3028,7 +3523,12 @@ button.alert-day { cursor: pointer; }
     if (level >= 4 && ["shrubs", "trees"].includes(bed.plant)) return "Mulch the root zone and shield evergreens from wind.";
     return null;
   }
-  function heatRisk(bed, level, sim) {
+  function heatRisk(bed, level, sim, high) {
+    const profiles = profilesOf(bed);
+    if (profiles.length && high != null) {
+      const note = heatNote(bed, profiles, high);
+      if (note || !isPot(bed)) return note;
+    }
     const young = sim && sim.growth < 1;
     if (isPot(bed)) return level >= 2 ? "Check it morning and afternoon; move it into afternoon shade." : "It will dry fast. Check it in the afternoon.";
     if (bed.plant === "veg" || bed.plant === "flowers") return level >= 2 ? "Water at dawn and shade it in the afternoon if you can." : "Water early in the day.";
@@ -3075,12 +3575,12 @@ button.alert-day { cursor: pointer; }
   }
   function buildAlerts({ days, todayIdx, nights = {}, hour = 12, climate = null, rows = [], lat = 40, normals = null }) {
     const L2 = levelsByDay(days, nights, climate);
-    const T3 = todayIdx;
-    const last = Math.min(days.length - 1, T3 + 6);
+    const T4 = todayIdx;
+    const last = Math.min(days.length - 1, T4 + 6);
     const out = [];
-    const coldRoutine = routineLevel(L2.cold, T3, 10, 4);
+    const coldRoutine = routineLevel(L2.cold, T4, 10, 4);
     const coldDays = [];
-    for (let i3 = T3; i3 <= last; i3++) {
+    for (let i3 = T4; i3 <= last; i3++) {
       if (!L2.cold[i3]) continue;
       const n2 = nightLow(days, nights, i3);
       if (!n2) continue;
@@ -3100,14 +3600,14 @@ button.alert-day { cursor: pointer; }
       const peak = coldDays.reduce((a3, b2) => b2.level > a3.level || b2.level === a3.level && b2.value < a3.value ? b2 : a3);
       const routine = peak.level <= coldRoutine;
       let first = false;
-      if (T3 >= 60) {
+      if (T4 >= 60) {
         first = true;
-        for (let i3 = T3 - 60; i3 < T3; i3++) if (L2.cold[i3] >= 1) first = false;
+        for (let i3 = T4 - 60; i3 < T4; i3++) if (L2.cold[i3] >= 1) first = false;
       }
-      const spring = lat >= 0 ? [3, 4, 5, 6].includes(monthOf(days[T3].date)) : [9, 10, 11, 12].includes(monthOf(days[T3].date));
+      const spring = lat >= 0 ? [3, 4, 5, 6].includes(monthOf(days[T4].date)) : [9, 10, 11, 12].includes(monthOf(days[T4].date));
       let warm = 0;
       let cnt = 0;
-      for (let i3 = Math.max(0, T3 - 14); i3 < T3; i3++)
+      for (let i3 = Math.max(0, T4 - 14); i3 < T4; i3++)
         if (days[i3].tmax != null && days[i3].tmin != null) warm += (days[i3].tmax + days[i3].tmin) / 2, cnt++;
       const late = spring && cnt >= 7 && warm / cnt >= 10;
       out.push({
@@ -3124,13 +3624,13 @@ button.alert-day { cursor: pointer; }
         timing: normals && peak.level >= 2 ? freezeTiming(peak.level >= 3 ? normals.hard : normals.freeze, days[peak.i + 1] ? days[peak.i + 1].date : peak.date, lat) : null,
         extremeAt: L2.extremeAt,
         action: COLD_ACTIONS[peak.level],
-        atRisk: risks(rows, (bed, sim) => coldRisk(bed, peak.level, sim)),
-        waterFirst: peak.level >= 3 && daysBetween(days[T3].date, peak.date) <= 2 && (days[T3].tmax == null || days[T3].tmax >= 4.5) ? rows.filter(({ sim }) => sim && !sim.wateredToday && sim.moistureNow < sim.refillAt + 10).map(({ bed }) => bed) : []
+        atRisk: risks(rows, (bed, sim) => coldRisk(bed, peak.level, sim, peak.value)),
+        waterFirst: peak.level >= 3 && daysBetween(days[T4].date, peak.date) <= 2 && (days[T4].tmax == null || days[T4].tmax >= 4.5) ? rows.filter(({ sim }) => sim && !sim.wateredToday && sim.moistureNow < sim.refillAt + 10).map(({ bed }) => bed) : []
       });
     }
-    const heatRoutine = routineLevel(L2.heat, T3, 10, 5);
+    const heatRoutine = routineLevel(L2.heat, T4, 10, 5);
     const heatDays = [];
-    for (let i3 = hour >= 16 ? T3 + 1 : T3; i3 <= last; i3++) {
+    for (let i3 = hour >= 16 ? T4 + 1 : T4; i3 <= last; i3++) {
       if (!L2.heat[i3]) continue;
       heatDays.push({
         i: i3,
@@ -3154,8 +3654,8 @@ button.alert-day { cursor: pointer; }
         peak,
         days: heatDays,
         action: HEAT_ACTIONS[peak.level],
-        atRisk: risks(rows, (bed, sim) => heatRisk(bed, peak.level, sim)),
-        waterFirst: peak.level >= 2 && daysBetween(days[T3].date, peak.date) <= 1 ? rows.filter(({ sim }) => sim && !sim.wateredToday && sim.moistureNow < sim.refillAt + 15).map(({ bed }) => bed) : []
+        atRisk: risks(rows, (bed, sim) => heatRisk(bed, peak.level, sim, peak.value)),
+        waterFirst: peak.level >= 2 && daysBetween(days[T4].date, peak.date) <= 1 ? rows.filter(({ sim }) => sim && !sim.wateredToday && sim.moistureNow < sim.refillAt + 15).map(({ bed }) => bed) : []
       });
     }
     out.sort((a3, b2) => a3.routine - b2.routine || b2.level - a3.level || a3.peak.i - b2.peak.i);
@@ -3277,7 +3777,7 @@ button.alert-day { cursor: pointer; }
       a3.atRisk.length > 0 && /* @__PURE__ */ u3("ul", { class: "risk", children: a3.atRisk.map((r3) => /* @__PURE__ */ u3("li", { children: [
         /* @__PURE__ */ u3("button", { class: "link", onClick: () => onPick(r3.id), children: r3.name }),
         ": ",
-        r3.tip
+        fillTemps(r3.tip, units)
       ] }, r3.id)) }),
       /* @__PURE__ */ u3("details", { class: "ladder-wrap", children: [
         /* @__PURE__ */ u3("summary", { children: [
@@ -3325,8 +3825,8 @@ button.alert-day { cursor: pointer; }
   // src/model/summary.js
   var sum = (arr, f4) => arr.reduce((a3, d3) => a3 + (f4(d3) || 0), 0);
   var chanceOf = (d3) => d3.prob != null ? d3.prob / 100 : 1;
-  function recentWeather(days, T3) {
-    const past = days.slice(0, T3);
+  function recentWeather(days, T4) {
+    const past = days.slice(0, T4);
     let lastIdx = -1;
     for (let i3 = past.length - 1; i3 >= 0; i3--)
       if ((past[i3].rain || 0) >= 2.5) {
@@ -3334,15 +3834,15 @@ button.alert-day { cursor: pointer; }
         break;
       }
     const week = past.slice(-7);
-    const next = days.slice(T3, T3 + 7);
+    const next = days.slice(T4, T4 + 7);
     return {
-      daysSinceRain: lastIdx >= 0 ? T3 - lastIdx : null,
+      daysSinceRain: lastIdx >= 0 ? T4 - lastIdx : null,
       lastRainMm: lastIdx >= 0 ? past[lastIdx].rain : 0,
       pastDays: past.length,
       rain7: sum(week, (d3) => d3.rain),
       et7: sum(week, (d3) => d3.et0),
       rainNext: sum(next, (d3) => (d3.rain || 0) * chanceOf(d3)),
-      today: days[T3],
+      today: days[T4],
       outlook: next
     };
   }
@@ -3354,9 +3854,9 @@ button.alert-day { cursor: pointer; }
   ];
   var rangeOf = (key) => RANGES.find((r3) => r3.key === key) || RANGES[0];
   var needsHistory = (key) => key === "12m" || key === "3y";
-  function chartData(series, days, T3, rangeKey) {
+  function chartData(series, days, T4, rangeKey) {
     const R2 = rangeOf(rangeKey);
-    const from = Math.max(0, T3 - R2.past);
+    const from = Math.max(0, T4 - R2.past);
     const end = series.length - 1;
     const keyOf = (i3) => R2.bars === "week" ? `w${Math.floor((i3 - from) / 7)}` : R2.bars === "month" ? days[i3].date.slice(0, 7) : `d${i3}`;
     const buckets = [];
@@ -3365,12 +3865,12 @@ button.alert-day { cursor: pointer; }
       const k3 = keyOf(i3);
       let b2 = byKey.get(k3);
       if (!b2) {
-        b2 = { from: i3, to: i3, rain: 0, forecast: i3 > T3 };
+        b2 = { from: i3, to: i3, rain: 0, forecast: i3 > T4 };
         byKey.set(k3, b2);
         buckets.push(b2);
       }
       b2.to = i3;
-      b2.rain += (days[i3].rain || 0) * (i3 >= T3 ? chanceOf(days[i3]) : 1);
+      b2.rain += (days[i3].rain || 0) * (i3 >= T4 ? chanceOf(days[i3]) : 1);
     }
     const weekAvg = (i3, key) => {
       let s3 = 0;
@@ -3387,7 +3887,7 @@ button.alert-day { cursor: pointer; }
         date: days[i3].date,
         moisture,
         refillAt,
-        forecast: i3 > T3,
+        forecast: i3 > T4,
         cold: coldLevel(days[i3].tmin),
         heat: heatLevel(days[i3].tmax),
         tmax: days[i3].tmax,
@@ -3405,14 +3905,14 @@ button.alert-day { cursor: pointer; }
     return {
       R: R2,
       from,
-      T: T3,
+      T: T4,
       end,
       points,
       buckets,
       ticks,
-      stats: dryStats(series, from, T3 - 1),
-      rainMm: sum(days.slice(from, T3), (d3) => d3.rain),
-      extremes: extremesIn(days, from, T3 - 1),
+      stats: dryStats(series, from, T4 - 1),
+      rainMm: sum(days.slice(from, T4), (d3) => d3.rain),
+      extremes: extremesIn(days, from, T4 - 1),
       firstDate: days[from].date
     };
   }
@@ -3421,7 +3921,7 @@ button.alert-day { cursor: pointer; }
   var tickLabel = (d3, key) => key === "1m" ? `${+d3.slice(5, 7)}/${+d3.slice(8, 10)}` : d3.slice(5, 7) === "01" ? `${monthName(d3)} ’${d3.slice(2, 4)}` : monthName(d3);
   function ChartSvg({ data, sel, setSel }) {
     const [ref, W] = useWidth();
-    const { points, from, end, T: T3, buckets, ticks, R: R2 } = data;
+    const { points, from, end, T: T4, buckets, ticks, R: R2 } = data;
     const L2 = 38;
     const RIGHT = 6;
     const TOP2 = 8;
@@ -3436,8 +3936,8 @@ button.alert-day { cursor: pointer; }
     const y3 = (m3) => TOP2 + (1 - Math.max(0, Math.min(100, m3)) / 100) * PH;
     const path = (pts) => pts.map((p3, k3) => `${k3 ? "L" : "M"}${x3(p3.i).toFixed(1)},${y3(p3.moisture).toFixed(1)}`).join("");
     const area = (pts) => pts.length ? `${path(pts)}L${x3(pts[pts.length - 1].i).toFixed(1)},${base}L${x3(pts[0].i).toFixed(1)},${base}Z` : "";
-    const past = points.filter((p3) => p3.i <= T3);
-    const ahead = points.filter((p3) => p3.i >= T3);
+    const past = points.filter((p3) => p3.i <= T4);
+    const ahead = points.filter((p3) => p3.i >= T4);
     const refill = points.map((p3, k3) => `${k3 ? "L" : "M"}${x3(p3.i).toFixed(1)},${y3(p3.refillAt).toFixed(1)}`).join("");
     const maxRain = Math.max(0.01, ...buckets.map((b2) => b2.rain));
     const barH = (mm) => mm / maxRain * PH * 0.4;
@@ -3461,7 +3961,7 @@ button.alert-day { cursor: pointer; }
         onPointerDown: (e3) => pick3(e3.clientX),
         onPointerMove: (e3) => (e3.pointerType === "mouse" || e3.buttons) && pick3(e3.clientX),
         onKeyDown: (e3) => {
-          const cur = sel != null ? sel : T3;
+          const cur = sel != null ? sel : T4;
           const step = R2.bars === "day" ? 1 : 7;
           if (e3.key === "ArrowLeft") setSel(Math.max(from, cur - step)), e3.preventDefault();
           if (e3.key === "ArrowRight") setSel(Math.min(end, cur + step)), e3.preventDefault();
@@ -3484,7 +3984,7 @@ button.alert-day { cursor: pointer; }
             return /* @__PURE__ */ u3("rect", { x: cx - w3 / 2, y: base - h3, width: w3, height: h3, class: b2.forecast ? "rainbar ahead" : "rainbar" }, b2.from);
           }),
           /* @__PURE__ */ u3("path", { d: refill, class: "refill" }),
-          /* @__PURE__ */ u3("line", { x1: x3(T3), x2: x3(T3), y1: TOP2, y2: base, class: "today" }),
+          /* @__PURE__ */ u3("line", { x1: x3(T4), x2: x3(T4), y1: TOP2, y2: base, class: "today" }),
           points.map(
             (p3) => p3.cold || p3.heat ? /* @__PURE__ */ u3(
               "rect",
@@ -3508,15 +4008,15 @@ button.alert-day { cursor: pointer; }
     ) });
   }
   function Readout({ data, sel, units, pot }) {
-    const { points, from, T: T3, R: R2 } = data;
-    const p3 = points[(sel != null ? sel : T3) - from];
+    const { points, from, T: T4, R: R2 } = data;
+    const p3 = points[(sel != null ? sel : T4) - from];
     if (!p3) return null;
     const b2 = p3.bucket;
     const rainLabel = R2.bars === "week" ? "that week" : R2.bars === "month" ? "that month" : p3.forecast ? "forecast" : "";
     return /* @__PURE__ */ u3("div", { class: "readout", "aria-live": "polite", children: [
       /* @__PURE__ */ u3("strong", { children: [
         R2.bars === "day" ? monthDay(p3.date) : monthDayYear(p3.date),
-        p3.i === T3 ? " (today)" : p3.forecast ? " (forecast)" : ""
+        p3.i === T4 ? " (today)" : p3.forecast ? " (forecast)" : ""
       ] }),
       /* @__PURE__ */ u3("span", { class: "rain-ink", children: [
         pot ? "Water left" : "Soil water",
@@ -4144,12 +4644,61 @@ button.alert-day { cursor: pointer; }
     ] });
   }
 
+  // src/ui/PlantPicker.jsx
+  var ORDER = Object.keys(GROUPS);
+  function PlantPicker({ bed, onUpdate, onOpen }) {
+    const [adding, setAdding] = d2(false);
+    const [q2, setQ] = d2("");
+    const [group, setGroup] = d2("all");
+    const pot = isPot(bed);
+    const chosen = (bed.plants || []).map(profileById).filter(Boolean);
+    const set = (ids) => onUpdate(plantsPatch(bed, ids));
+    const query = q2.trim().toLowerCase();
+    const list = allProfiles().filter(
+      (p3) => (!pot || p3.potBase) && (group === "all" || (group === "native" ? p3.native : p3.group === group)) && (!query || p3.name.toLowerCase().includes(query) || (p3.sci || "").toLowerCase().includes(query))
+    ).sort((a3, b2) => ORDER.indexOf(a3.group) - ORDER.indexOf(b2.group) || a3.name.localeCompare(b2.name));
+    const groups = [["all", "All"], ["native", "Natives"], ...Object.entries(GROUPS).filter(([k3]) => allProfiles().some((p3) => p3.group === k3 && (!pot || p3.potBase)))];
+    return /* @__PURE__ */ u3("div", { class: "picker-plants", children: [
+      /* @__PURE__ */ u3("h4", { class: "sub", children: "What's growing" }),
+      chosen.length ? /* @__PURE__ */ u3("div", { class: "chips", children: chosen.map((p3) => /* @__PURE__ */ u3("span", { class: "plant-tag", children: [
+        /* @__PURE__ */ u3("button", { class: "plant-tag-name", onClick: () => onOpen(p3.id), children: p3.name }),
+        /* @__PURE__ */ u3("button", { class: "plant-tag-x", "aria-label": `Remove ${p3.name}`, onClick: () => set((bed.plants || []).filter((x3) => x3 !== p3.id)), children: /* @__PURE__ */ u3(X2, { size: 12, "aria-hidden": "true" }) })
+      ] }, p3.id)) }) : /* @__PURE__ */ u3("p", { class: "xs muted", children: "Name what's planted and the plan uses each plant's own water needs and cold limits." }),
+      /* @__PURE__ */ u3("button", { class: "link small", "aria-expanded": adding, onClick: () => setAdding((v3) => !v3), children: [
+        /* @__PURE__ */ u3(Plus, { size: 13, "aria-hidden": "true" }),
+        " ",
+        adding ? "Done adding" : "Add plants"
+      ] }),
+      adding && /* @__PURE__ */ u3("div", { class: "pp-panel", children: [
+        /* @__PURE__ */ u3("input", { class: "input", placeholder: "Search plants", "aria-label": "Search plants", value: q2, onInput: (e3) => setQ(e3.currentTarget.value) }),
+        /* @__PURE__ */ u3("div", { class: "chip-row pp-groups", role: "group", "aria-label": "Kind of plant", children: groups.map(([k3, label]) => /* @__PURE__ */ u3("button", { class: "pick small", "aria-pressed": group === k3, onClick: () => setGroup(k3), children: label }, k3)) }),
+        /* @__PURE__ */ u3("ul", { class: "pp-list", children: [
+          list.map((p3) => {
+            const on = (bed.plants || []).includes(p3.id);
+            return /* @__PURE__ */ u3("li", { children: /* @__PURE__ */ u3("button", { class: `pp-item${on ? " on" : ""}`, "aria-pressed": on, onClick: () => set(on ? bed.plants.filter((x3) => x3 !== p3.id) : [...bed.plants || [], p3.id]), children: [
+              /* @__PURE__ */ u3("span", { class: "pp-name", children: [
+                p3.name,
+                p3.native && /* @__PURE__ */ u3("span", { class: "badge-native", title: "Native to North Central Texas" })
+              ] }),
+              /* @__PURE__ */ u3("span", { class: "pp-meta", children: [
+                GROUP_ONE[p3.group],
+                " · water ",
+                p3.water
+              ] })
+            ] }) }, p3.id);
+          }),
+          !list.length && /* @__PURE__ */ u3("li", { class: "xs muted", children: "No matches." })
+        ] })
+      ] })
+    ] });
+  }
+
   // src/ui/BedDetails.jsx
   var pick = (table, v3, fallback) => table[v3] ? v3 : fallback;
   var pct = (x3) => `${Math.round(x3 * 100)}%`;
-  function Explain({ bed, sim, days, T: T3, units }) {
+  function Explain({ bed, sim, days, T: T4, units }) {
     const m3 = sim.model;
-    const today = days[T3].date;
+    const today = days[T4].date;
     const parts = [];
     if (m3.pot) {
       const vol = (mm) => fmt.potVolume(mm * m3.areaM2, units);
@@ -4159,6 +4708,14 @@ button.alert-day { cursor: pointer; }
     } else {
       parts.push(
         `The top ${fmt.rootDepth(sim.rootMm, units)} of this bed holds about ${fmt.depth(sim.taw, units)} of water plants can use. It's time to water once they've used ${fmt.depth(sim.raw, units)} of it (${pct(sim.p)} today; less on hot days, when plants struggle sooner). Today it loses about ${fmt.depth(sim.etcToday, units)}. ${m3.soil.tip}`
+      );
+    }
+    const profs = profilesOf(bed);
+    if (profs.length > 1) {
+      const thirsty = profs.reduce((a3, p3) => p3.kc > a3.kc ? p3 : a3);
+      const shallow = profs.reduce((a3, p3) => p3.rootMm < a3.rootMm ? p3 : a3);
+      parts.push(
+        thirsty === shallow ? `Watered for the ${thirsty.name.toLowerCase()}, the thirstiest and shallowest-rooted plant here.` : `Watered for the ${thirsty.name.toLowerCase()} (the thirstiest plant here) and the ${shallow.name.toLowerCase()} (the shallowest roots).`
       );
     }
     if (sim.growth < 1 && bed.plantedOn) {
@@ -4226,8 +4783,8 @@ button.alert-day { cursor: pointer; }
       ] })
     ] });
   }
-  function BedDetails({ bed, sim, days, T: T3, units, onUpdate, onLog, onRemove, onShowChart }) {
-    const today = days[T3].date;
+  function BedDetails({ bed, sim, days, T: T4, units, onUpdate, onLog, onRemove, onShowChart, onOpenProfile }) {
+    const today = days[T4].date;
     const pot = isPot(bed);
     const imp = units === "imperial";
     const plantOpts = pot ? POT_PLANTS : PLANTS;
@@ -4284,8 +4841,9 @@ button.alert-day { cursor: pointer; }
       );
     const fedLast = lastFed(bed, today);
     return /* @__PURE__ */ u3("div", { class: "details", children: [
-      /* @__PURE__ */ u3(Explain, { bed, sim, days, T: T3, units }),
+      /* @__PURE__ */ u3(Explain, { bed, sim, days, T: T4, units }),
       /* @__PURE__ */ u3("button", { class: "link", onClick: onShowChart, children: pot ? "See this pot on the water chart" : "See this bed on the soil water chart" }),
+      /* @__PURE__ */ u3(PlantPicker, { bed, onUpdate, onOpen: onOpenProfile }),
       /* @__PURE__ */ u3(Check2, { bed, today, units, onUpdate }),
       /* @__PURE__ */ u3("h4", { class: "sub", children: "Settings" }),
       /* @__PURE__ */ u3("div", { class: "grid2", children: fields }),
@@ -4417,11 +4975,11 @@ button.alert-day { cursor: pointer; }
 
   // src/ui/BedCard.jsx
   var TONE_ICON = { water: Droplets };
-  function BedCard({ row, days, T: T3, units, open, onToggle, onUpdate, onLog, onRemove, onShowChart, alerts, timer, now, onStartTimer, onTimerDone, onTimerStop }) {
+  function BedCard({ row, days, T: T4, units, open, onToggle, onUpdate, onLog, onRemove, onShowChart, alerts, timer, now, onStartTimer, onTimerDone, onTimerStop, onOpenProfile }) {
     const { bed, sim, feed, how } = row;
-    const today = days[T3].date;
+    const today = days[T4].date;
     const Icon2 = iconFor(bed);
-    const st = statusText(sim, bed, days, T3, units, how);
+    const st = statusText(sim, bed, days, T4, units, how);
     const fed = (bed.feedLog || []).includes(today);
     const ft = feed && feed.status !== "off" ? feedText(feed, today) : null;
     const ToneIcon = TONE_ICON[st.tone];
@@ -4455,7 +5013,7 @@ button.alert-day { cursor: pointer; }
           hot && /* @__PURE__ */ u3("p", { class: "card-line warn", children: hot }),
           notes.map((n2, i3) => /* @__PURE__ */ u3("p", { class: `card-note ${n2.kind}-${n2.level}`, children: [
             n2.kind === "cold" ? /* @__PURE__ */ u3(Snowflake, { size: 14, "aria-hidden": "true" }) : /* @__PURE__ */ u3(Sun, { size: 14, "aria-hidden": "true" }),
-            /* @__PURE__ */ u3("span", { children: n2.text })
+            /* @__PURE__ */ u3("span", { children: fillTemps(n2.text, units) })
           ] }, i3)),
           timer ? /* @__PURE__ */ u3(TimerPanel, { t: timer, now, onDone: onTimerDone, onStop: onTimerStop }) : /* @__PURE__ */ u3("div", { class: "card-actions", children: [
             canTime && sim.status === "water" && /* @__PURE__ */ u3("button", { class: "pill pill-go", onClick: onStartTimer, children: [
@@ -4496,12 +5054,13 @@ button.alert-day { cursor: pointer; }
           bed,
           sim,
           days,
-          T: T3,
+          T: T4,
           units,
           onUpdate,
           onLog,
           onRemove,
-          onShowChart
+          onShowChart,
+          onOpenProfile
         }
       )
     ] });
@@ -4743,18 +5302,22 @@ button.alert-day { cursor: pointer; }
     if (risk.heat) parts.push(`${HEAT_WORD[risk.heatLevel]} that day: ${risk.heat}`);
     return parts.join(" ");
   }
-  function WeekPlanner({ rows, plans, days, T: T3, units, levels, nights, onOpen }) {
+  function WeekPlanner({ rows, plans, days, T: T4, units, levels, nights, onOpen }) {
     const [sel, setSel] = d2(null);
     if (!rows.length) return null;
-    const week = days.slice(T3, T3 + 7);
+    const week = days.slice(T4, T4 + 7);
+    const lowOf = (i3) => {
+      const n2 = nights && nights[days[i3].date];
+      return n2 && n2.low != null ? n2.low : days[i3 + 1] ? days[i3 + 1].tmin : days[i3].tmin;
+    };
     let count = 0;
     let liters = 0;
     const risks2 = {};
     for (const row of rows) {
       const plan = plans[row.bed.id] || [];
       for (const d3 of plan) {
-        const cold = levels.cold[d3.i] ? coldRisk(row.bed, levels.cold[d3.i], row.sim) : null;
-        const heat = levels.heat[d3.i] ? heatRisk(row.bed, levels.heat[d3.i], row.sim) : null;
+        const cold = levels.cold[d3.i] ? coldRisk(row.bed, levels.cold[d3.i], row.sim, lowOf(d3.i)) : null;
+        const heat = levels.heat[d3.i] ? heatRisk(row.bed, levels.heat[d3.i], row.sim, days[d3.i].tmax) : null;
         risks2[`${row.bed.id}:${d3.i}`] = { cold, heat, coldLevel: levels.cold[d3.i], heatLevel: levels.heat[d3.i] };
         if (d3.action === "water" || d3.action === "again") {
           count++;
@@ -4771,7 +5334,7 @@ button.alert-day { cursor: pointer; }
         /* @__PURE__ */ u3("span", { class: "muted small", children: count ? `${count} watering${count === 1 ? "" : "s"} · about ${fmt.volume(liters, units)}` : "No watering needed" })
       ] }),
       /* @__PURE__ */ u3("div", { class: "pl-grid pl-days", "aria-hidden": "true", children: week.map((d3, k3) => {
-        const i3 = T3 + k3;
+        const i3 = T4 + k3;
         const night = nights && nights[d3.date];
         const low = night && night.low != null ? night.low : days[i3 + 1] ? days[i3 + 1].tmin : d3.tmin;
         return /* @__PURE__ */ u3("div", { class: "pl-day", children: [
@@ -4800,7 +5363,7 @@ button.alert-day { cursor: pointer; }
             const r3 = risks2[`${row.bed.id}:${d3.i}`] || {};
             const A3 = ACTION_ICON[d3.action] || (d3.rainIn >= 2 ? CloudRain : null);
             const on = sel && sel.id === row.bed.id && sel.i === d3.i;
-            const label = `${row.bed.name}, ${d3.i === T3 ? "today" : weekday(d3.date)}: ${d3.action || "no watering"}`;
+            const label = `${row.bed.name}, ${d3.i === T4 ? "today" : weekday(d3.date)}: ${d3.action || "no watering"}`;
             return /* @__PURE__ */ u3(
               "button",
               {
@@ -4825,11 +5388,11 @@ button.alert-day { cursor: pointer; }
         /* @__PURE__ */ u3("strong", { children: [
           selRow.bed.name,
           ", ",
-          selDay.i === T3 ? "today" : weekday(selDay.date),
+          selDay.i === T4 ? "today" : weekday(selDay.date),
           ":"
         ] }),
         " ",
-        cellText(selRow, selDay, selHow, units, risks2[`${sel.id}:${sel.i}`] || {})
+        fillTemps(cellText(selRow, selDay, selHow, units, risks2[`${sel.id}:${sel.i}`] || {}), units)
       ] }) : /* @__PURE__ */ u3("span", { class: "muted", children: "Tap a day for details. Blue is the water each one ends the day with; the gold tick is when to water." }) })
     ] });
   }
@@ -5078,6 +5641,17 @@ button.alert-day { cursor: pointer; }
               "."
             ] })
           ] }),
+          normals.chill && /* @__PURE__ */ u3("p", { class: "small chill", children: [
+            /* @__PURE__ */ u3("strong", { children: "Chill hours:" }),
+            " about ",
+            normals.chill.typical.toLocaleString(),
+            " a winter (",
+            normals.chill.low.toLocaleString(),
+            " to",
+            " ",
+            normals.chill.high.toLocaleString(),
+            " in most). Peaches, plums, pears and apples are rated by the winter chill they need; choose varieties that need no more than a typical winter here."
+          ] }),
           /* @__PURE__ */ u3(OddsLines, { normals, units }),
           /* @__PURE__ */ u3(YearChart, { normals, thisYear, today, units }),
           /* @__PURE__ */ u3("p", { class: "muted xs", children: [
@@ -5090,6 +5664,455 @@ button.alert-day { cursor: pointer; }
         ] })
       ] })
     ] });
+  }
+
+  // src/model/calendar.js
+  var SOON_DAYS = 21;
+  function frostDatesFrom({ custom, normals, climate }) {
+    const odds = normals && normals.freeze;
+    const base = odds && odds.last.p50 && odds.first.p50 ? { last: odds.last.p50, first: odds.first.p50, lastLate: odds.last.p90, firstEarly: odds.first.p10, source: "30 years of records" } : climate && climate.freeze && climate.freeze.lastSpring && climate.freeze.firstFall ? {
+      last: climate.freeze.lastSpring.middle.slice(5),
+      first: climate.freeze.firstFall.middle.slice(5),
+      lastLate: climate.freeze.lastSpring.latest.slice(5),
+      firstEarly: climate.freeze.firstFall.earliest.slice(5),
+      source: "the last few years of records"
+    } : null;
+    if (custom && custom.last && custom.first) return { ...base || {}, last: custom.last, first: custom.first, source: "your dates", custom: true };
+    return base;
+  }
+  function windowIn(win2, frost, year) {
+    const md = win2.anchor === "last" ? frost.last : frost.first;
+    const anchor = `${year}-${md}`;
+    return { ...win2, start: addDays(anchor, Math.round(win2.from * 7)), end: addDays(anchor, Math.round(win2.to * 7)) };
+  }
+  function windowsFor(profile, frost, today) {
+    if (!frost) return [];
+    const y3 = +today.slice(0, 4);
+    const out = [];
+    for (const win2 of profile.windows || []) {
+      const occ = [y3 - 1, y3, y3 + 1].map((yy) => windowIn(win2, frost, yy));
+      const open = occ.find((o3) => o3.start <= today && today <= o3.end);
+      if (open) {
+        out.push({ ...open, status: "now", daysLeft: daysBetween(today, open.end) });
+        continue;
+      }
+      const next = occ.filter((o3) => o3.start > today).sort((a3, b2) => a3.start < b2.start ? -1 : 1)[0];
+      if (next) {
+        const days = daysBetween(today, next.start);
+        out.push({ ...next, status: days <= SOON_DAYS ? "soon" : "later", daysUntil: days });
+      }
+    }
+    return out.sort((a3, b2) => a3.start < b2.start ? -1 : 1);
+  }
+  function windowsInYear(profile, frost, year) {
+    if (!frost) return [];
+    const out = [];
+    const from = `${year}-01-01`;
+    const to = `${year}-12-31`;
+    for (const win2 of profile.windows || []) {
+      for (const yy of [year - 1, year, year + 1]) {
+        const o3 = windowIn(win2, frost, yy);
+        if (o3.end < from || o3.start > to) continue;
+        out.push({ ...o3, start: o3.start < from ? from : o3.start, end: o3.end > to ? to : o3.end });
+      }
+    }
+    return out;
+  }
+  function plantNow(profiles, frost, today) {
+    const now = [];
+    const soon = [];
+    for (const p3 of profiles) {
+      const w3 = windowsFor(p3, frost, today);
+      const open = w3.find((x3) => x3.status === "now");
+      const next = w3.find((x3) => x3.status === "soon");
+      if (open) now.push({ profile: p3, win: open });
+      else if (next) soon.push({ profile: p3, win: next });
+    }
+    now.sort((a3, b2) => a3.win.daysLeft - b2.win.daysLeft);
+    soon.sort((a3, b2) => a3.win.daysUntil - b2.win.daysUntil);
+    return { now, soon };
+  }
+  function heatSeason(daily, c3) {
+    if (!daily) return null;
+    let first = null;
+    let last = null;
+    for (let k3 = 0; k3 < 365; k3++) {
+      const d3 = daily[k3];
+      if (d3 && d3.hi && d3.hi[50] >= c3) {
+        if (first == null) first = k3;
+        last = k3;
+      }
+    }
+    if (first == null) return null;
+    const md = (k3) => addDays("2001-01-01", k3).slice(5);
+    return { from: md(first), to: md(last) };
+  }
+  var rangeText = (o3) => `${mdText(o3.start.slice(5))} – ${mdText(o3.end.slice(5))}`;
+
+  // src/ui/Calendar.jsx
+  var FOOD = /* @__PURE__ */ new Set(["vegetable", "herb", "fruit"]);
+  var MORE = /* @__PURE__ */ new Set(["grass", "groundcover", "succulent", "vine", "lawn"]);
+  var FILTERS = [
+    ["mine", "In my beds", null],
+    ["vegetable", "Vegetables", (p3) => p3.group === "vegetable"],
+    ["herb", "Herbs", (p3) => p3.group === "herb"],
+    ["fruit", "Fruit", (p3) => p3.group === "fruit"],
+    ["native", "Natives", (p3) => p3.native],
+    ["flower", "Flowers", (p3) => p3.group === "flower"],
+    ["tree", "Trees", (p3) => p3.group === "tree"],
+    ["shrub", "Shrubs", (p3) => p3.group === "shrub"],
+    ["perennial", "Perennials", (p3) => p3.group === "perennial"],
+    ["more", "Grasses, vines and more", (p3) => MORE.has(p3.group)]
+  ];
+  var NOW_GROUPS = [
+    ["Vegetables and herbs", (p3) => p3.group === "vegetable" || p3.group === "herb"],
+    ["Fruit", (p3) => p3.group === "fruit"],
+    ["Flowers and wildflowers", (p3) => p3.group === "flower"],
+    ["Trees, shrubs and perennials", (p3) => !FOOD.has(p3.group) && p3.group !== "flower" && p3.group !== "lawn"],
+    ["Lawns", (p3) => p3.group === "lawn"]
+  ];
+  var CAP = 8;
+  var MONTHS2 = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
+  var MONTH_START2 = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+  var HOW_WORDS = {
+    seed: "sow seed",
+    transplant: "set out transplants",
+    cloves: "plant cloves",
+    sets: "plant sets",
+    slips: "plant slips",
+    crowns: "plant crowns",
+    "seed pieces": "plant seed potatoes",
+    container: "plant from containers",
+    "bare-root": "plant bare-root",
+    "sod or seed": "lay sod or sow seed"
+  };
+  var PLANTS_OUT = /* @__PURE__ */ new Set(["transplant", "slips", "crowns"]);
+  var howClass = (how) => PLANTS_OUT.has(how) ? "tr" : how === "container" || how === "bare-root" ? "ct" : how === "sod or seed" ? "sod" : "sd";
+  var cap1 = (s3) => s3.charAt(0).toUpperCase() + s3.slice(1);
+  function FrostEditor({ frost, onSave, onCancel }) {
+    const [last, setLast] = d2(frost ? `2026-${frost.last}` : "");
+    const [first, setFirst] = d2(frost ? `2026-${frost.first}` : "");
+    return /* @__PURE__ */ u3("div", { class: "panel cal-edit", children: [
+      /* @__PURE__ */ u3("p", { class: "xs muted", children: "If you know your own average frost dates (a local extension office or a neighbor's records), set them here. The year doesn't matter." }),
+      /* @__PURE__ */ u3("div", { class: "grid2", children: [
+        /* @__PURE__ */ u3("label", { class: "field", children: [
+          /* @__PURE__ */ u3("span", { class: "field-label", children: "Last spring freeze" }),
+          /* @__PURE__ */ u3("input", { type: "date", class: "input", value: last, onInput: (e3) => setLast(e3.currentTarget.value) })
+        ] }),
+        /* @__PURE__ */ u3("label", { class: "field", children: [
+          /* @__PURE__ */ u3("span", { class: "field-label", children: "First fall freeze" }),
+          /* @__PURE__ */ u3("input", { type: "date", class: "input", value: first, onInput: (e3) => setFirst(e3.currentTarget.value) })
+        ] })
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "row-add", children: [
+        /* @__PURE__ */ u3("button", { class: "btn-ink", disabled: !last || !first, onClick: () => onSave({ last: last.slice(5), first: first.slice(5) }), children: "Use these dates" }),
+        /* @__PURE__ */ u3("button", { class: "link", onClick: onCancel, children: "Cancel" })
+      ] })
+    ] });
+  }
+  function Clusters({ items, now, onOpen, mine }) {
+    const [opened, setOpened] = d2({});
+    const map = /* @__PURE__ */ new Map();
+    for (const { profile: p3, win: win2 } of items) {
+      const date = now ? win2.end : win2.start;
+      const best = win2.best && p3.windows.length > 1;
+      const key = `${win2.how}|${date}|${best ? 1 : 0}`;
+      if (!map.has(key)) map.set(key, { key, how: win2.how, date, best, list: [] });
+      map.get(key).list.push(p3);
+    }
+    const clusters = [...map.values()].sort((a3, b2) => a3.date < b2.date ? -1 : a3.date > b2.date ? 1 : 0);
+    return clusters.map((c3) => {
+      const list = c3.list.sort((a3, b2) => mine.has(b2.id) - mine.has(a3.id) || b2.native - a3.native || a3.name.localeCompare(b2.name));
+      const show = opened[c3.key] || list.length <= CAP + 2 ? list.length : CAP;
+      return /* @__PURE__ */ u3("div", { class: "pn-cluster", children: [
+        /* @__PURE__ */ u3("span", { class: "pn-when xs muted", children: [
+          cap1(HOW_WORDS[c3.how] || c3.how),
+          " ",
+          now ? "until" : "from",
+          " ",
+          mdText(c3.date.slice(5)),
+          c3.best ? ", the best time of year" : ""
+        ] }),
+        /* @__PURE__ */ u3("div", { class: "plant-chips", children: [
+          list.slice(0, show).map((p3) => /* @__PURE__ */ u3("button", { class: `plant-chip slim${now ? " is-now" : ""}`, onClick: () => onOpen(p3.id), children: [
+            p3.name,
+            p3.native && /* @__PURE__ */ u3("span", { class: "badge-native", title: "Native to North Central Texas" })
+          ] }, p3.id)),
+          show < list.length && /* @__PURE__ */ u3("button", { class: "plant-chip slim more", onClick: () => setOpened({ ...opened, [c3.key]: true }), children: [
+            list.length - show,
+            " more"
+          ] })
+        ] })
+      ] }, c3.key);
+    });
+  }
+  function Grouped({ items, now, onOpen, mine }) {
+    return NOW_GROUPS.map(([title, test]) => {
+      const inGroup = items.filter((x3) => test(x3.profile));
+      if (!inGroup.length) return null;
+      return /* @__PURE__ */ u3("div", { class: "pn-group", children: [
+        /* @__PURE__ */ u3("h4", { class: "pn-title", children: title }),
+        /* @__PURE__ */ u3(Clusters, { items: inGroup, now, onOpen, mine })
+      ] }, title);
+    });
+  }
+  function Calendar({ frost, today, profiles, bedPlantIds, onOpen, custom, onSetFrost, loading }) {
+    const [filter, setFilter] = d2(bedPlantIds.size ? "mine" : "vegetable");
+    const [q2, setQ] = d2("");
+    const [editing, setEditing] = d2(false);
+    const [all, setAll] = d2(false);
+    const query = q2.trim().toLowerCase();
+    const filters = FILTERS.filter(([k3, , test2]) => k3 === "mine" || profiles.some(test2));
+    const test = filters.find(([k3]) => k3 === filter);
+    const shown = profiles.filter(
+      (p3) => query ? p3.name.toLowerCase().includes(query) || (p3.sci || "").toLowerCase().includes(query) : filter === "mine" ? bedPlantIds.has(p3.id) : test ? test[2](p3) : true
+    );
+    const year = +today.slice(0, 4);
+    const tk = doyIndex(today);
+    const pos = (d3) => doyIndex(d3) / 365 * 100;
+    const pick3 = (k3) => {
+      setFilter(k3);
+      setQ("");
+      setAll(false);
+    };
+    if (!frost) {
+      return /* @__PURE__ */ u3("section", { class: "section", "aria-label": "Planting calendar", children: [
+        /* @__PURE__ */ u3("h2", { class: "display h2", children: "Planting calendar" }),
+        /* @__PURE__ */ u3("div", { class: "panel cal-panel", children: [
+          /* @__PURE__ */ u3("p", { class: "small", children: loading ? "Waiting for the weather records that set your frost dates…" : "No regular freezes in the records here, so there are no frost dates to plan around." }),
+          /* @__PURE__ */ u3("button", { class: "link small", onClick: () => setEditing(true), children: "Set frost dates yourself" }),
+          editing && /* @__PURE__ */ u3(FrostEditor, { frost: null, onSave: (d3) => (onSetFrost(d3), setEditing(false)), onCancel: () => setEditing(false) })
+        ] })
+      ] });
+    }
+    const { now, soon } = plantNow(profiles, frost, today);
+    const rows = shown.map((p3) => {
+      const w3 = windowsFor(p3, frost, today);
+      const key = w3.length ? w3[0].status === "now" ? `0${w3[0].end}` : `1${w3[0].start}` : "2";
+      return { p: p3, w: w3, key };
+    }).sort((a3, b2) => a3.key < b2.key ? -1 : a3.key > b2.key ? 1 : a3.p.name.localeCompare(b2.p.name));
+    const visible = all ? rows : rows.slice(0, 14);
+    return /* @__PURE__ */ u3("section", { class: "section", "aria-label": "Planting calendar", children: [
+      /* @__PURE__ */ u3("h2", { class: "display h2", children: "Planting calendar" }),
+      /* @__PURE__ */ u3("p", { class: "cal-frost small", children: [
+        "Average last freeze ",
+        /* @__PURE__ */ u3("strong", { children: mdText(frost.last) }),
+        " · first freeze ",
+        /* @__PURE__ */ u3("strong", { children: mdText(frost.first) }),
+        " ",
+        /* @__PURE__ */ u3("span", { class: "muted", children: [
+          "(",
+          frost.source,
+          ")"
+        ] }),
+        " ",
+        /* @__PURE__ */ u3("button", { class: "link", onClick: () => setEditing((v3) => !v3), children: "Change" }),
+        custom && /* @__PURE__ */ u3(S, { children: [
+          " ",
+          /* @__PURE__ */ u3("button", { class: "link", onClick: () => onSetFrost(null), children: "Use the records" })
+        ] })
+      ] }),
+      editing && /* @__PURE__ */ u3(FrostEditor, { frost, onSave: (d3) => (onSetFrost(d3), setEditing(false)), onCancel: () => setEditing(false) }),
+      /* @__PURE__ */ u3("div", { class: "panel cal-panel", children: [
+        /* @__PURE__ */ u3("h3", { class: "sub first", children: "Plant now" }),
+        now.length ? /* @__PURE__ */ u3(Grouped, { items: now, now: true, onOpen, mine: bedPlantIds }) : /* @__PURE__ */ u3("p", { class: "small muted", children: "Nothing in the calendar is in season this week." }),
+        soon.length > 0 && /* @__PURE__ */ u3(S, { children: [
+          /* @__PURE__ */ u3("h3", { class: "sub", children: "Coming up in the next three weeks" }),
+          /* @__PURE__ */ u3(Grouped, { items: soon, onOpen, mine: bedPlantIds })
+        ] })
+      ] }),
+      /* @__PURE__ */ u3("input", { class: "input cal-search", type: "search", placeholder: "Find a plant", "aria-label": "Find a plant in the calendar", value: q2, onInput: (e3) => setQ(e3.currentTarget.value) }),
+      /* @__PURE__ */ u3("div", { class: "cal-filter chip-row", role: "group", "aria-label": "Which plants", children: filters.map(([k3, label]) => /* @__PURE__ */ u3("button", { class: "pick", "aria-pressed": !query && filter === k3, onClick: () => pick3(k3), children: label }, k3)) }),
+      /* @__PURE__ */ u3("div", { class: "panel cal-panel", children: [
+        !visible.length ? /* @__PURE__ */ u3("p", { class: "small muted", children: query ? `No plant called “${q2.trim()}” in the list.` : filter === "mine" ? "No plants in your beds yet. Add them in each bed’s settings, or tap any plant here." : "Nothing here." }) : /* @__PURE__ */ u3("div", { class: "cal", children: [
+          /* @__PURE__ */ u3("div", { class: "cal-row cal-head", "aria-hidden": "true", children: [
+            /* @__PURE__ */ u3("span", {}),
+            /* @__PURE__ */ u3("span", { class: "cal-track", children: MONTHS2.map((m3, i3) => /* @__PURE__ */ u3("span", { class: "cal-month", style: { left: `${MONTH_START2[i3] / 365 * 100}%` }, children: m3 }, i3)) })
+          ] }),
+          visible.map(({ p: p3, w: w3 }) => {
+            const bars = windowsInYear(p3, frost, year);
+            const open = w3.find((x3) => x3.status === "now");
+            return /* @__PURE__ */ u3(
+              "button",
+              {
+                class: `cal-row${open ? " is-now" : ""}`,
+                onClick: () => onOpen(p3.id),
+                "aria-label": `${p3.name}: ${w3.map((x3) => `${HOW_WORDS[x3.how] || x3.how} ${mdText(x3.start.slice(5))} to ${mdText(x3.end.slice(5))}`).join("; ")}`,
+                children: [
+                  /* @__PURE__ */ u3("span", { class: "cal-name", children: [
+                    /* @__PURE__ */ u3("span", { class: "truncate", children: p3.name }),
+                    p3.native && /* @__PURE__ */ u3("span", { class: "badge-native", title: "Native to North Central Texas" })
+                  ] }),
+                  /* @__PURE__ */ u3("span", { class: "cal-track", children: [
+                    MONTH_START2.slice(1).map((m3) => /* @__PURE__ */ u3("span", { class: "cal-grid", style: { left: `${m3 / 365 * 100}%` } }, m3)),
+                    bars.map((b2, i3) => /* @__PURE__ */ u3(
+                      "span",
+                      {
+                        class: `cal-bar ${howClass(b2.how)}${b2.best ? " best" : ""}`,
+                        style: { left: `${pos(b2.start)}%`, width: `${Math.max(1.2, pos(b2.end) - pos(b2.start) + 100 / 365)}%` }
+                      },
+                      i3
+                    )),
+                    /* @__PURE__ */ u3("span", { class: "cal-today", style: { left: `${tk / 365 * 100}%` } })
+                  ] })
+                ]
+              },
+              p3.id
+            );
+          })
+        ] }),
+        rows.length > visible.length && /* @__PURE__ */ u3("button", { class: "link small cal-more", onClick: () => setAll(true), children: [
+          "Show all ",
+          rows.length
+        ] }),
+        /* @__PURE__ */ u3("p", { class: "muted xs legend", children: [
+          /* @__PURE__ */ u3("span", { class: "key cal-key-sd" }),
+          " Sow seed, or plant cloves, sets or seed potatoes ",
+          /* @__PURE__ */ u3("span", { class: "key cal-key-tr" }),
+          " Set out transplants, slips or crowns",
+          " ",
+          /* @__PURE__ */ u3("span", { class: "key cal-key-ct" }),
+          " Plant trees, shrubs and perennials (darker is the best time) ",
+          /* @__PURE__ */ u3("span", { class: "key cal-key-sod" }),
+          " Lay sod or seed a lawn",
+          " ",
+          /* @__PURE__ */ u3("span", { class: "key cal-key-today" }),
+          " Today. ",
+          /* @__PURE__ */ u3("span", { class: "badge-native inline" }),
+          " Native to North Central Texas. Timing follows Texas A&M AgriLife and North Texas county planting guides, counted from your frost dates."
+        ] })
+      ] })
+    ] });
+  }
+
+  // src/ui/PlantProfile.jsx
+  var SUN_WORDS = {
+    full: "Full sun",
+    "full to part": "Full sun to part shade",
+    part: "Part shade",
+    "part to shade": "Part shade to shade",
+    shade: "Shade"
+  };
+  var WATER_WORDS = {
+    "very low": "Very low: rain is enough most years once established",
+    low: "Low: a deep soak every two to four weeks in summer once established",
+    medium: "Medium: weekly in summer",
+    high: "High: steady moisture"
+  };
+  function chillText(p3, normals) {
+    const nums = (p3.chill.match(/\d[\d,]*/g) || []).map((x3) => +x3.replace(/,/g, ""));
+    const local = normals && normals.chill;
+    if (!nums.length || !local) return `${p3.chill} chill hours`;
+    const lo = Math.min(...nums);
+    const hi = Math.max(...nums);
+    const fit = local.typical > hi * 1.5 ? "far more than it needs, so it may bloom early and lose its flowers to a late freeze" : local.low >= hi ? "plenty here" : local.typical >= lo ? local.low < lo ? "enough most winters here" : "a good match here" : "more than most winters here give, so it may fruit poorly";
+    return `Needs ${p3.chill} chill hours; winters here give about ${local.typical.toLocaleString()}, ${fit}.`;
+  }
+  function coldText(p3, units) {
+    const t3 = (c3) => fmt.tempUnit(c3, units);
+    const zone = p3.zone ? ` (USDA zones ${p3.zone.replace(/-/g, "–")})` : "";
+    if (p3.frost === "tender") return `Killed or badly hurt by frost (${t3(p3.damageC != null ? p3.damageC : 0)}).`;
+    const bits = [];
+    if (p3.damageC != null) bits.push(`${p3.frost === "hardy" ? "Takes frost; damaged" : "Light frost is fine; damaged"} below about ${t3(p3.damageC)}`);
+    if (p3.killC != null)
+      bits.push(
+        p3.dieback ? `freezes to the ground below about ${t3(p3.killC)} and usually regrows from the roots` : p3.damageC != null ? `can be killed below about ${t3(p3.killC)}` : `hardy to about ${t3(p3.killC)}`
+      );
+    if (!bits.length) return p3.native ? `Hardy through North Texas winters${zone}.` : zone ? `USDA zones ${p3.zone.replace(/-/g, "–")}.` : null;
+    const s3 = bits.join("; ");
+    return s3.charAt(0).toUpperCase() + s3.slice(1) + zone + ".";
+  }
+  function PlantProfile({ profile: p3, frost, today, units, normals, beds, onAdd, onClose }) {
+    const close = A2(null);
+    const [target, setTarget] = d2("");
+    h2(() => {
+      if (close.current) close.current.focus();
+      const key = (e3) => e3.key === "Escape" && onClose();
+      document.addEventListener("keydown", key);
+      return () => document.removeEventListener("keydown", key);
+    }, []);
+    const windows = frost ? windowsFor(p3, frost, today) : [];
+    const heat = p3.heatC != null && normals ? heatSeason(normals.daily, p3.heatC) : null;
+    const t3 = (c3) => fmt.tempUnit(c3, units);
+    const fits = beds.filter((b2) => (b2.site === "pot" ? !!p3.potBase : true) && !(b2.plants || []).includes(p3.id));
+    const rows = [
+      ["Water", WATER_WORDS[p3.water] || p3.water],
+      ["Sun", SUN_WORDS[p3.sun] || p3.sun],
+      ["Cold", coldText(p3, units)],
+      ["Heat", p3.heat ? `${p3.heat}${heat ? ` Here, normal highs top ${t3(p3.heatC)} from about ${mdText(heat.from)} to ${mdText(heat.to)}.` : ""}` : null],
+      ["Ready", p3.days],
+      ["Chill", p3.chill ? chillText(p3, normals) : null],
+      ["Size", p3.size],
+      ["Bloom", p3.bloom],
+      ["Wildlife", p3.wildlife],
+      ["Deer", p3.deer == null ? null : p3.deer ? "Deer usually leave it alone" : "Deer browse it"],
+      ["Soil", p3.soil],
+      ["Settling in", p3.establish]
+    ].filter(([, v3]) => v3);
+    return /* @__PURE__ */ u3("div", { class: "sheet-back", onClick: (e3) => e3.target === e3.currentTarget && onClose(), children: /* @__PURE__ */ u3("div", { class: "sheet", role: "dialog", "aria-modal": "true", "aria-label": p3.name, children: [
+      /* @__PURE__ */ u3("div", { class: "sheet-head", children: [
+        /* @__PURE__ */ u3("div", { children: [
+          /* @__PURE__ */ u3("h2", { class: "display h2", children: p3.name }),
+          p3.sci && /* @__PURE__ */ u3("p", { class: "sci", children: p3.sci })
+        ] }),
+        /* @__PURE__ */ u3("button", { ref: close, class: "icon-btn", "aria-label": "Close", onClick: onClose, children: /* @__PURE__ */ u3(X2, { size: 20, "aria-hidden": "true" }) })
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "tags", children: [
+        /* @__PURE__ */ u3("span", { class: `tag ${p3.native ? "tag-native" : ""}`, children: p3.native ? "Native to North Texas" : "Grows well in North Texas" }),
+        /* @__PURE__ */ u3("span", { class: "tag", children: GROUP_ONE[p3.group] || p3.group }),
+        p3.water && /* @__PURE__ */ u3("span", { class: "tag", children: [
+          "Water: ",
+          p3.water
+        ] })
+      ] }),
+      p3.nativeTo && /* @__PURE__ */ u3("p", { class: "xs muted sheet-line", children: p3.nativeTo }),
+      /* @__PURE__ */ u3("h3", { class: "sub", children: "When to plant here" }),
+      frost ? windows.length ? /* @__PURE__ */ u3("ul", { class: "win-list", children: windows.map((w3, i3) => /* @__PURE__ */ u3("li", { class: w3.status === "now" ? "is-now" : "", children: [
+        /* @__PURE__ */ u3("strong", { children: rangeText(w3) }),
+        " · ",
+        HOW_WORDS[w3.how] || w3.how,
+        w3.best ? " (best)" : "",
+        w3.status === "now" ? /* @__PURE__ */ u3("span", { class: "now-pill", children: "now" }) : w3.status === "soon" ? /* @__PURE__ */ u3("span", { class: "soon-pill", children: "soon" }) : null
+      ] }, i3)) }) : /* @__PURE__ */ u3("p", { class: "small", children: p3.plantWhen || "Any time the ground can be worked." }) : /* @__PURE__ */ u3("p", { class: "small muted", children: "Frost dates load with the weather records." }),
+      p3.plantWhen && windows.length > 0 && /* @__PURE__ */ u3("p", { class: "xs muted", children: p3.plantWhen }),
+      frost && frost.lastLate && p3.frost === "tender" && windows.some((w3) => w3.anchor === "last") && /* @__PURE__ */ u3("p", { class: "xs muted", children: [
+        "A late freeze is still possible until about ",
+        mdText(frost.lastLate),
+        " in 1 year out of 10; keep a frost cloth handy for early plantings."
+      ] }),
+      /* @__PURE__ */ u3("dl", { class: "facts", children: rows.map(([k3, v3]) => /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("dt", { children: k3 }),
+        /* @__PURE__ */ u3("dd", { children: v3 })
+      ] }, k3)) }),
+      p3.varieties && p3.varieties.length > 0 && /* @__PURE__ */ u3(S, { children: [
+        /* @__PURE__ */ u3("h3", { class: "sub", children: "Varieties for North Texas" }),
+        /* @__PURE__ */ u3("p", { class: "small", children: p3.varieties.join(", ") })
+      ] }),
+      p3.tips && /* @__PURE__ */ u3(S, { children: [
+        /* @__PURE__ */ u3("h3", { class: "sub", children: "Tips" }),
+        /* @__PURE__ */ u3("p", { class: "small", children: p3.tips })
+      ] }),
+      onAdd && /* @__PURE__ */ u3("div", { class: "sheet-add", children: [
+        /* @__PURE__ */ u3("h3", { class: "sub", children: "Add to your garden" }),
+        /* @__PURE__ */ u3("div", { class: "row-add", children: [
+          /* @__PURE__ */ u3("select", { class: "input", value: target, onChange: (e3) => setTarget(e3.currentTarget.value), "aria-label": "Bed or pot", children: [
+            /* @__PURE__ */ u3("option", { value: "", children: "Choose a bed or pot…" }),
+            fits.map((b2) => /* @__PURE__ */ u3("option", { value: b2.id, children: b2.name }, b2.id)),
+            /* @__PURE__ */ u3("option", { value: "new-bed", children: "A new bed" }),
+            p3.potBase && /* @__PURE__ */ u3("option", { value: "new-pot", children: "A new pot" })
+          ] }),
+          /* @__PURE__ */ u3("button", { class: "btn-ink", disabled: !target, onClick: () => (onAdd(p3.id, target), onClose()), children: "Add" })
+        ] })
+      ] }),
+      p3.sources && p3.sources.length > 0 && /* @__PURE__ */ u3("p", { class: "xs muted sources", children: [
+        "Sources:",
+        " ",
+        p3.sources.map((u4, i3) => /* @__PURE__ */ u3("span", { children: [
+          i3 ? ", " : "",
+          /* @__PURE__ */ u3("a", { href: u4, target: "_blank", rel: "noopener", children: u4.replace(/^https?:\/\/(www\.)?/, "").split("/")[0] })
+        ] }, u4))
+      ] })
+    ] }) });
   }
 
   // src/ui/sound.js
@@ -5140,7 +6163,7 @@ button.alert-day { cursor: pointer; }
   }
 
   // src/model/et0.js
-  var satVap = (T3) => 0.6108 * Math.exp(17.27 * T3 / (T3 + 237.3));
+  var satVap = (T4) => 0.6108 * Math.exp(17.27 * T4 / (T4 + 237.3));
   var windAt2m = (u10) => u10 * 4.87 / Math.log(67.8 * 10 - 5.42);
   function penmanMonteith({ tmax, tmin, rhMax, rhMin, u2: u22, rs, lat, elev = 0, date }) {
     const tmean = (tmax + tmin) / 2;
@@ -5765,7 +6788,8 @@ button.alert-day { cursor: pointer; }
       waterLog: [],
       feedLog: [],
       tuneLog: [],
-      water: {}
+      water: {},
+      plants: []
     };
     const ground = { soil: "loam", slope: "flat", mulch: false, areaM2: 4.6 };
     const potBits = { potSize: "l", mix: "potting", material: "plastic", rainIn: "open", spread: "same", count: 1 };
@@ -5773,11 +6797,11 @@ button.alert-day { cursor: pointer; }
   }
   function starterBeds(today) {
     return [
-      newBed({ name: "Vegetable bed", plant: "veg", soil: "loam", mulch: true, areaM2: 4.6 }),
-      newBed({ name: "Front lawn", plant: "lawn", soil: "clayLoam", areaM2: 46 }),
-      newBed({ name: "Shrub border", plant: "shrubs", soil: "clay", sun: "part", mulch: true, areaM2: 6 }),
-      newBed({ name: "Young maple", plant: "trees", soil: "loam", mulch: true, areaM2: 1.2, plantedOn: addDays(today, -150) }),
-      newBed({ name: "Patio pot", site: "pot", plant: "veg", spread: "past" })
+      newBed({ name: "Vegetable bed", plant: "veg", soil: "amended", mulch: true, areaM2: 4.6, plants: ["tomato", "pepper", "basil"] }),
+      newBed({ name: "Front lawn", plant: "lawnWarm", soil: "clay", areaM2: 46, plants: ["bermuda"], feedEvery: 56 }),
+      newBed({ name: "Native border", plant: "shrubs", soil: "clay", sun: "part", mulch: true, areaM2: 6, plants: ["turks-cap", "texas-sage"], feedEvery: 0 }),
+      newBed({ name: "Young live oak", plant: "trees", soil: "clay", mulch: true, areaM2: 1.2, plantedOn: addDays(today, -150), plants: ["live-oak"], feedEvery: 0 }),
+      newBed({ name: "Meyer lemon", site: "pot", plant: "trees", potSize: "xl", spread: "same", plants: ["meyer-lemon"], feedEvery: 30 })
     ];
   }
   function cleanBed(b2) {
@@ -5787,6 +6811,7 @@ button.alert-day { cursor: pointer; }
     const out = { ...bed, ...b2, plant: bed.plant };
     for (const k3 of ["waterLog", "feedLog", "tuneLog"]) out[k3] = Array.isArray(b2[k3]) ? b2[k3] : [];
     out.water = b2.water && typeof b2.water === "object" ? cleanWater(b2.water) : {};
+    out.plants = Array.isArray(b2.plants) ? b2.plants.filter((x3) => typeof x3 === "string") : [];
     if (!pot && !SOILS[out.soil]) out.soil = "loam";
     if (typeof out.name !== "string") out.name = bed.name;
     if (!out.id) out.id = newId();
@@ -6025,6 +7050,8 @@ button.alert-day { cursor: pointer; }
     const [notice, setNotice] = d2(null);
     const [timers, setTimers] = d2([]);
     const [toast, setToast] = d2(null);
+    const [customFrost, setCustomFrost] = d2(null);
+    const [profileId, setProfileId] = d2(null);
     const chartRef = A2(null);
     h2(() => {
       const s3 = loadState(deviceClock().date);
@@ -6035,6 +7062,7 @@ button.alert-day { cursor: pointer; }
         if (RANGES.some((r3) => r3.key === s3.chartRange)) setChartRange(s3.chartRange);
         if (s3.chartBedId) setChartBedId(s3.chartBedId);
         if (Array.isArray(s3.timers)) setTimers(s3.timers.filter((t3) => t3 && t3.bedId && Array.isArray(t3.phases)));
+        if (s3.customFrost && /^\d\d-\d\d$/.test(s3.customFrost.last) && /^\d\d-\d\d$/.test(s3.customFrost.first)) setCustomFrost(s3.customFrost);
         if (s3.migratedFrom)
           setNotice("Your beds and pots moved over from the previous version. There are more soil types now, so check each bed’s soil in its settings.");
       }
@@ -6043,16 +7071,16 @@ button.alert-day { cursor: pointer; }
     }, []);
     h2(() => {
       if (!ready) return;
-      const t3 = setTimeout(() => saveState({ units, place, beds, chartRange, chartBedId, timers }), 400);
+      const t3 = setTimeout(() => saveState({ units, place, beds, chartRange, chartBedId, timers, customFrost }), 400);
       return () => clearTimeout(t3);
-    }, [ready, units, place, beds, chartRange, chartBedId, timers]);
+    }, [ready, units, place, beds, chartRange, chartBedId, timers, customFrost]);
     const fc = useForecast(place, ready, now);
     const liveWx = T2(() => {
       if (!place || !fc.data) return null;
       const clock = gardenClock(fc.data.offsetSeconds, now);
-      const T4 = fc.data.days.findIndex((d3) => d3.date === clock.date);
-      if (T4 < 1 || T4 > fc.data.days.length - 3) return null;
-      return { ...fc.data, T: T4, clock, lat: place.lat, lon: place.lon, sample: false };
+      const T5 = fc.data.days.findIndex((d3) => d3.date === clock.date);
+      if (T5 < 1 || T5 > fc.data.days.length - 3) return null;
+      return { ...fc.data, T: T5, clock, lat: place.lat, lon: place.lon, sample: false };
     }, [place, fc.data, now]);
     const devClock = deviceClock(new Date(now));
     const sampleWx = T2(() => {
@@ -6064,8 +7092,8 @@ button.alert-day { cursor: pointer; }
       return { ...f4, T: f4.todayIdx, lat: SAMPLE_LAT, lon, offsetSeconds: devClock.offsetSeconds, sample: true };
     }, [!!liveWx, sampleOpts, devClock.date]);
     const wx = liveWx || { ...sampleWx, clock: devClock };
-    const { days, T: T3 } = wx;
-    const today = days[T3].date;
+    const { days, T: T4 } = wx;
+    const today = days[T4].date;
     const hour = wx.clock.hour;
     const fracOf = T2(
       () => (date, h3) => dayFraction(h3, { lat: wx.lat, lon: wx.lon, date, offsetSeconds: wx.offsetSeconds }),
@@ -6076,8 +7104,8 @@ button.alert-day { cursor: pointer; }
     const merged = T2(() => {
       const h3 = wx.sample ? sampleHist : hist.status === "ready" ? hist.days : null;
       const all = h3 ? joinHistory(h3, days) : null;
-      return all ? { days: all, T: all.length - (days.length - T3) } : null;
-    }, [wx.sample, sampleHist, hist.status, hist.days, days, T3]);
+      return all ? { days: all, T: all.length - (days.length - T4) } : null;
+    }, [wx.sample, sampleHist, hist.status, hist.days, days, T4]);
     const climate = T2(() => merged ? climateStats(merged.days.slice(0, merged.T), wx.lat) : null, [merged, wx.lat]);
     const norm = useNormals(place, liveWx);
     const sampleNormalDays = T2(() => wx.sample ? sampleNormals(SAMPLE_DEFAULTS, today) : null, [wx.sample, today]);
@@ -6090,11 +7118,11 @@ button.alert-day { cursor: pointer; }
       const y3 = today.slice(0, 4);
       return src.filter((d3) => d3.date.slice(0, 4) === y3).map((d3) => ({ k: doyIndex(d3.date), tmax: d3.tmax, tmin: d3.tmin, forecast: d3.date > today }));
     }, [merged, days, today]);
-    const sims = T2(() => beds.map((bed) => ({ bed, sim: simulate(bed, days, T3, { hour, fracOf }) })), [beds, days, T3, hour, fracOf]);
+    const sims = T2(() => beds.map((bed) => ({ bed, sim: simulate(bed, days, T4, { hour, fracOf }) })), [beds, days, T4, hour, fracOf]);
     const warn = T2(
       () => buildAlerts({
         days,
-        todayIdx: T3,
+        todayIdx: T4,
         nights: wx.nights,
         hour,
         climate: normals ? { p02Low: normals.p02Low } : climate,
@@ -6102,29 +7130,49 @@ button.alert-day { cursor: pointer; }
         lat: wx.lat,
         normals
       }),
-      [sims, days, T3, wx.nights, hour, climate, normals, wx.lat]
+      [sims, days, T4, wx.nights, hour, climate, normals, wx.lat]
     );
     const rows = T2(
       () => sims.map((r3) => ({
         ...r3,
-        feed: feedingPlan(r3.bed, days, T3, r3.sim, warn.heatByDate),
+        feed: feedingPlan(r3.bed, days, T4, r3.sim, warn.heatByDate),
         how: howToWater(r3.bed, r3.sim.model, r3.sim.amountMm)
       })),
-      [sims, warn, days, T3]
+      [sims, warn, days, T4]
     );
-    const plans = T2(() => Object.fromEntries(rows.map((r3) => [r3.bed.id, planAhead(r3.sim, days, T3)])), [rows, days, T3]);
+    const plans = T2(() => Object.fromEntries(rows.map((r3) => [r3.bed.id, planAhead(r3.sim, days, T4)])), [rows, days, T4]);
     const sunsets = T2(() => Object.fromEntries(days.map((d3) => [d3.date, d3.sunset])), [days]);
-    const recent = T2(() => recentWeather(days, T3), [days, T3]);
+    const frost = T2(() => frostDatesFrom({ custom: customFrost, normals, climate }), [customFrost, normals, climate]);
+    const bedPlantIds = T2(() => new Set(beds.flatMap((b2) => b2.plants || [])), [beds]);
+    const addPlant = (plantId, target) => {
+      const p3 = profileById(plantId);
+      if (!p3) return;
+      if (target === "new-bed" || target === "new-pot") {
+        const pot = target === "new-pot";
+        const b2 = newBed({ site: pot ? "pot" : "ground", name: p3.name });
+        const patched = { ...b2, ...plantsPatch(b2, [plantId]) };
+        setBeds((bs) => [...bs, patched]);
+        setOpenId(patched.id);
+        say(`Added a ${pot ? "pot" : "bed"} for ${p3.name}.`);
+        setTimeout(() => jumpTo(patched.id), 80);
+        return;
+      }
+      const bed = beds.find((b2) => b2.id === target);
+      if (!bed) return;
+      update(target, plantsPatch(bed, [...bed.plants || [], plantId]));
+      say(`Added ${p3.name} to ${bed.name}.`);
+    };
+    const recent = T2(() => recentWeather(days, T4), [days, T4]);
     const selected = rows.find((r3) => r3.bed.id === chartBedId) || rows.find((r3) => r3.sim.status === "water") || rows[0] || null;
     const long = needsHistory(chartRange);
     const longState = !long || merged ? "ready" : hist.status === "failed" ? "failed" : "loading";
     const chart = T2(() => {
       if (!selected) return null;
-      if (!long) return chartData(selected.sim.series, days, T3, chartRange);
+      if (!long) return chartData(selected.sim.series, days, T4, chartRange);
       if (!merged) return null;
       const s3 = simulate(selected.bed, merged.days, merged.T, { hour, fracOf }).series;
       return chartData(s3, merged.days, merged.T, chartRange);
-    }, [selected && selected.sim, long, merged, chartRange, days, T3]);
+    }, [selected && selected.sim, long, merged, chartRange, days, T4]);
     const update = (id, patch) => setBeds((bs) => bs.map((b2) => b2.id === id ? { ...b2, ...patch } : b2));
     const log = (id, field, action, date) => setBeds(
       (bs) => bs.map((b2) => {
@@ -6170,6 +7218,7 @@ button.alert-day { cursor: pointer; }
       setChartBedId(null);
       setNotice(null);
       setTimers([]);
+      setCustomFrost(null);
       setShowPicker(true);
     };
     const backup = () => {
@@ -6320,22 +7369,22 @@ button.alert-day { cursor: pointer; }
               wx: { ...wx, fracNow: fracOf(today, hour) },
               units,
               normals,
-              heatLevel: warn.levels.heat[T3] || 0,
-              coldTonight: warn.levels.cold[T3] || 0,
+              heatLevel: warn.levels.heat[T4] || 0,
+              coldTonight: warn.levels.cold[T4] || 0,
               nowMs: now
             }
           ),
           /* @__PURE__ */ u3(Alerts, { alerts: warn.alerts, today, units, onPick: openBed, normals, sunsets }),
           /* @__PURE__ */ u3("h1", { class: "display h1", "aria-live": "polite", children: headline(rows) }),
-          /* @__PURE__ */ u3(WeekPlanner, { rows, plans, days, T: T3, units, levels: warn.levels, nights: wx.nights, onOpen: openBed }),
-          wx.sample && /* @__PURE__ */ u3(SampleControls, { opts: sampleOpts, setOpts: setSampleOpts, units, et0: days[T3].et0 }),
+          /* @__PURE__ */ u3(WeekPlanner, { rows, plans, days, T: T4, units, levels: warn.levels, nights: wx.nights, onOpen: openBed }),
+          wx.sample && /* @__PURE__ */ u3(SampleControls, { opts: sampleOpts, setOpts: setSampleOpts, units, et0: days[T4].et0 }),
           /* @__PURE__ */ u3("h2", { class: "display h2 beds-title", children: rows.some((r3) => isPot(r3.bed)) ? rows.every((r3) => isPot(r3.bed)) ? "Your pots" : "Your beds and pots" : "Your beds" }),
           /* @__PURE__ */ u3("div", { class: "cards", children: rows.map((row) => /* @__PURE__ */ u3("div", { id: `bed-${row.bed.id}`, class: "card-wrap", children: /* @__PURE__ */ u3(
             BedCard,
             {
               row,
               days,
-              T: T3,
+              T: T4,
               units,
               alerts: warn.alerts,
               open: openId === row.bed.id,
@@ -6355,6 +7404,7 @@ button.alert-day { cursor: pointer; }
                 setOpenId((o3) => o3 === row.bed.id ? null : row.bed.id);
               },
               onShowChart: () => showChart(row.bed.id),
+              onOpenProfile: setProfileId,
               onUpdate: (patch) => update(row.bed.id, patch),
               onLog: (field, action, date) => log(row.bed.id, field, action, date),
               onRemove: () => {
@@ -6371,6 +7421,19 @@ button.alert-day { cursor: pointer; }
             " ",
             label
           ] }, k3)) }),
+          /* @__PURE__ */ u3(
+            Calendar,
+            {
+              frost,
+              today,
+              profiles: allProfiles(),
+              bedPlantIds,
+              onOpen: setProfileId,
+              custom: !!customFrost,
+              onSetFrost: setCustomFrost,
+              loading: !wx.sample && norm.status === "loading"
+            }
+          ),
           /* @__PURE__ */ u3(Weather, { s: recent, units }),
           /* @__PURE__ */ u3(
             WaterChart,
@@ -6401,7 +7464,7 @@ button.alert-day { cursor: pointer; }
               place
             }
           ),
-          /* @__PURE__ */ u3(HowItWorks, { open: showHow, onToggle: () => setShowHow((v3) => !v3), day: days[T3], units, sample: wx.sample })
+          /* @__PURE__ */ u3(HowItWorks, { open: showHow, onToggle: () => setShowHow((v3) => !v3), day: days[T4], units, sample: wx.sample })
         ] }),
         /* @__PURE__ */ u3(Footer, { onBackup: backup, onRestore: restore, onReset: reset, canSave: env.canSave })
       ] }),
@@ -6410,6 +7473,19 @@ button.alert-day { cursor: pointer; }
         if (t3) finishTimer(t3, "stop");
       } }),
       toast && /* @__PURE__ */ u3("div", { class: "toast", role: "status", children: toast }),
+      profileId && profileById(profileId) && /* @__PURE__ */ u3(
+        PlantProfile,
+        {
+          profile: profileById(profileId),
+          frost,
+          today,
+          units,
+          normals,
+          beds,
+          onAdd: addPlant,
+          onClose: () => setProfileId(null)
+        }
+      ),
       /* @__PURE__ */ u3(SoilDefs, {})
     ] });
   }

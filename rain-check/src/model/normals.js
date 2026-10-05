@@ -194,6 +194,48 @@ export function normalFor(normals, date) {
   return n && n.hi && n.lo ? { high: n.hi[50], low: n.lo[50], pFreeze: n.pFreeze, pHot: n.pHot } : null;
 }
 
+// A day's temperature at each hour from its low (about dawn), high (mid-
+// afternoon) and the next morning's low, as a smooth curve.
+function hourlyCurve(lo, hi, nextLo, prevHi) {
+  const out = new Array(24);
+  for (let h = 0; h < 24; h++) {
+    if (h < 6) out[h] = lo + ((prevHi - lo) * (1 + Math.cos((Math.PI * (h + 9)) / 15))) / 2;
+    else if (h <= 15) out[h] = lo + ((hi - lo) * (1 - Math.cos((Math.PI * (h - 6)) / 9))) / 2;
+    else out[h] = nextLo + ((hi - nextLo) * (1 + Math.cos((Math.PI * (h - 15)) / 15))) / 2;
+  }
+  return out;
+}
+
+/**
+ * Chill hours: hours between 32 and 45°F from November through February
+ * (May through August south of the equator), the measure fruit trees like
+ * peaches are bred for. Estimated from daily highs and lows, so about ±15%.
+ * Returns the typical winter and the range of most winters.
+ */
+export function chillHours(days, lat) {
+  const months = lat >= 0 ? [11, 12, 1, 2] : [5, 6, 7, 8];
+  const byWinter = new Map();
+  for (let i = 1; i + 1 < days.length; i++) {
+    const d = days[i];
+    const m = +d.date.slice(5, 7);
+    if (!months.includes(m) || d.tmin == null || d.tmax == null) continue;
+    const y = +d.date.slice(0, 4);
+    const winter = lat >= 0 ? (m >= 11 ? y : y - 1) : y;
+    const prev = days[i - 1];
+    const next = days[i + 1];
+    const curve = hourlyCurve(d.tmin, d.tmax, next.tmin != null ? next.tmin : d.tmin, prev.tmax != null ? prev.tmax : d.tmax);
+    let h = 0;
+    for (const t of curve) if (t >= 0 && t <= 7.2) h++;
+    const w = byWinter.get(winter) || { hours: 0, days: 0 };
+    w.hours += h;
+    w.days++;
+    byWinter.set(winter, w);
+  }
+  const full = [...byWinter.values()].filter((w) => w.days >= 115).map((w) => w.hours).sort(byNumber);
+  if (full.length < 5) return null;
+  return { typical: Math.round(interp(full, 0.5)), low: Math.round(interp(full, 0.1)), high: Math.round(interp(full, 0.9)), winters: full.length };
+}
+
 // Everything at once, from 30 years of daily highs and lows (oldest first).
 export function climateNormals(days, lat) {
   if (!days || days.length < 3650) return null;
@@ -206,6 +248,7 @@ export function climateNormals(days, lat) {
     hard: frostOdds(days, lat, COLD_AT.hard),
     frost: frostOdds(days, lat, COLD_AT.frost),
     zone: hardiness(days, lat),
+    chill: chillHours(days, lat),
     daily,
     p02Low: interp(
       days.map((d) => d.tmin).filter((t) => t != null).sort(byNumber),

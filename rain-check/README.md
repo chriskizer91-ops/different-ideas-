@@ -36,6 +36,12 @@ Weather comes from [Open-Meteo](https://open-meteo.com) (free, no account, CC BY
 - Conditions that have become routine (the fifth hard freeze in a midwinter week) are shown as a quiet line instead of a new alarm. A colder night than recent ones still raises the full warning.
 - The seven-day outlook marks frost nights and hot days, and the chart has a strip of frost and heat days underneath.
 
+**Plants and the planting calendar**
+- A library of plants for Dallas–Fort Worth: natives of the Blackland Prairie and Cross Timbers, plus vegetables, herbs, fruit, lawn grasses and landscape plants that do well in North Texas heat and alkaline clay. Each has a profile: when to plant it here, water needs, cold and heat limits, size and bloom, North Texas varieties, tips, and sources.
+- Name what's growing in each bed or pot. The plan then waters for the thirstiest plant with the shallowest roots, and freeze and heat warnings speak plant by plant ("Tomato dies at these temperatures… Kale is fine to about 15°F", "Turk's cap will freeze back to the ground but usually regrows").
+- **Planting calendar**: what to plant now and in the next three weeks, and a year of planting windows for each plant, counted from your own frost dates the way Texas A&M AgriLife's planting guides do (weeks after the last freeze in spring, weeks before the first freeze in fall). You can set your own frost dates.
+- **Chill hours**, estimated from 30 years of winters, and how each fruit tree's needs compare.
+
 **History and climate**
 - Soil water charts over 1 month, 3 months, 12 months or 3 years, with rain bars, the refill line, and frost and heat days. Tap or drag across the chart (or use the arrow keys) to read any day.
 - Counts of hot days and freezing nights, and the hottest and coldest days, for any span.
@@ -82,7 +88,8 @@ The built file keeps the app code unminified, so it can still be read.
 
 | Path | Contents |
 | --- | --- |
-| `src/model/` | The math, with no browser code: `et0.js`, `solar.js` (sun, day length, sunrise and sunset), `tables.js` (plants, soils, pots), `planting.js` (turns a bed into daily numbers), `waterBalance.js` (the bank, today's plan, the week plan), `watering.js` (methods, minutes, cans, cycle and soak), `feeding.js`, `thresholds.js` and `alerts.js` (frost and heat ladders, night detail), `climate.js` (frost seasons, extremes), `normals.js` (30-year frost odds, zone, normals), `summary.js` (recent weather, chart data) |
+| `src/data/plants.js` | The plant library, with sources for each plant |
+| `src/model/` | The math, with no browser code: `calendar.js` (planting windows from frost dates), `profiles.js` (plants' water use and cold and heat limits), `et0.js`, `solar.js` (sun, day length, sunrise and sunset), `tables.js` (plants, soils, pots), `planting.js` (turns a bed into daily numbers), `waterBalance.js` (the bank, today's plan, the week plan), `watering.js` (methods, minutes, cans, cycle and soak), `feeding.js`, `thresholds.js` and `alerts.js` (frost and heat ladders, night detail), `climate.js` (frost seasons, extremes), `normals.js` (30-year frost odds, zone, normals), `summary.js` (recent weather, chart data) |
 | `src/data/` | `openMeteo.js` (requests and parsing), `store.js` (saving, offline forecast, backups, moving data over from version 1), `sample.js` (sample weather) |
 | `src/ui/` | Preact components: `App.jsx`, `Sky.jsx`, `Alerts.jsx` and `NightChart.jsx`, `WeekPlanner.jsx`, `BedCard.jsx` with `SoilGauge.jsx`, `Timer.jsx` and `BedDetails.jsx` (with `WaterMethod.jsx`), `Weather.jsx`, `WaterChart.jsx`, `Climate.jsx`, `Panels.jsx`; `text.js` holds the wording |
 | `src/lib/` | Dates and units |

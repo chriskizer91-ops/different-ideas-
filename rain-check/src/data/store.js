@@ -72,19 +72,21 @@ export function newBed(over = {}) {
     feedLog: [],
     tuneLog: [],
     water: {},
+    plants: [],
   };
   const ground = { soil: 'loam', slope: 'flat', mulch: false, areaM2: 4.6 };
   const potBits = { potSize: 'l', mix: 'potting', material: 'plastic', rainIn: 'open', spread: 'same', count: 1 };
   return { ...base, ...(pot ? potBits : ground), ...over };
 }
 
+// A starting garden for North Texas: blackland clay, Bermuda lawn, natives.
 export function starterBeds(today) {
   return [
-    newBed({ name: 'Vegetable bed', plant: 'veg', soil: 'loam', mulch: true, areaM2: 4.6 }),
-    newBed({ name: 'Front lawn', plant: 'lawn', soil: 'clayLoam', areaM2: 46 }),
-    newBed({ name: 'Shrub border', plant: 'shrubs', soil: 'clay', sun: 'part', mulch: true, areaM2: 6 }),
-    newBed({ name: 'Young maple', plant: 'trees', soil: 'loam', mulch: true, areaM2: 1.2, plantedOn: addDays(today, -150) }),
-    newBed({ name: 'Patio pot', site: 'pot', plant: 'veg', spread: 'past' }),
+    newBed({ name: 'Vegetable bed', plant: 'veg', soil: 'amended', mulch: true, areaM2: 4.6, plants: ['tomato', 'pepper', 'basil'] }),
+    newBed({ name: 'Front lawn', plant: 'lawnWarm', soil: 'clay', areaM2: 46, plants: ['bermuda'], feedEvery: 56 }),
+    newBed({ name: 'Native border', plant: 'shrubs', soil: 'clay', sun: 'part', mulch: true, areaM2: 6, plants: ['turks-cap', 'texas-sage'], feedEvery: 0 }),
+    newBed({ name: 'Young live oak', plant: 'trees', soil: 'clay', mulch: true, areaM2: 1.2, plantedOn: addDays(today, -150), plants: ['live-oak'], feedEvery: 0 }),
+    newBed({ name: 'Meyer lemon', site: 'pot', plant: 'trees', potSize: 'xl', spread: 'same', plants: ['meyer-lemon'], feedEvery: 30 }),
   ];
 }
 
@@ -96,6 +98,7 @@ export function cleanBed(b) {
   const out = { ...bed, ...b, plant: bed.plant };
   for (const k of ['waterLog', 'feedLog', 'tuneLog']) out[k] = Array.isArray(b[k]) ? b[k] : [];
   out.water = b.water && typeof b.water === 'object' ? cleanWater(b.water) : {};
+  out.plants = Array.isArray(b.plants) ? b.plants.filter((x) => typeof x === 'string') : [];
   if (!pot && !SOILS[out.soil]) out.soil = 'loam';
   if (typeof out.name !== 'string') out.name = bed.name;
   if (!out.id) out.id = newId();

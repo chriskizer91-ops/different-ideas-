@@ -19,6 +19,7 @@
 
 import { daysBetween, monthOf } from '../lib/dates.js';
 import { isPot, plantOf } from './tables.js';
+import { profilesOf, coldNote, heatNote } from './profiles.js';
 import { COLD_AT, HEAT_AT, SEVERITY } from './thresholds.js';
 import { colderThan, hotterThan, freezeTiming } from './normals.js';
 
@@ -113,7 +114,10 @@ const HEAT_ACTIONS = [
 ];
 
 // Which of the user's beds and pots a warning touches, and what to do for each.
-export function coldRisk(bed, level, sim) {
+export function coldRisk(bed, level, sim, low) {
+  // Named plants have their own limits.
+  const profiles = profilesOf(bed);
+  if (profiles.length && low != null) return coldNote(bed, profiles, low, isPot(bed));
   const plant = plantOf(bed);
   const young = sim && sim.growth < 1;
   if (isPot(bed)) {
@@ -133,7 +137,12 @@ export function coldRisk(bed, level, sim) {
   return null;
 }
 
-export function heatRisk(bed, level, sim) {
+export function heatRisk(bed, level, sim, high) {
+  const profiles = profilesOf(bed);
+  if (profiles.length && high != null) {
+    const note = heatNote(bed, profiles, high);
+    if (note || !isPot(bed)) return note;
+  }
   const young = sim && sim.growth < 1;
   if (isPot(bed)) return level >= 2 ? 'Check it morning and afternoon; move it into afternoon shade.' : 'It will dry fast. Check it in the afternoon.';
   if (bed.plant === 'veg' || bed.plant === 'flowers') return level >= 2 ? 'Water at dawn and shade it in the afternoon if you can.' : 'Water early in the day.';
@@ -252,7 +261,7 @@ export function buildAlerts({ days, todayIdx, nights = {}, hour = 12, climate = 
           : null,
       extremeAt: L.extremeAt,
       action: COLD_ACTIONS[peak.level],
-      atRisk: risks(rows, (bed, sim) => coldRisk(bed, peak.level, sim)),
+      atRisk: risks(rows, (bed, sim) => coldRisk(bed, peak.level, sim, peak.value)),
       waterFirst:
         peak.level >= 3 && daysBetween(days[T].date, peak.date) <= 2 && (days[T].tmax == null || days[T].tmax >= 4.5)
           ? rows.filter(({ sim }) => sim && !sim.wateredToday && sim.moistureNow < sim.refillAt + 10).map(({ bed }) => bed)
@@ -287,7 +296,7 @@ export function buildAlerts({ days, todayIdx, nights = {}, hour = 12, climate = 
       peak,
       days: heatDays,
       action: HEAT_ACTIONS[peak.level],
-      atRisk: risks(rows, (bed, sim) => heatRisk(bed, peak.level, sim)),
+      atRisk: risks(rows, (bed, sim) => heatRisk(bed, peak.level, sim, peak.value)),
       waterFirst:
         peak.level >= 2 && daysBetween(days[T].date, peak.date) <= 1
           ? rows.filter(({ sim }) => sim && !sim.wateredToday && sim.moistureNow < sim.refillAt + 15).map(({ bed }) => bed)

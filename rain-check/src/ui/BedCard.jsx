@@ -3,11 +3,11 @@ import { BedDetails } from './BedDetails.jsx';
 import { LogToggle } from './controls.jsx';
 import { TimerPanel } from './Timer.jsx';
 import { ChevronDown, Droplets, Sprout, Snowflake, Sun, Timer as TimerIcon, iconFor } from './icons.js';
-import { bedLine, statusText, feedText } from './text.js';
+import { bedLine, statusText, feedText, fillTemps } from './text.js';
 
 const TONE_ICON = { water: Droplets };
 
-export function BedCard({ row, days, T, units, open, onToggle, onUpdate, onLog, onRemove, onShowChart, alerts, timer, now, onStartTimer, onTimerDone, onTimerStop }) {
+export function BedCard({ row, days, T, units, open, onToggle, onUpdate, onLog, onRemove, onShowChart, alerts, timer, now, onStartTimer, onTimerDone, onTimerStop, onOpenProfile }) {
   const { bed, sim, feed, how } = row;
   const today = days[T].date;
   const Icon = iconFor(bed);
@@ -53,7 +53,7 @@ export function BedCard({ row, days, T, units, open, onToggle, onUpdate, onLog, 
           {notes.map((n, i) => (
             <p key={i} class={`card-note ${n.kind}-${n.level}`}>
               {n.kind === 'cold' ? <Snowflake size={14} aria-hidden="true" /> : <Sun size={14} aria-hidden="true" />}
-              <span>{n.text}</span>
+              <span>{fillTemps(n.text, units)}</span>
             </p>
           ))}
           {timer ? (
@@ -104,6 +104,7 @@ export function BedCard({ row, days, T, units, open, onToggle, onUpdate, onLog, 
           onLog={onLog}
           onRemove={onRemove}
           onShowChart={onShowChart}
+          onOpenProfile={onOpenProfile}
         />
       )}
     </article>

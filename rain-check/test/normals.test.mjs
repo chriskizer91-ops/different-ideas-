@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { zoneFromF, frostOdds, climateNormals, colderThan, hotterThan, normalsStart, freezeTiming, doyIndex, normalFor } from '../src/model/normals.js';
+import { zoneFromF, frostOdds, climateNormals, colderThan, hotterThan, normalsStart, freezeTiming, doyIndex, normalFor, chillHours } from '../src/model/normals.js';
 import { nightDetail } from '../src/model/alerts.js';
 import { sampleNormals } from '../src/data/sample.js';
 import { sunTimes } from '../src/model/solar.js';
@@ -81,6 +81,18 @@ test('normals from sample years: ordered percentiles, ranks and a zone', () => {
   const norm = normalFor(n.daily, '2026-07-15');
   assert.ok(norm.high > norm.low);
   assert.ok(n.p02Low < d.lo[50]);
+});
+
+test('chill hours count winter hours between 32 and 45°F', () => {
+  // every winter day 2°C to 12°C: the curve spends roughly a third of each day in the band
+  const days = [];
+  for (let d = '2000-08-01'; d < '2010-08-01'; d = addDays(d, 1)) days.push({ date: d, tmin: 2, tmax: 12 });
+  const c = chillHours(days, 32);
+  assert.ok(c.winters >= 9);
+  assert.ok(c.typical > 600 && c.typical < 1500, `${c.typical}`);
+  // warmer winters chill less
+  const warm = chillHours(days.map((x) => ({ ...x, tmin: x.tmin + 6, tmax: x.tmax + 6 })), 32);
+  assert.ok(warm.typical < c.typical);
 });
 
 test('frost-night detail: hours below freezing, coldest hour, when to uncover', () => {

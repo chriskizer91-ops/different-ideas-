@@ -4,12 +4,22 @@ import { fmt } from '../lib/units.js';
 import { addDays, clockText, dayWord, onDay, nightWord, monthDay, weekday } from '../lib/dates.js';
 import { COLD_WATER_C } from '../model/waterBalance.js';
 import { PLANTS, POT_PLANTS, POT_SIZES, POT_MATERIALS, POT_RAIN, SOILS, SUN, isPot, potCount } from '../model/tables.js';
+import { profilesOf } from '../model/profiles.js';
+
+// Temperatures written into notes as {{t:-2.2}}, shown in the gardener's units.
+export const fillTemps = (s, units) => (s ? s.replace(/\{\{t:(-?\d+(?:\.\d+)?)\}\}/g, (_, c) => fmt.tempUnit(Number(c), units)) : s);
 
 export const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 export const listWords = (a) => (a.length <= 1 ? a.join('') : `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}`);
 
-// "Vegetables in loam, full sun, mulched"
+const plantNames = (bed) => {
+  const n = profilesOf(bed).map((p) => p.name);
+  return n.length ? listWords(n.length > 3 ? [...n.slice(0, 3), `${n.length - 3} more`] : n) : null;
+};
+
+// "Vegetables in loam, full sun, mulched", or the plants' own names when chosen
 export function bedLine(bed, units) {
+  const named = plantNames(bed);
   if (isPot(bed)) {
     const size = POT_SIZES[bed.potSize] || POT_SIZES.l;
     const wall = POT_MATERIALS[bed.material] || POT_MATERIALS.plastic;
@@ -18,13 +28,13 @@ export function bedLine(bed, units) {
     const n = potCount(bed);
     const where = ['in', size.short[units === 'imperial' ? 'imperial' : 'metric'], wall.word, size.noun || 'pot'].filter(Boolean).join(' ');
     const extra = [(SUN[bed.sun] || SUN.full).label.toLowerCase(), rain.note, n > 1 ? `${n} like this` : ''].filter(Boolean);
-    return `${plant.label} ${where}, ${extra.join(', ')}`;
+    return `${named || plant.label} ${where}, ${extra.join(', ')}`;
   }
   const plant = PLANTS[bed.plant] || PLANTS.veg;
   const soil = SOILS[bed.soil] || SOILS.loam;
   const bits = [(SUN[bed.sun] || SUN.full).label.toLowerCase()];
   if (bed.mulch && plant.mulchKc) bits.push('mulched');
-  return `${plant.label} in ${soil.label.toLowerCase()}, ${bits.join(', ')}`;
+  return `${named || plant.label} in ${soil.label.toLowerCase()}, ${bits.join(', ')}`;
 }
 
 // "25 minutes", "1 hr 10 min", "15 seconds"

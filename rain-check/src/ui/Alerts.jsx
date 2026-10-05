@@ -3,7 +3,7 @@ import { Snowflake, ThermometerSun, ThermometerSnowflake } from './icons.js';
 import { NightChart, nightHour } from './NightChart.jsx';
 import { clockText, partOfMonth } from '../lib/dates.js';
 import { fmt } from '../lib/units.js';
-import { alertWhen, alertDayLabel, routineLine, listWords } from './text.js';
+import { alertWhen, alertDayLabel, routineLine, listWords, fillTemps } from './text.js';
 import { COLD_AT, HEAT_AT } from '../model/alerts.js';
 
 function Pips({ level, kind }) {
@@ -154,7 +154,7 @@ export function AlertCard({ a, today, units, onPick, normals, sunsets }) {
               <button class="link" onClick={() => onPick(r.id)}>
                 {r.name}
               </button>
-              : {r.tip}
+              : {fillTemps(r.tip, units)}
             </li>
           ))}
         </ul>

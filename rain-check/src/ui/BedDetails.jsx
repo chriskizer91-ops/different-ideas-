@@ -6,6 +6,8 @@ import { addDays, daysBetween, monthDay } from '../lib/dates.js';
 import { lastFed } from '../model/feeding.js';
 import { checkTune } from '../model/planting.js';
 import { WaterMethod } from './WaterMethod.jsx';
+import { PlantPicker } from './PlantPicker.jsx';
+import { profilesOf } from '../model/profiles.js';
 import {
   PLANTS,
   POT_PLANTS,
@@ -41,6 +43,16 @@ function Explain({ bed, sim, days, T, units }) {
       `The top ${fmt.rootDepth(sim.rootMm, units)} of this bed holds about ${fmt.depth(sim.taw, units)} of water plants can use. ` +
         `It's time to water once they've used ${fmt.depth(sim.raw, units)} of it (${pct(sim.p)} today; less on hot days, when plants struggle sooner). ` +
         `Today it loses about ${fmt.depth(sim.etcToday, units)}. ${m.soil.tip}`,
+    );
+  }
+  const profs = profilesOf(bed);
+  if (profs.length > 1) {
+    const thirsty = profs.reduce((a, p) => (p.kc > a.kc ? p : a));
+    const shallow = profs.reduce((a, p) => (p.rootMm < a.rootMm ? p : a));
+    parts.push(
+      thirsty === shallow
+        ? `Watered for the ${thirsty.name.toLowerCase()}, the thirstiest and shallowest-rooted plant here.`
+        : `Watered for the ${thirsty.name.toLowerCase()} (the thirstiest plant here) and the ${shallow.name.toLowerCase()} (the shallowest roots).`,
     );
   }
   if (sim.growth < 1 && bed.plantedOn) {
@@ -161,7 +173,7 @@ function DateLog({ title, entries, today, onAdd, onRemove, empty, quick, addLabe
   );
 }
 
-export function BedDetails({ bed, sim, days, T, units, onUpdate, onLog, onRemove, onShowChart }) {
+export function BedDetails({ bed, sim, days, T, units, onUpdate, onLog, onRemove, onShowChart, onOpenProfile }) {
   const today = days[T].date;
   const pot = isPot(bed);
   const imp = units === 'imperial';
@@ -268,6 +280,7 @@ export function BedDetails({ bed, sim, days, T, units, onUpdate, onLog, onRemove
       <button class="link" onClick={onShowChart}>
         {pot ? 'See this pot on the water chart' : 'See this bed on the soil water chart'}
       </button>
+      <PlantPicker bed={bed} onUpdate={onUpdate} onOpen={onOpenProfile} />
       <Check bed={bed} today={today} units={units} onUpdate={onUpdate} />
       <h4 class="sub">Settings</h4>
       <div class="grid2">{fields}</div>

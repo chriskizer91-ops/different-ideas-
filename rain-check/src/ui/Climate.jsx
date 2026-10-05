@@ -219,6 +219,13 @@ export function Climate({ normals, state, onRetry, thisYear, today, units, place
                 </p>
               </div>
             )}
+            {normals.chill && (
+              <p class="small chill">
+                <strong>Chill hours:</strong> about {normals.chill.typical.toLocaleString()} a winter ({normals.chill.low.toLocaleString()} to{' '}
+                {normals.chill.high.toLocaleString()} in most). Peaches, plums, pears and apples are rated by the winter chill they need; choose varieties that need
+                no more than a typical winter here.
+              </p>
+            )}
             <OddsLines normals={normals} units={units} />
             <YearChart normals={normals} thisYear={thisYear} today={today} units={units} />
             <p class="muted xs">

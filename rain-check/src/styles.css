@@ -443,6 +443,89 @@ button.alert-day { cursor: pointer; }
 .footer { margin-top: 40px; font-size: 14px; color: var(--stem); display: flex; flex-direction: column; gap: 8px; }
 .footer-actions { display: flex; flex-wrap: wrap; gap: 16px; }
 
+/* planting calendar */
+.cal-frost { margin-top: 6px; }
+.cal-edit { margin-top: 10px; padding: 12px; }
+.cal-edit .grid2 { margin-top: 8px; }
+.cal-panel { margin-top: 10px; padding: 12px; }
+.sub.first { margin-top: 0; }
+.plant-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.plant-chip { display: inline-flex; flex-direction: column; align-items: flex-start; text-align: left; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--rule); background: var(--field); font-size: 14px; line-height: 1.25; }
+.plant-chip.is-now { border-color: var(--leaf); box-shadow: inset 3px 0 0 var(--leaf); }
+.plant-chip .xs { color: var(--stem); }
+.plant-chip.slim { flex-direction: row; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; font-weight: 550; }
+.plant-chip.slim.is-now { box-shadow: none; }
+.plant-chip.more { background: none; border-style: dashed; color: var(--stem); }
+.pn-group + .pn-group { margin-top: 12px; }
+.pn-title { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--stem); margin: 0 0 4px; }
+.pn-cluster + .pn-cluster { margin-top: 8px; }
+.pn-when { display: block; margin-bottom: 4px; }
+.cal-search { margin-top: 14px; }
+.cal-filter { margin-top: 14px; }
+.pick.small { font-size: 13px; padding: 4px 10px; }
+.cal { display: grid; gap: 2px; }
+.cal-row { display: grid; grid-template-columns: minmax(84px, 34%) 1fr; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 3px 0; border-radius: 6px; }
+.cal-row:not(.cal-head):hover { background: var(--fog); }
+.cal-row.is-now .cal-name { font-weight: 700; }
+.cal-name { display: flex; align-items: center; gap: 4px; min-width: 0; font-size: 13.5px; }
+.cal-track { position: relative; height: 18px; border-radius: 4px; background: var(--fog); }
+.cal-head .cal-track { background: none; height: 14px; }
+.cal-month { position: absolute; top: 0; font-size: 10.5px; color: var(--stem); transform: translateX(2px); }
+.cal-grid { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--rule); opacity: 0.7; }
+.cal-bar { position: absolute; top: 3px; bottom: 3px; border-radius: 3px; opacity: 0.55; }
+.cal-bar.best { opacity: 1; }
+.cal-bar.sd, .cal-key-sd { background: #4f9a62; }
+.cal-bar.tr, .cal-key-tr { background: var(--rain); }
+.cal-bar.ct, .cal-key-ct { background: #9b6b43; }
+.cal-bar.sod, .cal-key-sod { background: #6aa84f; }
+.cal-today, .cal-key-today { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--ink); border-radius: 1px; }
+.cal-key-today { position: static; display: inline-block; height: 10px; vertical-align: -1px; }
+.cal-more { margin-top: 8px; }
+.badge-native { display: inline-block; flex-shrink: 0; width: 8px; height: 8px; border-radius: 999px; background: #c2693e; box-shadow: 0 0 0 1.5px var(--panel); }
+.badge-native.inline { vertical-align: 0; margin-left: 2px; }
+
+/* plant picker in bed settings */
+.picker-plants { margin-top: 6px; }
+.plant-tag { display: inline-flex; align-items: center; border-radius: 999px; background: var(--leaf-pale); color: var(--leaf); font-size: 13px; font-weight: 600; }
+.plant-tag-name { padding: 4px 4px 4px 10px; }
+.plant-tag-x { display: inline-flex; padding: 6px 8px 6px 4px; }
+.picker-plants > .link { margin-top: 6px; }
+.pp-panel { margin-top: 8px; padding: 10px; border-radius: 12px; background: var(--fog); }
+.pp-groups { margin-top: 8px; }
+.pp-list { list-style: none; margin: 8px 0 0; padding: 0; max-height: 300px; overflow-y: auto; display: grid; gap: 4px; }
+.pp-item { width: 100%; text-align: left; display: flex; flex-direction: column; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--rule); background: var(--field); }
+.pp-item.on { border-color: var(--leaf); background: var(--leaf-pale); }
+.pp-name { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; }
+.pp-meta { font-size: 12px; color: var(--stem); }
+
+/* plant profile sheet */
+.sheet-back { position: fixed; inset: 0; z-index: 30; background: rgba(10, 20, 14, 0.45); display: flex; align-items: flex-end; justify-content: center; }
+.sheet {
+  width: min(34rem, 100%); max-height: 88vh; overflow-y: auto; background: var(--panel); color: var(--ink);
+  border-radius: 18px 18px 0 0; padding: 18px 16px calc(24px + env(safe-area-inset-bottom)); box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.25);
+}
+@media (min-width: 640px) {
+  .sheet-back { align-items: center; }
+  .sheet { border-radius: 18px; }
+}
+.sheet-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.sci { font-style: italic; color: var(--stem); font-size: 14px; }
+.sheet .tags { margin-top: 10px; }
+.tag-native { background: #c2693e; border-color: #c2693e; color: #fff; }
+.sheet-line { margin-top: 6px; }
+.win-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 14px; }
+.win-list li { padding: 6px 10px; border-radius: 10px; background: var(--fog); }
+.win-list li.is-now { background: var(--leaf-pale); }
+.now-pill, .soon-pill { margin-left: 6px; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--leaf); color: var(--panel); }
+.soon-pill { background: var(--straw); color: #1d2b24; }
+.facts { margin: 14px 0 0; display: grid; gap: 6px; font-size: 14px; }
+.facts > div { display: grid; grid-template-columns: 84px 1fr; gap: 8px; }
+.facts dt { color: var(--stem); font-weight: 600; }
+.facts dd { margin: 0; }
+.sheet-add { margin-top: 6px; padding-top: 4px; border-top: 1px solid var(--rule); }
+.sources { margin-top: 14px; word-break: break-word; }
+.sources a { color: var(--rain-ink); }
+
 @media (max-width: 380px) {
   .h1 { font-size: 32px; }
   .gauge, .soil { width: 54px; }

@@ -8,7 +8,7 @@ import { fmt } from '../lib/units.js';
 import { weekday, weekdayShort } from '../lib/dates.js';
 import { coldRisk, heatRisk } from '../model/alerts.js';
 import { howToWater } from '../model/watering.js';
-import { waterWords, minutesText, cansText } from './text.js';
+import { waterWords, minutesText, cansText, fillTemps } from './text.js';
 
 const ACTION_ICON = { water: Droplet, again: Droplets, done: Check, wait: CloudRain, cold: Snowflake };
 const COLD_WORD = ['', 'Frost', 'Freeze', 'Hard freeze', 'Extreme cold'];
@@ -35,6 +35,11 @@ export function WeekPlanner({ rows, plans, days, T, units, levels, nights, onOpe
   const [sel, setSel] = useState(null);
   if (!rows.length) return null;
   const week = days.slice(T, T + 7);
+  // The night that follows day i.
+  const lowOf = (i) => {
+    const n = nights && nights[days[i].date];
+    return n && n.low != null ? n.low : days[i + 1] ? days[i + 1].tmin : days[i].tmin;
+  };
 
   // Totals for the week.
   let count = 0;
@@ -43,8 +48,8 @@ export function WeekPlanner({ rows, plans, days, T, units, levels, nights, onOpe
   for (const row of rows) {
     const plan = plans[row.bed.id] || [];
     for (const d of plan) {
-      const cold = levels.cold[d.i] ? coldRisk(row.bed, levels.cold[d.i], row.sim) : null;
-      const heat = levels.heat[d.i] ? heatRisk(row.bed, levels.heat[d.i], row.sim) : null;
+      const cold = levels.cold[d.i] ? coldRisk(row.bed, levels.cold[d.i], row.sim, lowOf(d.i)) : null;
+      const heat = levels.heat[d.i] ? heatRisk(row.bed, levels.heat[d.i], row.sim, days[d.i].tmax) : null;
       risks[`${row.bed.id}:${d.i}`] = { cold, heat, coldLevel: levels.cold[d.i], heatLevel: levels.heat[d.i] };
       if (d.action === 'water' || d.action === 'again') {
         count++;
@@ -128,7 +133,7 @@ export function WeekPlanner({ rows, plans, days, T, units, levels, nights, onOpe
             <strong>
               {selRow.bed.name}, {selDay.i === T ? 'today' : weekday(selDay.date)}:
             </strong>{' '}
-            {cellText(selRow, selDay, selHow, units, risks[`${sel.id}:${sel.i}`] || {})}
+            {fillTemps(cellText(selRow, selDay, selHow, units, risks[`${sel.id}:${sel.i}`] || {}), units)}
           </>
         ) : (
           <span class="muted">Tap a day for details. Blue is the water each one ends the day with; the gold tick is when to water.</span>

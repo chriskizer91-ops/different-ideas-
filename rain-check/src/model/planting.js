@@ -3,6 +3,7 @@
 // day's rain actually soaks in.
 
 import { daysBetween } from '../lib/dates.js';
+import { profilesOf, waterTraits } from './profiles.js';
 import {
   PLANTS,
   SOILS,
@@ -61,7 +62,10 @@ export function adjustP(p, etcMm) {
 }
 
 function groundModel(bed) {
-  const plant = PLANTS[bed.plant] || PLANTS.veg;
+  const category = PLANTS[bed.plant] || PLANTS.veg;
+  // Named plants refine the category: the thirstiest and shallowest-rooted one decides.
+  const traits = waterTraits(profilesOf(bed));
+  const plant = traits ? { ...category, kc: traits.kc, rootMm: traits.rootMm, p: traits.p } : category;
   const soil = SOILS[bed.soil] || SOILS.loam;
   const sun = SUN[bed.sun] || SUN.full;
   const slope = SLOPES[bed.slope] || SLOPES.flat;
@@ -106,7 +110,9 @@ function groundModel(bed) {
 }
 
 function potModel(bed) {
-  const plant = POT_PLANTS[bed.plant] || POT_PLANTS.veg;
+  const category = POT_PLANTS[bed.plant] || POT_PLANTS.veg;
+  const traits = waterTraits(profilesOf(bed));
+  const plant = traits ? { ...category, kc: traits.kc, p: traits.p } : category;
   const size = POT_SIZES[bed.potSize] || POT_SIZES.l;
   const mix = POT_MIXES[bed.mix] || POT_MIXES.potting;
   const wall = POT_MATERIALS[bed.material] || POT_MATERIALS.plastic;
