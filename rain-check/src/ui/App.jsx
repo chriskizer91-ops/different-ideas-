@@ -25,7 +25,7 @@ import { climateStats, historyStart } from '../model/climate.js';
 import { climateNormals, normalsStart, doyIndex } from '../model/normals.js';
 import { howToWater, timerPhases } from '../model/watering.js';
 import { frostDatesFrom } from '../model/calendar.js';
-import { allProfiles, profileById, plantsPatch } from '../model/profiles.js';
+import { allProfiles, profileById, plantsPatch, canonicalId } from '../model/profiles.js';
 import { recentWeather, chartData, needsHistory, RANGES } from '../model/summary.js';
 import { isPot } from '../model/tables.js';
 import {
@@ -306,6 +306,8 @@ export function App() {
   }, [merged, days, today]);
 
   // ---- the plan ----
+  // average frost dates: the gardener's own, else 30 years of records, else the recent record
+  const frost = useMemo(() => frostDatesFrom({ custom: customFrost, normals, climate }), [customFrost, normals, climate]);
   const sims = useMemo(() => beds.map((bed) => ({ bed, sim: simulate(bed, days, T, { hour, fracOf }) })), [beds, days, T, hour, fracOf]);
   const warn = useMemo(
     () =>
@@ -318,8 +320,9 @@ export function App() {
         rows: sims,
         lat: wx.lat,
         normals,
+        frost,
       }),
-    [sims, days, T, wx.nights, hour, climate, normals, wx.lat],
+    [sims, days, T, wx.nights, hour, climate, normals, wx.lat, frost],
   );
   const rows = useMemo(
     () =>
@@ -334,8 +337,7 @@ export function App() {
   const sunsets = useMemo(() => Object.fromEntries(days.map((d) => [d.date, d.sunset])), [days]);
 
   // ---- planting calendar ----
-  const frost = useMemo(() => frostDatesFrom({ custom: customFrost, normals, climate }), [customFrost, normals, climate]);
-  const bedPlantIds = useMemo(() => new Set(beds.flatMap((b) => b.plants || [])), [beds]);
+  const bedPlantIds = useMemo(() => new Set(beds.flatMap((b) => (b.plants || []).map(canonicalId))), [beds]);
   const addPlant = (plantId, target) => {
     const p = profileById(plantId);
     if (!p) return;
@@ -590,7 +592,7 @@ export function App() {
             <h1 class="display h1" aria-live="polite">
               {headline(rows)}
             </h1>
-            <WeekPlanner rows={rows} plans={plans} days={days} T={T} units={units} levels={warn.levels} nights={wx.nights} onOpen={openBed} />
+            <WeekPlanner rows={rows} plans={plans} days={days} T={T} units={units} levels={warn.levels} nights={wx.nights} frost={frost} onOpen={openBed} />
             {wx.sample && <SampleControls opts={sampleOpts} setOpts={setSampleOpts} units={units} et0={days[T].et0} />}
             <h2 class="display h2 beds-title">
               {rows.some((r) => isPot(r.bed)) ? (rows.every((r) => isPot(r.bed)) ? 'Your pots' : 'Your beds and pots') : 'Your beds'}

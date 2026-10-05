@@ -31,7 +31,7 @@ function cellText(row, d, how, units, risk) {
   return parts.join(' ');
 }
 
-export function WeekPlanner({ rows, plans, days, T, units, levels, nights, onOpen }) {
+export function WeekPlanner({ rows, plans, days, T, units, levels, nights, frost, onOpen }) {
   const [sel, setSel] = useState(null);
   if (!rows.length) return null;
   const week = days.slice(T, T + 7);
@@ -48,7 +48,7 @@ export function WeekPlanner({ rows, plans, days, T, units, levels, nights, onOpe
   for (const row of rows) {
     const plan = plans[row.bed.id] || [];
     for (const d of plan) {
-      const cold = levels.cold[d.i] ? coldRisk(row.bed, levels.cold[d.i], row.sim, lowOf(d.i)) : null;
+      const cold = levels.cold[d.i] ? coldRisk(row.bed, levels.cold[d.i], row.sim, lowOf(d.i), { date: days[d.i].date, frost }) : null;
       const heat = levels.heat[d.i] ? heatRisk(row.bed, levels.heat[d.i], row.sim, days[d.i].tmax) : null;
       risks[`${row.bed.id}:${d.i}`] = { cold, heat, coldLevel: levels.cold[d.i], heatLevel: levels.heat[d.i] };
       if (d.action === 'water' || d.action === 'again') {

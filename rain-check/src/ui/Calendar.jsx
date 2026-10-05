@@ -45,9 +45,10 @@ export const HOW_WORDS = {
   container: 'plant from containers',
   'bare-root': 'plant bare-root',
   'sod or seed': 'lay sod or sow seed',
+  sod: 'lay sod or plugs',
 };
 const PLANTS_OUT = new Set(['transplant', 'slips', 'crowns']);
-const howClass = (how) => (PLANTS_OUT.has(how) ? 'tr' : how === 'container' || how === 'bare-root' ? 'ct' : how === 'sod or seed' ? 'sod' : 'sd');
+const howClass = (how) => (PLANTS_OUT.has(how) ? 'tr' : how === 'container' || how === 'bare-root' ? 'ct' : how === 'sod or seed' || how === 'sod' ? 'sod' : 'sd');
 const cap1 = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 function FrostEditor({ frost, onSave, onCancel }) {
@@ -78,37 +79,47 @@ function FrostEditor({ frost, onSave, onCancel }) {
   );
 }
 
-// Plants that share a window ("Sow seed until Oct 22") are listed together.
+// Plants are listed under what to do ("Sow seed"), soonest first. When they
+// all share a date it goes in the heading; otherwise each chip carries its own.
 function Clusters({ items, now, onOpen, mine }) {
   const [opened, setOpened] = useState({});
   const map = new Map();
   for (const { profile: p, win } of items) {
-    const date = now ? win.end : win.start;
     const best = win.best && p.windows.length > 1;
-    const key = `${win.how}|${date}|${best ? 1 : 0}`;
-    if (!map.has(key)) map.set(key, { key, how: win.how, date, best, list: [] });
-    map.get(key).list.push(p);
+    const key = `${win.how}|${best ? 1 : 0}`;
+    if (!map.has(key)) map.set(key, { key, how: win.how, best, list: [] });
+    map.get(key).list.push({ p, date: now ? win.end : win.start });
   }
-  const clusters = [...map.values()].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  const order = (a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0) || mine.has(b.p.id) - mine.has(a.p.id) || b.p.native - a.p.native || a.p.name.localeCompare(b.p.name);
+  const clusters = [...map.values()]
+    .map((c) => ({ ...c, list: c.list.sort(order) }))
+    .sort((a, b) => (a.list[0].date < b.list[0].date ? -1 : a.list[0].date > b.list[0].date ? 1 : 0));
+  const word = now ? 'until' : 'from';
   return clusters.map((c) => {
-    const list = c.list.sort((a, b) => mine.has(b.id) - mine.has(a.id) || b.native - a.native || a.name.localeCompare(b.name));
-    const show = opened[c.key] || list.length <= CAP + 2 ? list.length : CAP;
+    const same = c.list.every((x) => x.date === c.list[0].date);
+    const show = opened[c.key] || c.list.length <= CAP + 2 ? c.list.length : CAP;
     return (
       <div key={c.key} class="pn-cluster">
         <span class="pn-when xs muted">
-          {cap1(HOW_WORDS[c.how] || c.how)} {now ? 'until' : 'from'} {mdText(c.date.slice(5))}
+          {cap1(HOW_WORDS[c.how] || c.how)}
+          {same ? ` ${word} ${mdText(c.list[0].date.slice(5))}` : ''}
           {c.best ? ', the best time of year' : ''}
         </span>
         <div class="plant-chips">
-          {list.slice(0, show).map((p) => (
+          {c.list.slice(0, show).map(({ p, date }) => (
             <button key={p.id} class={`plant-chip slim${now ? ' is-now' : ''}`} onClick={() => onOpen(p.id)}>
               {p.name}
               {p.native && <span class="badge-native" title="Native to North Central Texas" />}
+              {!same && (
+                <span class="pn-date">
+                  {now ? 'to' : 'from'} {mdText(date.slice(5))}
+                </span>
+              )}
             </button>
           ))}
-          {show < list.length && (
+          {show < c.list.length && (
             <button class="plant-chip slim more" onClick={() => setOpened({ ...opened, [c.key]: true })}>
-              {list.length - show} more
+              {c.list.length - show} more
             </button>
           )}
         </div>
@@ -141,7 +152,7 @@ export function Calendar({ frost, today, profiles, bedPlantIds, onOpen, custom, 
   const test = filters.find(([k]) => k === filter);
   const shown = profiles.filter((p) =>
     query
-      ? p.name.toLowerCase().includes(query) || (p.sci || '').toLowerCase().includes(query)
+      ? [p.name, p.sci, p.aka].some((x) => x && x.toLowerCase().includes(query))
       : filter === 'mine'
         ? bedPlantIds.has(p.id)
         : test

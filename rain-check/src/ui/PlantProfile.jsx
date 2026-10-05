@@ -19,34 +19,34 @@ const SUN_WORDS = {
 
 const WATER_WORDS = {
   'very low': 'Very low: rain is enough most years once established',
+  'very low to low': 'Very low to low: a deep soak in long summer droughts once established',
   low: 'Low: a deep soak every two to four weeks in summer once established',
+  'low to medium': 'Low to medium: a deep soak every week or two in summer once established',
   medium: 'Medium: weekly in summer',
+  'medium to high': 'Medium to high: once or twice a week in summer',
   high: 'High: steady moisture',
 };
 
-// How a fruit's chill-hour rating compares with this garden's winters.
+// How the chill hours that suited varieties need compare with this garden's winters.
 function chillText(p, normals) {
-  const nums = (p.chill.match(/\d[\d,]*/g) || []).map((x) => +x.replace(/,/g, ''));
+  const [lo, hi] = p.chill;
+  const n = (x) => (Math.round(x / 50) * 50).toLocaleString();
+  const need = `${lo.toLocaleString()}–${hi.toLocaleString()}`;
   const local = normals && normals.chill;
-  if (!nums.length || !local) return `${p.chill} chill hours`;
-  const lo = Math.min(...nums);
-  const hi = Math.max(...nums);
-  const fit =
-    local.typical > hi * 1.5
-      ? 'far more than it needs, so it may bloom early and lose its flowers to a late freeze'
-      : local.low >= hi
-      ? 'plenty here'
-      : local.typical >= lo
-        ? local.low < lo
-          ? 'enough most winters here'
-          : 'a good match here'
-        : 'more than most winters here give, so it may fruit poorly';
-  return `Needs ${p.chill} chill hours; winters here give about ${local.typical.toLocaleString()}, ${fit}.`;
+  if (!local) return `Varieties suited to North Texas need about ${need} chill hours.`;
+  const here = `Winters here give about ${n(local.typical)} chill hours (${n(local.low)} in a mild one)`;
+  if (local.low >= hi * 1.5) return `${here}, far more than the ${need} that varieties need. Low-chill varieties may bloom early and lose their flowers to a late freeze.`;
+  if (local.low >= hi) return `${here}, enough for any variety rated ${need}.`;
+  if (local.low >= lo) return `${here}. Varieties need ${need}: pick ones rated about ${n(local.low)} or less.`;
+  if (local.typical >= lo) return `${here}. Varieties need ${need}: choose the lowest-chill ones, and expect light crops after mild winters.`;
+  return `${here}, less than the ${need} that varieties need, so it may fruit poorly.`;
 }
 
 function coldText(p, units) {
   const t = (c) => fmt.tempUnit(c, units);
   const zone = p.zone ? ` (USDA zones ${p.zone.replace(/-/g, '–')})` : '';
+  const blossom = p.blossomC != null ? ` Open blossoms die below about ${t(p.blossomC)}, so a late freeze can take the crop.` : '';
+  if (p.winter) return p.winter;
   if (p.frost === 'tender') return `Killed or badly hurt by frost (${t(p.damageC != null ? p.damageC : 0)}).`;
   const bits = [];
   if (p.damageC != null) bits.push(`${p.frost === 'hardy' ? 'Takes frost; damaged' : 'Light frost is fine; damaged'} below about ${t(p.damageC)}`);
@@ -58,9 +58,9 @@ function coldText(p, units) {
           ? `can be killed below about ${t(p.killC)}`
           : `hardy to about ${t(p.killC)}`,
     );
-  if (!bits.length) return p.native ? `Hardy through North Texas winters${zone}.` : zone ? `USDA zones ${p.zone.replace(/-/g, '–')}.` : null;
+  if (!bits.length) return (p.native ? `Hardy through North Texas winters${zone}.` : zone ? `USDA zones ${p.zone.replace(/-/g, '–')}.` : '') + blossom || null;
   const s = bits.join('; ');
-  return s.charAt(0).toUpperCase() + s.slice(1) + zone + '.';
+  return s.charAt(0).toUpperCase() + s.slice(1) + zone + '.' + blossom;
 }
 
 export function PlantProfile({ profile: p, frost, today, units, normals, beds, onAdd, onClose }) {
@@ -104,7 +104,9 @@ export function PlantProfile({ profile: p, frost, today, units, normals, beds, o
           </button>
         </div>
         <div class="tags">
-          <span class={`tag ${p.native ? 'tag-native' : ''}`}>{p.native ? 'Native to North Texas' : 'Grows well in North Texas'}</span>
+          <span class={`tag ${p.native ? 'tag-native' : p.texas ? 'tag-texas' : ''}`}>
+            {p.native ? 'Native to North Texas' : p.texas ? 'Texas native' : 'Grows well in North Texas'}
+          </span>
           <span class="tag">{GROUP_ONE[p.group] || p.group}</span>
           {p.water && <span class="tag">Water: {p.water}</span>}
         </div>
@@ -128,7 +130,8 @@ export function PlantProfile({ profile: p, frost, today, units, normals, beds, o
         ) : (
           <p class="small muted">Frost dates load with the weather records.</p>
         )}
-        {p.plantWhen && windows.length > 0 && <p class="xs muted">{p.plantWhen}</p>}
+        {p.local && <p class="xs muted sheet-line">{p.local}</p>}
+        {p.plantWhen && windows.length > 0 && <p class="xs muted sheet-line">{p.plantWhen}</p>}
         {frost && frost.lastLate && p.frost === 'tender' && windows.some((w) => w.anchor === 'last') && (
           <p class="xs muted">A late freeze is still possible until about {mdText(frost.lastLate)} in 1 year out of 10; keep a frost cloth handy for early plantings.</p>
         )}
@@ -174,6 +177,7 @@ export function PlantProfile({ profile: p, frost, today, units, normals, beds, o
             </div>
           </div>
         )}
+        {p.est && p.est.length > 0 && <p class="xs muted sources">Best estimates rather than read from a source: {p.est.join(', ')}.</p>}
         {p.sources && p.sources.length > 0 && (
           <p class="xs muted sources">
             Sources:{' '}

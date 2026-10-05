@@ -21,7 +21,7 @@ export function PlantPicker({ bed, onUpdate, onOpen }) {
       (p) =>
         (!pot || p.potBase) &&
         (group === 'all' || (group === 'native' ? p.native : p.group === group)) &&
-        (!query || p.name.toLowerCase().includes(query) || (p.sci || '').toLowerCase().includes(query)),
+        (!query || [p.name, p.sci, p.aka].some((x) => x && x.toLowerCase().includes(query))),
     )
     .sort((a, b) => ORDER.indexOf(a.group) - ORDER.indexOf(b.group) || a.name.localeCompare(b.name));
   const groups = [['all', 'All'], ['native', 'Natives'], ...Object.entries(GROUPS).filter(([k]) => allProfiles().some((p) => p.group === k && (!pot || p.potBase)))];

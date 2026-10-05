@@ -1,18 +1,20 @@
 // Real plants in a bed or pot: their water use sets the bed's numbers, and
 // their own cold and heat limits shape the warnings.
 
-import { PLANT_LIBRARY } from '../data/plants.js';
+import { PLANT_LIBRARY, PLANT_ALIASES } from '../data/plants.js';
+import { addDays } from '../lib/dates.js';
 
 const BY_ID = new Map(PLANT_LIBRARY.map((p) => [p.id, p]));
 
-export const profileById = (id) => BY_ID.get(id) || null;
+export const canonicalId = (id) => PLANT_ALIASES[id] || id;
+export const profileById = (id) => BY_ID.get(canonicalId(id)) || null;
 export const profilesOf = (bed) => (Array.isArray(bed && bed.plants) ? bed.plants.map(profileById).filter(Boolean) : []);
 export const allProfiles = () => PLANT_LIBRARY;
 
 export const GROUPS = {
   vegetable: 'Vegetables',
   herb: 'Herbs',
-  fruit: 'Fruit',
+  fruit: 'Fruit and nuts',
   flower: 'Flowers',
   perennial: 'Perennials and wildflowers',
   grass: 'Grasses',
@@ -27,7 +29,7 @@ export const GROUPS = {
 export const GROUP_ONE = {
   vegetable: 'Vegetable',
   herb: 'Herb',
-  fruit: 'Fruit',
+  fruit: 'Fruit or nut',
   flower: 'Annual flower',
   perennial: 'Perennial',
   grass: 'Ornamental grass',
@@ -57,17 +59,29 @@ const names = (list) => {
   const n = list.map((p) => p.name);
   return n.length <= 1 ? n.join('') : `${n.slice(0, -1).join(', ')} and ${n[n.length - 1]}`;
 };
-const plural = (list, one, many) => (list.length > 1 ? many : one);
+// "Snap beans" and "Collards" take plural verbs even alone.
+const plural = (list, one, many) => (list.length > 1 || list.some((p) => p.plural) ? many : one);
 const EDIBLE = new Set(['vegetable', 'herb', 'fruit']);
+
+// Whether a fruit's blossoms are likely open on a date: the weeks around the
+// average last freeze given by blossomWeeks.
+export function inBlossom(p, date, frost) {
+  if (p.blossomC == null || !date || !frost || !frost.last) return false;
+  const [from, to] = p.blossomWeeks || [-5, 3];
+  const anchor = `${date.slice(0, 4)}-${frost.last}`;
+  return date >= addDays(anchor, Math.round(from * 7)) && date <= addDays(anchor, Math.round(to * 7));
+}
 
 /**
  * How a night's low touches each plant:
  *   kill     dies (tender annuals well below freezing, or woody plants past their limit)
  *   dieback  freezes to the ground but regrows from the roots
+ *   blossom  the plant is fine but open blossoms (this season's fruit) are killed
  *   damage   leaves, flowers or fruit are hurt; cover it
  *   fine     hardy enough
+ * ctx: { date, frost } for the night, so blossoms are only at risk in bloom season.
  */
-export function coldOutcome(p, low) {
+export function coldOutcome(p, low, ctx) {
   const tender = p.frost === 'tender';
   if (tender && p.damageC != null) {
     if (low <= p.damageC - 2) return 'kill';
@@ -75,15 +89,22 @@ export function coldOutcome(p, low) {
     return 'fine';
   }
   if (p.killC != null && low <= p.killC) return p.dieback ? 'dieback' : 'kill';
+  if (p.blossomC != null && ctx && low <= p.blossomC && inBlossom(p, ctx.date, ctx.frost)) return 'blossom';
   if (p.damageC != null && low <= p.damageC) return 'damage';
   return 'fine';
 }
 
 // One or two sentences for a bed or pot with named plants, or null if none are at risk.
-export function coldNote(bed, profiles, low, pot) {
-  const by = { kill: [], dieback: [], damage: [], fine: [] };
-  for (const p of profiles) by[coldOutcome(p, low)].push(p);
+export function coldNote(bed, profiles, low, pot, ctx) {
+  const by = { kill: [], dieback: [], blossom: [], damage: [], fine: [] };
+  for (const p of profiles) by[coldOutcome(p, low, ctx)].push(p);
   const out = [];
+  // Lawns are never covered: moist soil holds heat, so water the day before.
+  const lawns = by.kill.filter((p) => p.group === 'lawn');
+  if (lawns.length) {
+    by.kill = by.kill.filter((p) => p.group !== 'lawn');
+    out.push(`${names(lawns)} can be thinned or killed by a long hard freeze: water the lawn a day ahead so moist soil holds heat.`);
+  }
   if (by.kill.length) {
     const annual = by.kill.every((p) => p.frost === 'tender' || p.life === 'annual');
     const food = by.kill.some((p) => EDIBLE.has(p.group));
@@ -97,6 +118,10 @@ export function coldNote(bed, profiles, low, pot) {
   }
   if (by.dieback.length)
     out.push(`${names(by.dieback)} will freeze back to the ground but usually ${plural(by.dieback, 'regrows', 'regrow')} from the roots in spring. Mulch the base.`);
+  if (by.blossom.length)
+    out.push(
+      `${names(by.blossom)} may be in bloom, and open blossoms die below about ${T(Math.max(...by.blossom.map((p) => p.blossomC)))}: cover small plants and trees to the ground with frost cloth to save this year's fruit.`,
+    );
   if (by.damage.length) {
     const at = Math.max(...by.damage.map((p) => (p.damageC != null ? p.damageC : 0)));
     out.push(pot ? `${names(by.damage)} ${plural(by.damage, 'is', 'are')} hurt below about ${T(at)}: move the pot against the house or inside.` : `${names(by.damage)}: cover overnight (hurt below about ${T(at)}).`);
@@ -121,7 +146,7 @@ export function heatNote(bed, profiles, high) {
     groups.get(key).list.push(p);
   }
   return [...groups.values()]
-    .map(({ forms, list }) => `${names(list)} ${list.length > 1 ? forms[forms.length - 1] : forms[0]} in this heat.`)
+    .map(({ forms, list }) => `${names(list)} ${plural(list, forms[0], forms[forms.length - 1])} in this heat.`)
     .join(' ');
 }
 

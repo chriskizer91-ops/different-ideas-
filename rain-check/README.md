@@ -37,10 +37,12 @@ Weather comes from [Open-Meteo](https://open-meteo.com) (free, no account, CC BY
 - The seven-day outlook marks frost nights and hot days, and the chart has a strip of frost and heat days underneath.
 
 **Plants and the planting calendar**
-- A library of plants for Dallas–Fort Worth: natives of the Blackland Prairie and Cross Timbers, plus vegetables, herbs, fruit, lawn grasses and landscape plants that do well in North Texas heat and alkaline clay. Each has a profile: when to plant it here, water needs, cold and heat limits, size and bloom, North Texas varieties, tips, and sources.
-- Name what's growing in each bed or pot. The plan then waters for the thirstiest plant with the shallowest roots, and freeze and heat warnings speak plant by plant ("Tomato dies at these temperatures… Kale is fine to about 15°F", "Turk's cap will freeze back to the ground but usually regrows").
-- **Planting calendar**: what to plant now and in the next three weeks, and a year of planting windows for each plant, counted from your own frost dates the way Texas A&M AgriLife's planting guides do (weeks after the last freeze in spring, weeks before the first freeze in fall). You can set your own frost dates.
-- **Chill hours**, estimated from 30 years of winters, and how each fruit tree's needs compare.
+- A library of 125 plants for Dallas–Fort Worth: 57 vegetables, herbs, fruit and nuts, and 68 trees, shrubs, perennials, wildflowers, grasses, groundcovers, succulents, lawn grasses and annual flowers. 38 are native to North Central Texas (the Blackland Prairie and Cross Timbers, checked against the Native Plant Society of Texas's ecoregion lists) and 17 more are Texas natives from farther west or south; profiles say which.
+- Each plant has a profile: when to plant it here, water use, sun, cold and heat limits, chill hours, size and bloom, wildlife, North Texas varieties, tips, and its sources. Details that are best estimates rather than read from a source are listed as such on the profile.
+- Name what's growing in each bed or pot. The plan then waters for the thirstiest plant with the shallowest roots, and freeze and heat warnings speak plant by plant ("Tomato dies at these temperatures… Kale is fine to about 20°F", "Turk's cap will freeze back to the ground but usually regrows", "Snap beans drop their blossoms in this heat").
+- Fruit trees are judged by season: a 28°F night is nothing to a dormant peach in January, but in the weeks around the last freeze it kills open blossoms, so the warning says to cover them.
+- **Planting calendar**: what to plant now and in the next three weeks, grouped by kind of plant, and a year of planting windows for each, with search and filters. Vegetable windows are the Tarrant County AgriLife calendar for North Central Texas, kept as weeks from the DFW frost dates so they move with your own. You can set your own frost dates.
+- **Chill hours**, estimated from 30 years of winters, and how the varieties suited to each fruit compare.
 
 **History and climate**
 - Soil water charts over 1 month, 3 months, 12 months or 3 years, with rain bars, the refill line, and frost and heat days. Tap or drag across the chart (or use the arrow keys) to read any day.
@@ -73,6 +75,10 @@ The method is the UN Food and Agriculture Organization's irrigation guide, FAO-5
 | Frost odds | From the last 30 frost seasons: for each, the last spring and first fall night at or below 32°F and 28°F. The 50% date is the middle year; the 10% and 90% dates are the one-in-ten years. |
 | Hardiness zone | The average of each winter's coldest night, in the USDA's 10°F zones split into a and b halves. Gridded records smooth out frost pockets, so it's an estimate. |
 | Normals | For each day of the year, the spread of highs and lows within a week either side over 30 years, used for "how unusual" and the year chart. |
+| Planting windows | Weeks before or after the average last spring or first fall freeze. Vegetables use the Tarrant County AgriLife calendar's dates, written as weeks from the DFW Airport normals (last freeze Mar 12, first Nov 22; National Weather Service, 1991–2020), so at DFW's frost dates they give the county dates to the day and elsewhere they shift with the local frost dates. Trees, shrubs and perennials follow Texas SmartScape's advice (fall is best). |
+| Plant water | Vegetables use FAO-56's crop coefficient at full growth and its depletion fraction; landscape plants turn Texas SmartScape's water ratings into plant factors (very low 0.15, low 0.3, medium 0.5, high 0.7, with in-between ratings in between). A bed with several plants uses the highest factor, the shallowest roots and the lowest depletion fraction. |
+| Cold and heat | Each plant's damage and kill temperatures, whether it regrows from the roots, and for fruit the temperature that kills open blossoms in bloom season (5 weeks before to 2 weeks after the average last freeze for peaches). Heat limits are the highs at which a crop stops setting fruit or bolts. |
+| Chill hours | Hours between 32 and 45°F from November through February, estimated from each day's high and low with an hourly temperature curve, for 30 winters. |
 
 ## Building
 
@@ -81,17 +87,17 @@ The app is written as readable source and built into the single HTML file. Don't
 ```
 npm install
 npm run build   # writes rain-check.html
-npm test        # 66 tests: the FAO-56 checks, water bank, watering times, warnings, frost odds, data parsing
+npm test        # 81 tests: the FAO-56 checks, water bank, watering times, warnings, frost odds, planting windows, the plant library, data parsing
 ```
 
 The built file keeps the app code unminified, so it can still be read.
 
 | Path | Contents |
 | --- | --- |
-| `src/data/plants.js` | The plant library, with sources for each plant |
+| `src/data/plants.js` | The plant library, with how each number was chosen and sources for each plant |
 | `src/model/` | The math, with no browser code: `calendar.js` (planting windows from frost dates), `profiles.js` (plants' water use and cold and heat limits), `et0.js`, `solar.js` (sun, day length, sunrise and sunset), `tables.js` (plants, soils, pots), `planting.js` (turns a bed into daily numbers), `waterBalance.js` (the bank, today's plan, the week plan), `watering.js` (methods, minutes, cans, cycle and soak), `feeding.js`, `thresholds.js` and `alerts.js` (frost and heat ladders, night detail), `climate.js` (frost seasons, extremes), `normals.js` (30-year frost odds, zone, normals), `summary.js` (recent weather, chart data) |
 | `src/data/` | `openMeteo.js` (requests and parsing), `store.js` (saving, offline forecast, backups, moving data over from version 1), `sample.js` (sample weather) |
-| `src/ui/` | Preact components: `App.jsx`, `Sky.jsx`, `Alerts.jsx` and `NightChart.jsx`, `WeekPlanner.jsx`, `BedCard.jsx` with `SoilGauge.jsx`, `Timer.jsx` and `BedDetails.jsx` (with `WaterMethod.jsx`), `Weather.jsx`, `WaterChart.jsx`, `Climate.jsx`, `Panels.jsx`; `text.js` holds the wording |
+| `src/ui/` | Preact components: `App.jsx`, `Sky.jsx`, `Alerts.jsx` and `NightChart.jsx`, `WeekPlanner.jsx`, `BedCard.jsx` with `SoilGauge.jsx`, `Timer.jsx` and `BedDetails.jsx` (with `WaterMethod.jsx`), `Weather.jsx`, `WaterChart.jsx`, `Climate.jsx`, `Calendar.jsx`, `PlantProfile.jsx`, `PlantPicker.jsx`, `Panels.jsx`; `text.js` holds the wording |
 | `src/lib/` | Dates and units |
 | `src/index.html`, `src/styles.css` | Page shell and styles |
 | `test/` | Node tests (`node --test`) |

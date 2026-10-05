@@ -460,6 +460,7 @@ button.alert-day { cursor: pointer; }
 .pn-title { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--stem); margin: 0 0 4px; }
 .pn-cluster + .pn-cluster { margin-top: 8px; }
 .pn-when { display: block; margin-bottom: 4px; }
+.pn-date { font-size: 12px; font-weight: 500; color: var(--stem); }
 .cal-search { margin-top: 14px; }
 .cal-filter { margin-top: 14px; }
 .pick.small { font-size: 13px; padding: 4px 10px; }
@@ -512,6 +513,10 @@ button.alert-day { cursor: pointer; }
 .sci { font-style: italic; color: var(--stem); font-size: 14px; }
 .sheet .tags { margin-top: 10px; }
 .tag-native { background: #c2693e; border-color: #c2693e; color: #fff; }
+.tag-texas { border-color: #c2693e; color: #a4532c; }
+@media (prefers-color-scheme: dark) {
+  .tag-texas { color: #e8a27c; }
+}
 .sheet-line { margin-top: 6px; }
 .win-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 14px; }
 .win-list li { padding: 6px 10px; border-radius: 10px; background: var(--fog); }

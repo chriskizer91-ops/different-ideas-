@@ -3,6 +3,7 @@
 
 import { addDays } from '../lib/dates.js';
 import { PLANTS, POT_PLANTS, SOILS, isPot } from '../model/tables.js';
+import { PLANT_ALIASES } from './plants.js';
 
 const KEY = 'raincheck-v2';
 const FORECAST_KEY = 'raincheck-forecast-v2';
@@ -82,9 +83,9 @@ export function newBed(over = {}) {
 // A starting garden for North Texas: blackland clay, Bermuda lawn, natives.
 export function starterBeds(today) {
   return [
-    newBed({ name: 'Vegetable bed', plant: 'veg', soil: 'amended', mulch: true, areaM2: 4.6, plants: ['tomato', 'pepper', 'basil'] }),
-    newBed({ name: 'Front lawn', plant: 'lawnWarm', soil: 'clay', areaM2: 46, plants: ['bermuda'], feedEvery: 56 }),
-    newBed({ name: 'Native border', plant: 'shrubs', soil: 'clay', sun: 'part', mulch: true, areaM2: 6, plants: ['turks-cap', 'texas-sage'], feedEvery: 0 }),
+    newBed({ name: 'Vegetable bed', plant: 'veg', soil: 'amended', mulch: true, areaM2: 4.6, plants: ['tomato', 'pepper-bell', 'basil'] }),
+    newBed({ name: 'Front lawn', plant: 'lawnWarm', soil: 'clay', areaM2: 46, plants: ['bermudagrass'], feedEvery: 49 }),
+    newBed({ name: 'Native border', plant: 'shrubs', soil: 'clay', sun: 'part', mulch: true, areaM2: 6, plants: ['turks-cap', 'american-beautyberry', 'inland-sea-oats'], feedEvery: 0 }),
     newBed({ name: 'Young live oak', plant: 'trees', soil: 'clay', mulch: true, areaM2: 1.2, plantedOn: addDays(today, -150), plants: ['live-oak'], feedEvery: 0 }),
     newBed({ name: 'Meyer lemon', site: 'pot', plant: 'trees', potSize: 'xl', spread: 'same', plants: ['meyer-lemon'], feedEvery: 30 }),
   ];
@@ -98,7 +99,7 @@ export function cleanBed(b) {
   const out = { ...bed, ...b, plant: bed.plant };
   for (const k of ['waterLog', 'feedLog', 'tuneLog']) out[k] = Array.isArray(b[k]) ? b[k] : [];
   out.water = b.water && typeof b.water === 'object' ? cleanWater(b.water) : {};
-  out.plants = Array.isArray(b.plants) ? b.plants.filter((x) => typeof x === 'string') : [];
+  out.plants = Array.isArray(b.plants) ? [...new Set(b.plants.filter((x) => typeof x === 'string').map((x) => PLANT_ALIASES[x] || x))] : [];
   if (!pot && !SOILS[out.soil]) out.soil = 'loam';
   if (typeof out.name !== 'string') out.name = bed.name;
   if (!out.id) out.id = newId();

@@ -114,10 +114,11 @@ const HEAT_ACTIONS = [
 ];
 
 // Which of the user's beds and pots a warning touches, and what to do for each.
-export function coldRisk(bed, level, sim, low) {
+// ctx: { date, frost } for the night, so fruit blossoms count only in bloom season.
+export function coldRisk(bed, level, sim, low, ctx) {
   // Named plants have their own limits.
   const profiles = profilesOf(bed);
-  if (profiles.length && low != null) return coldNote(bed, profiles, low, isPot(bed));
+  if (profiles.length && low != null) return coldNote(bed, profiles, low, isPot(bed), ctx);
   const plant = plantOf(bed);
   const young = sim && sim.growth < 1;
   if (isPot(bed)) {
@@ -202,8 +203,9 @@ export function nightDetail(temps) {
  *   climate         { p02Low } from the 3-year record, optional
  *   rows            [{ bed, sim }] for naming the beds and pots at risk
  *   normals         30-year normals, optional, for how unusual and how early or late
+ *   frost           average frost dates ({ last, first } as 'MM-DD'), optional, for fruit bloom season
  */
-export function buildAlerts({ days, todayIdx, nights = {}, hour = 12, climate = null, rows = [], lat = 40, normals = null }) {
+export function buildAlerts({ days, todayIdx, nights = {}, hour = 12, climate = null, rows = [], lat = 40, normals = null, frost = null }) {
   const L = levelsByDay(days, nights, climate);
   const T = todayIdx;
   const last = Math.min(days.length - 1, T + 6);
@@ -261,7 +263,7 @@ export function buildAlerts({ days, todayIdx, nights = {}, hour = 12, climate = 
           : null,
       extremeAt: L.extremeAt,
       action: COLD_ACTIONS[peak.level],
-      atRisk: risks(rows, (bed, sim) => coldRisk(bed, peak.level, sim, peak.value)),
+      atRisk: risks(rows, (bed, sim) => coldRisk(bed, peak.level, sim, peak.value, { date: peak.date, frost })),
       waterFirst:
         peak.level >= 3 && daysBetween(days[T].date, peak.date) <= 2 && (days[T].tmax == null || days[T].tmax >= 4.5)
           ? rows.filter(({ sim }) => sim && !sim.wateredToday && sim.moistureNow < sim.refillAt + 10).map(({ bed }) => bed)
