@@ -20,7 +20,8 @@ body{
 button{font:inherit;color:inherit;cursor:pointer}
 button:disabled{opacity:.6;cursor:default}
 button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
-canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;image-rendering:pixelated}
+canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;pointer-events:none;image-rendering:pixelated}
+canvas#ov{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;z-index:1}
 .plate{background:var(--panel);border:2px solid var(--ink);box-shadow:0 3px 0 var(--shadow)}
 .claude-only{display:none}
 body.has-claude .claude-only{display:block}

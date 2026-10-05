@@ -25,6 +25,27 @@ const TD=[
 ];
 const WALK=new Uint8Array(NT),BUILD=new Uint8Array(NT),TREE=new Uint8Array(NT),BURN=new Uint8Array(NT),SPREAD=new Float32Array(NT),FERT=new Float32Array(NT);
 TD.forEach((d,i)=>{WALK[i]=d.w;BUILD[i]=d.b;TREE[i]=d.tree;BURN[i]=d.burn;SPREAD[i]=d.sp;FERT[i]=d.f;});
+/* HD palette: ground colour of each terrain in spring, summer, autumn and winter */
+const BIOME_COL=[
+  ['#1d4f8a','#1d4f8a','#1d4f8a','#1d4f8a'],['#3d93be','#3d93be','#3d93be','#3d93be'],
+  ['#ecd8a0','#e8d49a','#e2cc92','#d9d0b6'],['#8cc152','#79b04a','#a9a24a','#8c9468'],
+  ['#5a9a44','#4d8a3c','#82763a','#5b6648'],['#98b25e','#8ba657','#a59d5a','#8e8f78'],
+  ['#8f877f','#8a817a','#8a7f76','#8d8a88'],['#eef3f8','#eef3f8','#eef3f8','#eef3f8'],
+  ['#ff6a18','#ff6a18','#ff6a18','#ff6a18'],['#4e443c','#4e443c','#4e443c','#4e443c'],
+  ['#e6c680','#e2c27c','#dcbb78','#d8c592'],['#c2bd60','#b8b058','#c4a250','#aaa070'],
+  ['#349450','#2f8a48','#47864a','#3a7a4c'],['#b0c2ae','#b9c4bc','#bdb6a6','#d4dbde'],
+  ['#4f8460','#4c7a5a','#537660','#55705f'],['#607b54','#5b7350','#6b6d48','#5f6a5a'],
+  ['#4a9cc8','#4a9cc8','#4a9cc8','#4a9cc8']
+];
+/* tree crowns seen from afar: shadow and lit colour */
+const CANOPY=BIOME_COL.map(()=>['#3f7a34','#5a9a44']);
+CANOPY[FOREST]=['#2f6a2c','#55993f'];CANOPY[PINE]=['#244f3a','#3c7454'];CANOPY[JUNGLE]=['#1d5e34','#3a9150'];
+const MINI_COL=BIOME_COL.map(r=>hexRgb(r[1]));
+MINI_COL[FOREST]=[58,112,50];MINI_COL[PINE]=[52,96,72];MINI_COL[JUNGLE]=[36,110,58];
+/* which terrains carry trees, rocks or peaks as sprites */
+const DECO=new Uint8Array(NT);[FOREST,PINE,JUNGLE,SAVANNA,DESERT,GRASS,HILL,TUNDRA,SWAMP,ASH,MOUNT,SNOW].forEach(t=>DECO[t]=1);
+/* visual building tier for each age */
+const TIER=[0,0,1,1,2,2,3,4,4];
 const ELEV0=[40,84,102,108,110,150,205,240,150,108,108,108,110,110,112,102,100];
 const DIRS=[[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]];
 
@@ -85,7 +106,8 @@ const BHP={hall:160,house:40,farm:15,tower:80,barracks:70,market:40,temple:50,ac
 /* ---------- settings ---------- */
 const SIZES={cozy:[224,144],grand:[416,240],colossal:[640,352]};
 const DEF={size:'grand',land:'continents',climate:'temperate',peoples:'few',history:'0',wild:true,
-  night:true,clouds:true,labels:true,borders:true,minimap:true,detail:true,disasters:'rare',mood:'normal',popcap:'normal'};
+  night:true,clouds:true,labels:true,borders:true,minimap:true,detail:true,disasters:'rare',mood:'normal',popcap:'normal',
+  gfx:'hd',quality:'balanced',seasons:true};
 const S=Object.assign({},DEF);
 try{const j=JSON.parse(localStorage.getItem('tinydominion.settings')||'null');if(j&&typeof j==='object')for(const k in DEF)if(typeof j[k]===typeof DEF[k])S[k]=j[k];}catch(e){}
 function saveSettings(){try{localStorage.setItem('tinydominion.settings',JSON.stringify(S));}catch(e){}}
@@ -93,7 +115,7 @@ const POPCAP={small:1200,normal:2200,large:3600},MOOD={gentle:.35,normal:1,blood
 
 /* ---------- state ---------- */
 let W=0,H=0,N=0,GW=0,GH=0;
-let tile,soil,elev,fire,road,vown,region,wreg,wsize,shade,base,bmap,bfsQ,prevA,grid;
+let tile,soil,elev,fire,road,vown,region,wreg,wsize,shade,base,bmap,bfsQ,prevA,grid,temp,moist;
 let units=[],vById=[null],kingdoms=[],wars=[],boats=[],twisters=[],towers=[],fireList=[],effects=[],sched=[],chronicle=[],bubbles=[],risen=[];
 let dirtyWalk=[],dirtyOver=false,capMul=1;
 let tick=0,uid=1,kc=0,dirtyAll=true,regionsDirty=true,regionStamp=0,shake=0,quiet=false,chronDirty=true,startSpot=null,animCap=300;

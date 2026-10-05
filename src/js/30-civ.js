@@ -25,7 +25,7 @@ function claim(v,x,y,r){
     const nx=x+dx,ny=y+dy;if(!inB(nx,ny))continue;
     const i=ny*W+nx;if(!vown[i]&&tile[i]!==DEEP)vown[i]=v.id;
   }
-  dirtyAll=true;
+  touchRows(y-r-1,y+r+1);
 }
 function countTrees(v){
   let n=0;
@@ -56,7 +56,7 @@ function addBuilding(v,kind,x,y,ex){
   const b={kind,x,y,i,v,hp:BHP[kind],solid:kind!=='farm'&&kind!=='dock'&&kind!=='mine',fert:1,wi:-1,grove:false,cd:0};
   if(kind==='hall')b.hp=hallHp(v);
   if(ex)Object.assign(b,ex);
-  bmap[i]=b;v.blds.push(b);
+  bmap[i]=b;v.blds.push(b);touch(i);
   const t=tile[i];
   if(kind==='farm'){
     if(b.grove)b.fert=.8;
@@ -79,7 +79,7 @@ function buildRoad(v,from){
     }
     if(!bx&&!by)break;
     x+=bx;y+=by;cur=bd;
-    const i=y*W+x;if(!bmap[i]&&!road[i]){road[i]=1;recolor(i);}
+    const i=y*W+x;if(!bmap[i]&&!road[i]){road[i]=1;touch(i);}
   }
 }
 function foundVillage(u){
@@ -142,7 +142,7 @@ function destroyBld(b){
   if(bmap[b.i]!==b)return;
   const v=b.v;
   if(b.kind==='hall'){ruinVillage(v);return;}
-  bmap[b.i]=null;
+  bmap[b.i]=null;touch(b.i);
   const n=v.blds.indexOf(b);if(n>=0)v.blds.splice(n,1);
   if(b.kind==='tower'){const m=towers.indexOf(b);if(m>=0)towers.splice(m,1);}
   recalc(v);

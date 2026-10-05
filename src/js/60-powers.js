@@ -24,7 +24,7 @@ function applyBrush(tx,ty,tool){
     case'fire':forBrush(tx,ty,i=>{if(Math.random()<.6)ignite(i);});break;
     case'rain':
       forBrush(tx,ty,(i,x,y)=>{
-        fire[i]=0;const t=tile[i];
+        if(fire[i]){fire[i]=0;touch(i);}const t=tile[i];
         if(t===ASH)setTile(i,soil[i]===HILL?HILL:soil[i]);
         else if(t===LAVA)setTile(i,HILL,true);
         else if(t===DESERT&&Math.random()<.05)setTile(i,SAVANNA,true);
@@ -41,7 +41,7 @@ function applyBrush(tx,ty,tool){
     case'bless':{
       const rr=(brush+.5)*(brush+.5);
       for(const u of units)if((u.x-tx)*(u.x-tx)+(u.y-ty)*(u.y-ty)<=rr&&u.t<=ORC){u.hp=SPEC[u.t].hp;u.sick=0;u.immune=true;}
-      forBrush(tx,ty,i=>{fire[i]=0;if(tile[i]===ASH)setTile(i,soil[i]===HILL?HILL:soil[i]);const b=bmap[i];if(b){b.hp=Math.max(b.hp,b.kind==='hall'?hallHp(b.v):BHP[b.kind]);b.v.res+=2;}});
+      forBrush(tx,ty,i=>{if(fire[i]){fire[i]=0;touch(i);}if(tile[i]===ASH)setTile(i,soil[i]===HILL?HILL:soil[i]);const b=bmap[i];if(b){b.hp=Math.max(b.hp,b.kind==='hall'?hallHp(b.v):BHP[b.kind]);b.v.res+=2;}});
       if(Math.random()<.5)fx({k:'ring',x:tx,y:ty,r:brush+1,t:16,T:16});
       break;
     }
@@ -72,7 +72,7 @@ function blast(tx,ty,r,lava){
       if(lava&&d<r*.42&&t>WATER)setTile(i,LAVA,true);
       else if(t===MOUNT||t===SNOW)setTile(i,HILL,true);
       else if(t>WATER&&t!==LAVA&&t!==HILL&&t!==RIVER)setTile(i,ASH);
-      fire[i]=0;road[i]=0;
+      fire[i]=0;road[i]=0;touch(i);
     }else if(d<=r+3&&Math.random()<.3)ignite(i);
   }
   killNear(tx,ty,r+.8);

@@ -3,7 +3,7 @@ function ignite(i){
   if(fire[i])return;
   const d=bmap[i]?30:BURN[tile[i]];
   if(!d)return;
-  fire[i]=d;fireList.push(i);
+  fire[i]=d;fireList.push(i);touch(i);
 }
 function fireStep(){
   let w=0;
@@ -14,6 +14,7 @@ function fireStep(){
     if(b)damageBld(b,3,null);
     if(!fire[i])continue;
     if(--fire[i]===0){
+      touch(i);
       if(TREE[t])setTile(i,ASH);
       else if(BURN[t]&&!bmap[i]&&Math.random()<.5)setTile(i,ASH);
     }else fireList[w++]=i;
@@ -123,7 +124,7 @@ function updTwisters(){
         const i=(tw.y+dy)*W+tw.x+dx,b=bmap[i];
         if(b)damageBld(b,14,null);
         if(TREE[tile[i]]&&Math.random()<.5)setTile(i,soil[i]);
-        if(fire[i])fire[i]=0;
+        if(fire[i]){fire[i]=0;touch(i);}
       }
       const cx=tw.x>>3,cy=tw.y>>3;
       for(let gy=Math.max(0,cy-1);gy<=Math.min(GH-1,cy+1);gy++)for(let gx=Math.max(0,cx-1);gx<=Math.min(GW-1,cx+1);gx++){

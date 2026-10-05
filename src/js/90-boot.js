@@ -43,14 +43,16 @@ function frame(t){
       while(acc>=TICKMS&&n<10){step();acc-=TICKMS;n++;}
       if(n===10)acc=0;
     }
-    render(dt,speed>0);
+    updDay(dt,speed>0);
+    if(G)G.frame(dt,speed>0,acc/TICKMS);else render(dt,speed>0);
+    tickEffects();
     if(frameNo%15===0)hud();
   }
   requestAnimationFrame(frame);
 }
-resize();buildTabs();buildTools(true);initClaude();startWorld();
+initGfx();resize();buildTabs();buildTools(true);initClaude();startWorld();
 toast('Pick a tool below, then touch the world. Pinch to zoom, or drag the little map.');
 window.__td={step,S,get busy(){return busy;},cam,centerOn,openSheet,closeSheet,erupt,blast,spawn,
   get s(){return{W,H,units,vById,kingdoms,wars,boats,counts,chronicle,tick,twisters};},
-  fakeClaude(fn){sampleFn=fn;setClaude(true);},setDay(v){dayClock=v;}};
+  fakeClaude(fn){sampleFn=fn;setClaude(true);},setDay(v){dayClock=v;},get G(){return G;}};
 requestAnimationFrame(frame);

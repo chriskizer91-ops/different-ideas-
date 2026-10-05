@@ -1,7 +1,7 @@
 /* ================= world ================= */
 function alloc(w,h){
   W=w;H=h;N=w*h;
-  tile=new Uint8Array(N);soil=new Uint8Array(N);elev=new Uint8Array(N);fire=new Uint8Array(N);road=new Uint8Array(N);
+  tile=new Uint8Array(N);soil=new Uint8Array(N);temp=new Uint8Array(N);moist=new Uint8Array(N);elev=new Uint8Array(N);fire=new Uint8Array(N);road=new Uint8Array(N);
   vown=new Uint16Array(N);region=new Uint16Array(N);wreg=new Uint16Array(N);wsize=new Int32Array(65536);
   shade=new Float32Array(N);base=new Uint32Array(N);bmap=new Array(N).fill(null);
   bfsQ=new Int32Array(N);prevA=new Int32Array(N);
@@ -63,7 +63,7 @@ function setTile(i,t,paint){
   if(fire[i]&&!BURN[t]&&!bmap[i])fire[i]=0;
   if(WALK[old]!==WALK[t]){regionsDirty=true;if(dirtyWalk.length<300)dirtyWalk.push(i);else dirtyOver=true;}
   else if((old<=WATER)!==(t<=WATER))regionsDirty=true;
-  recolorAround(i);
+  touch(i);
 }
 
 /* ---------- colours ---------- */
@@ -112,6 +112,9 @@ function recolorAround(i){
   const x=i%W,y=(i/W)|0;
   for(let dy=-1;dy<=1;dy++){const ny=y+dy;if(ny<0||ny>=H)continue;for(let dx=-1;dx<=1;dx++){const nx=x+dx;if(nx<0||nx>=W)continue;const j=ny*W+nx;base[j]=colorOf(j);}}
 }
+/* the renderer listens for tile changes here */
+function touch(i){if(G)G.touch(i);else recolorAround(i);}
+function touchRows(y0,y1){if(G)G.touchRows(y0,y1);else dirtyAll=true;}
 function recolorAll(){for(let i=0;i<N;i++)base[i]=colorOf(i);dirtyAll=false;}
 let sweepY=0;
 function sweep(){
@@ -163,6 +166,8 @@ function genWorld(seed,opt){
   const t0=opt.climate==='cold'?-.06:opt.climate==='hot'?.36:.17,ts=opt.climate==='hot'?.7:.8;
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const i=y*W+x,hv=hgt[i];
+    {const tb=t0+ts*(y/(H-1))+(tmp[i]-.5)*.32,mb=Math.max(0,Math.min(1,(mst[i]-.5)*2.3+.5));
+     temp[i]=Math.max(0,Math.min(255,Math.round((tb+.25)/1.5*255)));moist[i]=Math.round(mb*255);}
     if(hv<sea){
       tile[i]=hv<shal?DEEP:WATER;soil[i]=SAND;
       elev[i]=Math.max(0,Math.min(96,18+(hv-bot)/(sea-bot+1e-6)*74));

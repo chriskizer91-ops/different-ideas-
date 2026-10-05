@@ -131,6 +131,7 @@ function strikeFoe(u,f,s){
 }
 function updUnit(u){
   const s=SPEC[u.t];
+  u.px=u.x;u.py=u.y;
   u.age++;if(u.cd>0)u.cd--;
   if(u.age>u.life){kill(u);return;}
   if(u.t===DRAGON){updDragon(u);return;}
@@ -373,6 +374,7 @@ function updBoats(){
   let w=0;
   for(let n=0;n<boats.length;n++){
     const b=boats[n];
+    b.px=b.x;b.py=b.y;
     if(!b.dead){
       b.pi++;
       if(b.pi>=b.path.length){

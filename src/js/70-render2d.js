@@ -1,37 +1,14 @@
 /* ================= rendering ================= */
-const cv=$('c'),ctx=cv.getContext('2d');
+/* classic 2D renderer: used when WebGL2 is unavailable or switched off in settings */
 const off=document.createElement('canvas'),octx=off.getContext('2d');
-const mini=$('mini'),mctx=mini.getContext('2d');
 let img=null,buf=null,clouds=[];
 const FLAME=[0xff20b0ff,0xff106aff,0xff60d8ff,0xff083ce0];
-const cam={x:0,y:0,z:4};
-let vw=300,vh=500,dpr=1,minZ=1,frameNo=0,dayClock=18,nightF=0;
-const FONT='"Pixelify Sans",ui-monospace,"Courier New",monospace';
-
-function sizeMini(){
-  const mw=W>=600?128:112,mh=Math.round(mw*H/W);
-  mini.style.width=mw+'px';mini.style.height=mh+'px';
-  mini.width=Math.round(mw*dpr);mini.height=Math.round(mh*dpr);
-}
 function allocRender(){
   off.width=W;off.height=H;img=octx.createImageData(W,H);buf=new Uint32Array(img.data.buffer);
   clouds=[];const n=Math.round(N/6500);
   for(let i=0;i<n;i++)clouds.push({x:Math.random()*W,y:Math.random()*H,s:5+Math.random()*9,sp:.5+Math.random()*.9,seed:(Math.random()*1e6)|0});
   sizeMini();
-}
-function clampZ(z){return Math.max(minZ,Math.min(28,z));}
-function clampCam(){
-  const tw=vw/cam.z,th=vh/cam.z;
-  cam.x=Math.max(-tw*.5,Math.min(W-tw*.5,cam.x));
-  cam.y=Math.max(-th*.5,Math.min(H-th*.5,cam.y));
-}
-function centerOn(x,y){cam.x=x-vw/cam.z/2;cam.y=y-vh/cam.z/2;clampCam();}
-function resize(){
-  dpr=Math.min(window.devicePixelRatio||1,2.5);
-  vw=cv.clientWidth||window.innerWidth||300;vh=cv.clientHeight||window.innerHeight||500;
-  cv.width=Math.round(vw*dpr);cv.height=Math.round(vh*dpr);
-  minZ=Math.min(vw/(W||1),vh/(H||1))*.85;cam.z=clampZ(cam.z);clampCam();
-  if(W)sizeMini();
+  if(G)G.setWorld();
 }
 
 /* ---------- terrain detail ---------- */
@@ -307,8 +284,16 @@ function drawClouds(ox,oy,z,dt,x0,y0,x1,y1){
     r();
   }
 }
-function drawEffects(ox,oy,z,cw,ch){
+function tickEffects(){
   let w=0;
+  for(let n=0;n<effects.length;n++){
+    const e=effects[n];
+    if(e.k==='meteor'&&e.t===1)blast(e.x,e.y,6,true);
+    if(--e.t>0)effects[w++]=e;
+  }
+  effects.length=w;
+}
+function drawEffects(ox,oy,z,cw,ch){
   for(let n=0;n<effects.length;n++){
     const e=effects[n],px=ox+(e.x+.5)*z,py=oy+(e.y+.5)*z;
     switch(e.k){
@@ -339,7 +324,6 @@ function drawEffects(ox,oy,z,cw,ch){
         ctx.beginPath();ctx.moveTo(mx+z*5,my-z*8);ctx.lineTo(mx,my);ctx.stroke();
         ctx.fillStyle='#ffcf5a';ctx.beginPath();ctx.arc(mx,my,Math.max(3,z*1.3),0,6.283);ctx.fill();
         ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(mx,my,Math.max(1.5,z*.6),0,6.283);ctx.fill();
-        if(e.t===1)blast(e.x,e.y,6,true);
         break;
       }
       case'rain':ctx.fillStyle='rgba(214,236,255,.85)';ctx.fillRect(px|0,(py-e.t*z*.5)|0,Math.max(1,z*.14),Math.ceil(z*.7));break;
@@ -350,9 +334,7 @@ function drawEffects(ox,oy,z,cw,ch){
       case'spark':ctx.fillStyle=e.t%2?'#fff':'#ffd23f';ctx.fillRect((px-z*.2+(Math.random()-.5)*z*.6)|0,(py-z*.6+(Math.random()-.5)*z*.6)|0,Math.max(2,z*.3),Math.max(2,z*.3));break;
       case'smoke':ctx.fillStyle='rgba(60,56,54,'+(e.t/40*.5).toFixed(3)+')';ctx.fillRect((px+Math.sin(e.t*.3)*z*.3)|0,(py-(40-e.t)*z*.08-z)|0,Math.ceil(z*.6),Math.ceil(z*.6));break;
     }
-    if(--e.t>0)effects[w++]=e;
   }
-  effects.length=w;
 }
 function drawMini(){
   const mw=mini.width,mh=mini.height;
@@ -412,11 +394,6 @@ function render(dt,running){
   drawEffects(ox,oy,z,cw,ch);
   if(S.clouds&&cam.z>=1.2)drawClouds(ox,oy,z,running?dt:0,x0,y0,x1,y1);
   /* day and night */
-  if(S.night){
-    if(running)dayClock=(dayClock+dt/1000)%150;
-    const p=dayClock/150;
-    nightF=p<.56?0:p<.66?(p-.56)/.1:p<.9?1:(1-p)/.1;
-  }else nightF=0;
   if(nightF>.01){
     const dusk=nightF<1?Math.sin(nightF*3.14159):0;
     ctx.globalCompositeOperation='multiply';
@@ -450,7 +427,11 @@ function render(dt,running){
     }
     ctx.globalCompositeOperation='source-over';
   }
-  /* names and speech */
+  drawNames(ox,oy,z,x0,y0,x1,y1);
+  if(S.minimap&&frameNo%4===0)drawMini();
+}
+/* names and speech, shared by both renderers */
+function drawNames(ox,oy,z,x0,y0,x1,y1){
   ctx.textAlign='center';ctx.textBaseline='bottom';ctx.lineJoin='round';
   if(S.labels){
     for(const k of kingdoms){
@@ -477,5 +458,4 @@ function render(dt,running){
       drawBubble(b.text,ox+(c.x+.5)*z,oy+(c.y-2.4)*z-(S.labels?16*dpr:0));
     }
   }
-  if(S.minimap&&frameNo%4===0)drawMini();
 }

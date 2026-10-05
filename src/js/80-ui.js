@@ -224,7 +224,7 @@ function buildTools(reset){
 
 /* ---------- input ---------- */
 const ptrs=new Map();let gesture=null,stroke=null;
-function pos(e){const r=cv.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
+function pos(e){const r=ovc.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
 function toTile(p){return{x:Math.floor(cam.x+p.x/cam.z),y:Math.floor(cam.y+p.y/cam.z)};}
 function paintAt(p,first){
   const t=toTile(p);
@@ -253,9 +253,9 @@ function tapAt(p){
     case'peace':calmRealm(t.x,t.y);break;
   }
 }
-cv.addEventListener('pointerdown',e=>{
+ovc.addEventListener('pointerdown',e=>{
   e.preventDefault();if(busy)return;
-  try{cv.setPointerCapture(e.pointerId);}catch(_){}
+  try{ovc.setPointerCapture(e.pointerId);}catch(_){}
   const p=pos(e);ptrs.set(e.pointerId,p);
   if(ptrs.size===1){
     const painting=(tool.mode==='brush'||tool.mode==='spawn')&&e.button===0;
@@ -267,7 +267,7 @@ cv.addEventListener('pointerdown',e=>{
     gesture={mx:(a[0].x+a[1].x)/2,my:(a[0].y+a[1].y)/2,d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)||1};
   }
 });
-cv.addEventListener('pointermove',e=>{
+ovc.addEventListener('pointermove',e=>{
   if(!ptrs.has(e.pointerId))return;
   const p=pos(e);ptrs.set(e.pointerId,p);
   if(ptrs.size>=2&&gesture){
@@ -292,10 +292,10 @@ function pointerEnd(e){
     stroke=null;
   }
 }
-cv.addEventListener('pointerup',pointerEnd);
-cv.addEventListener('pointercancel',pointerEnd);
-cv.addEventListener('contextmenu',e=>e.preventDefault());
-cv.addEventListener('wheel',e=>{
+ovc.addEventListener('pointerup',pointerEnd);
+ovc.addEventListener('pointercancel',pointerEnd);
+ovc.addEventListener('contextmenu',e=>e.preventDefault());
+ovc.addEventListener('wheel',e=>{
   e.preventDefault();const p=pos(e),wx=cam.x+p.x/cam.z,wy=cam.y+p.y/cam.z;
   cam.z=clampZ(cam.z*Math.exp(-e.deltaY*.0015));cam.x=wx-p.x/cam.z;cam.y=wy-p.y/cam.z;clampCam();
 },{passive:false});
