@@ -153,15 +153,21 @@ export function HowItWorks({ open, onToggle, day, units, sample }) {
             <li>
               <strong>Watering.</strong> When the account would fall below the gold line by the end of today, it's time to water, and the amount shown refills it. Below that line plants close up and use less, so a long dry spell drains the soil more and more slowly instead of hitting empty. Below 40°F (5°C) the plan waits for a warmer day, when water can soak in.
             </li>
+            <li>
+              <strong>How long to run it.</strong> More has to come out of the hose than soaks in: sprinklers lose about a quarter to wind and evaporation, hand watering about 15%, drip and soaker hoses about 10%. Minutes come from your sprinkler's rate or your hose's flow, which you can measure with a tuna can or a bucket. When a sprinkler puts water down faster than the soil takes it in, the puddles fill and it runs off, so the run is split into shorter runs with half an hour between. Stopping the timer early logs only the part that ran.
+            </li>
+            <li>
+              <strong>The week ahead.</strong> The planner assumes you water each morning a bed would otherwise end the day below the gold line, and follows the bank through the forecast from there.
+            </li>
           </ol>
           <p>
             Pots use the same account with different numbers. The pot's size and mix set how much it holds. Water leaves through the whole plant but rain only enters through the rim, so the plant factor grows with how far the plant spreads past the pot, up to about 4½ times for a plant twice as wide as its pot. Terracotta and fabric add what escapes through their walls, hanging baskets add a quarter for wind, and rain is cut for shelter and for leaves that shed it.
           </p>
           <p>
-            <strong>Frost and heat warnings</strong> follow the US National Weather Service's lines: frost at {fmt.tempUnit(2, units)}, freeze at {fmt.tempUnit(0, units)}, hard freeze at {fmt.tempUnit(-2.2, units)}; hot at {fmt.tempUnit(32.2, units)}, very hot at {fmt.tempUnit(35, units)}, extreme at {fmt.tempUnit(37.8, units)}. Night lows come from the hourly forecast, and clear, calm nights count as frost a little sooner because plants cool below the air. Extreme cold is judged against the local three-year record, and conditions that have become routine are shown quietly.
+            <strong>Frost and heat warnings</strong> follow the US National Weather Service's lines: frost at {fmt.tempUnit(2, units)}, freeze at {fmt.tempUnit(0, units)}, hard freeze at {fmt.tempUnit(-2.2, units)}; hot at {fmt.tempUnit(32.2, units)}, very hot at {fmt.tempUnit(35, units)}, extreme at {fmt.tempUnit(37.8, units)}. Night lows come from the hourly forecast, and clear, calm nights count as frost a little sooner because plants cool below the air. Each cold night is drawn hour by hour, so you can see how long it stays below freezing and when it's safe to uncover plants. Extreme cold is judged against the local record, and conditions that have become routine are shown quietly.
           </p>
           <p class="muted small">
-            It's a guideline, not a sensor. Use the finger check on each card: every check nudges that bed's or pot's drying rate toward what you find. The 12-month and 3-year charts and the frost dates use Open-Meteo's historical weather records.
+            It's a guideline, not a sensor. Use the finger check on each card: every check nudges that bed's or pot's drying rate toward what you find. The 12-month and 3-year charts use Open-Meteo's historical weather records. Frost odds, the hardiness zone and what's normal for each day come from 30 years of them: the frost dates are the middle and one-in-ten years, the way NOAA publishes them, and the zone follows the USDA's 10°F bands from the average coldest night of each winter.
           </p>
         </div>
       )}

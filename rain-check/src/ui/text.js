@@ -27,46 +27,115 @@ export function bedLine(bed, units) {
   return `${plant.label} in ${soil.label.toLowerCase()}, ${bits.join(', ')}`;
 }
 
-function amounts(sim, bed, mm, units) {
-  if (sim.model.pot) {
-    const many = potCount(bed) > 1;
-    return { amt: fmt.potVolume(mm * sim.model.areaM2, units), each: many ? 'each pot ' : '', per: many ? ' per pot' : '' };
+// "25 minutes", "1 hr 10 min", "15 seconds"
+export function minutesText(min) {
+  if (!(min > 0)) return '0 minutes';
+  if (min < 1) return `${Math.max(5, Math.round((min * 60) / 5) * 5)} seconds`;
+  if (min < 20) {
+    const m = Math.round(min);
+    return `${m} minute${m === 1 ? '' : 's'}`;
   }
-  return { amt: fmt.depth(mm, units), vol: fmt.bedVolume(mm, sim.model.areaM2, units), each: '', per: '' };
+  if (min < 57.5) return `${Math.round(min / 5) * 5} minutes`;
+  const h = Math.floor(min / 60);
+  const m = Math.round((min - h * 60) / 5) * 5;
+  return m === 60 ? `${h + 1} hr` : m ? `${h} hr ${m} min` : `${h} hr`;
 }
 
-// Chip and one-line instruction for a card.
-export function statusText(sim, bed, days, T, units) {
+// "1½ cans"
+export function cansText(n) {
+  const r = Math.max(0.5, Math.ceil(n * 2) / 2);
+  const w = Math.floor(r);
+  return `${w || ''}${r - w > 0 ? '½' : ''} can${r > 1 ? 's' : ''}`;
+}
+
+/**
+ * The words for one watering, from howToWater():
+ *   act    an instruction: "Run the sprinkler about 25 minutes"
+ *   plan   a noun phrase: "about 25 minutes of sprinkler"
+ *   depth  what soaks in, for beds: "0.6 in"
+ *   extra  cycle-and-soak or go-slow advice, or ''
+ */
+export function waterWords(how, bed, model, units) {
+  const pot = model.pot;
+  const many = pot && potCount(bed) > 1;
+  const each = many ? 'each pot ' : '';
+  const per = many ? ' per pot' : '';
+  const min = minutesText(how.minutes);
+  const vol = fmt.volume(how.litersAll, units);
+  const potVol = fmt.potVolume(how.litersEach, units);
+  const depth = pot ? null : fmt.depth(how.netMm, units);
+  let act;
+  let plan;
+  switch (how.method) {
+    case 'sprinkler':
+      act = `Run the sprinkler about ${min}`;
+      plan = `about ${min} of sprinkler`;
+      break;
+    case 'soaker':
+      act = `Run the soaker hose about ${min}`;
+      plan = `about ${min} of soaker hose`;
+      break;
+    case 'drip':
+      act = `Run the drip about ${min}`;
+      plan = `about ${min} of drip`;
+      break;
+    case 'hose':
+      if (pot) {
+        act = `Give ${each}about ${potVol} with the hose (${minutesText(how.litersEach / how.flowLpm)}${many ? ' each' : ''}), until it runs from the bottom`;
+        plan = `about ${potVol}${per}`;
+      } else {
+        act = `Give it about ${vol} with the hose, roughly ${min}`;
+        plan = `about ${vol} with the hose (${min})`;
+      }
+      break;
+    default:
+      if (pot) {
+        act = `Give ${each}about ${potVol}, until water runs from the bottom`;
+        plan = `about ${potVol}${per}`;
+      } else {
+        act = `Give it about ${cansText(how.cans)} (${vol})`;
+        plan = `about ${cansText(how.cans)}`;
+      }
+  }
+  let extra = '';
+  const c = how.cycles;
+  if (c && c.tooMany)
+    extra = ` This spot sheds water fast, so run it in ${minutesText(c.maxRunMin)} bursts, half an hour apart. A soaker hose or drip would suit it better.`;
+  else if (c) extra = ` Run it as ${c.n} × ${minutesText(c.runMin)}, half an hour apart, so it soaks in instead of running off.`;
+  else if (!pot && (how.method === 'hose' || how.method === 'can') && model.intake < 10 && how.netMm > model.intake)
+    extra = ' Go slowly or water in two rounds so it soaks in.';
+  return { act, plan, depth, extra };
+}
+
+// Chip and one-line instruction for a card. `how` is howToWater() for sim.amountMm.
+export function statusText(sim, bed, days, T, units, how) {
   const today = days[T].date;
   const pot = sim.model.pot;
-  const { amt, vol, each, per } = amounts(sim, bed, sim.amountMm, units);
+  const w = waterWords(how, bed, sim.model, units);
   const due = sim.dueIdx != null ? days[sim.dueIdx].date : null;
-  // Slow soils take in less than a sprinkler or hose puts down in an hour.
-  const passes =
-    !pot && sim.model.intake < 10 && sim.amountMm > sim.model.intake
-      ? ' Water it in two or three passes, half an hour apart, so it soaks in instead of running off.'
-      : '';
+  const depth = w.depth ? ` (${w.depth})` : '';
   switch (sim.status) {
     case 'water': {
-      const chip = sim.veryDry ? 'Water now' : 'Water today';
-      if (pot) {
-        const line = sim.crossesLater
-          ? `It's above the gold line now but drops below it by evening. Give ${each}about ${amt} today, until water runs from the bottom.`
-          : `Give ${each}about ${amt}, until water runs from the bottom.`;
-        return { tone: 'water', chip, line: (sim.veryDry ? "It's very dry. " : '') + line };
-      }
-      const line = sim.crossesLater
-        ? `It drops below the gold line by this evening. Give about ${amt}, roughly ${vol} for this bed. Morning is best.`
-        : `Give about ${amt}, roughly ${vol} for this bed.`;
-      return { tone: 'water', chip, line: (sim.veryDry ? "It's very dry. " : '') + line + passes };
+      const chip = sim.partial ? 'Finish watering' : sim.again ? 'Water again' : sim.veryDry ? 'Water now' : 'Water today';
+      if (sim.partial) return { tone: 'water', chip, line: `The last watering was cut short. To finish, ${lower(w.act)}${depth}.${w.extra}` };
+      const lead = sim.again
+        ? "It's dried out again since the last watering. "
+        : sim.veryDry
+          ? "It's very dry. "
+          : sim.crossesLater
+            ? pot
+              ? "It's above the gold line now but drops below it by evening. "
+              : 'It drops below the gold line by this evening; morning is best. '
+            : '';
+      return { tone: 'water', chip, line: `${lead}${w.act}${depth}.${w.extra}` };
     }
     case 'wait':
       return {
         tone: 'wait',
         chip: 'Rain likely, hold off',
         line: pot
-          ? `Rain likely by tomorrow should refill it. If it misses, give ${each}about ${amt}.`
-          : `About ${fmt.depth(sim.rainSoon, units)} of rain is likely to soak in by tomorrow. If it misses, give about ${amt}.`,
+          ? `Rain likely by tomorrow should refill it. If it misses: ${lower(w.act)}.`
+          : `About ${fmt.depth(sim.rainSoon, units)} of rain is likely to soak in by tomorrow. If it misses: ${lower(w.act)}${depth}.`,
       };
     case 'cold': {
       const t = fmt.tempUnit(COLD_WATER_C, units);
@@ -74,24 +143,32 @@ export function statusText(sim, bed, days, T, units) {
         tone: 'cold',
         chip: 'Too cold to water',
         line: due
-          ? `It's dry, but below ${t} the soil may be frozen and water won't soak in. Water ${onDay(due, today)} around midday, about ${amt}.`
+          ? `It's dry, but below ${t} the soil may be frozen and water won't soak in. Water ${onDay(due, today)} around midday: ${w.plan}.`
           : `It's dry, but it stays below ${t} all week, so water won't soak in. Water around midday on the next day above ${t}.`,
       };
     }
     case 'later':
-      return { tone: 'later', chip: `Water ${dayWord(due, today)}`, line: `Plan on about ${amt}${per}.` };
+      return { tone: 'later', chip: `Water ${dayWord(due, today)}`, line: `Plan on ${w.plan}${depth}.` };
     case 'done': {
       const at = sim.wateredAt != null ? `Watered at ${clockText(sim.wateredAt)}. ` : '';
+      const again =
+        sim.againAt != null
+          ? sim.twice
+            ? `On a day this hot it will need water again around ${clockText(sim.againAt)}.`
+            : `It will drop below the gold line again around ${clockText(sim.againAt)}.`
+          : null;
       return {
         tone: 'done',
-        chip: 'Watered today',
-        line: at + (due ? `Next watering ${onDay(due, today)}, about ${amt}${per}.` : 'No more water needed this week.'),
+        chip: sim.waterings > 1 ? `Watered ${sim.waterings} times today` : 'Watered today',
+        line: at + (again || (due ? `Next watering ${onDay(due, today)}: ${w.plan}.` : 'No more water needed this week.')),
       };
     }
     default:
       return { tone: 'ok', chip: 'Fine this week', line: 'No water needed in the next 7 days.' };
   }
 }
+
+const lower = (s) => (s ? s[0].toLowerCase() + s.slice(1) : s);
 
 export function feedText(f, today) {
   switch (f.status) {

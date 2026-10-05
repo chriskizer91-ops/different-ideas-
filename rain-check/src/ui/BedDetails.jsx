@@ -5,6 +5,7 @@ import { fmt, M2_PER_SQFT } from '../lib/units.js';
 import { addDays, daysBetween, monthDay } from '../lib/dates.js';
 import { lastFed } from '../model/feeding.js';
 import { checkTune } from '../model/planting.js';
+import { WaterMethod } from './WaterMethod.jsx';
 import {
   PLANTS,
   POT_PLANTS,
@@ -270,6 +271,7 @@ export function BedDetails({ bed, sim, days, T, units, onUpdate, onLog, onRemove
       <Check bed={bed} today={today} units={units} onUpdate={onUpdate} />
       <h4 class="sub">Settings</h4>
       <div class="grid2">{fields}</div>
+      <WaterMethod bed={bed} units={units} onUpdate={onUpdate} />
       <DateLog
         title="Watering log"
         entries={bed.waterLog || []}

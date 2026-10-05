@@ -28,7 +28,17 @@ export function deviceClock(now = new Date()) {
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 export const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+const MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
 export const weekday = (d) => WEEKDAYS[new Date(parseISO(d)).getUTCDay()];
+// "early October", "mid-July", "late March"
+export function partOfMonth(d) {
+  const day = +d.slice(8, 10);
+  const m = MONTHS_LONG[monthOf(d) - 1];
+  return day <= 10 ? `early ${m}` : day <= 20 ? `mid-${m}` : `late ${m}`;
+}
+// "Apr 12" from a month-day like "04-12"
+export const mdText = (md) => monthDay(`2001-${md}`);
 export const weekdayShort = (d) => weekday(d).slice(0, 3);
 export const monthName = (d) => MONTHS[monthOf(d) - 1];
 export const monthDay = (d) => `${monthName(d)} ${+d.slice(8, 10)}`;

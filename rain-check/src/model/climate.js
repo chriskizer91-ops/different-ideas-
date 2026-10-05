@@ -2,7 +2,7 @@
 // gets dangerously hot or cold, and what counts as unusually cold here.
 
 import { addDays, daysBetween } from '../lib/dates.js';
-import { COLD_AT, HEAT_AT } from './alerts.js';
+import { COLD_AT, HEAT_AT } from './thresholds.js';
 
 export function percentile(values, q) {
   const v = values.filter((x) => x != null && Number.isFinite(x)).sort((a, b) => a - b);

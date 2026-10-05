@@ -46,6 +46,14 @@ export const fmt = {
     }
     return `${liters < 10 ? trim(liters, 1) : Math.round(liters)} liters`;
   },
+  // Any amount of water, in gallons or liters.
+  volume(liters, u) {
+    if (isImperial(u)) {
+      const gal = liters / 3.785;
+      return `${gal < 10 ? trim(gal, 1) : Math.round(gal)} gallon${gal === 1 ? '' : 's'}`;
+    }
+    return `${liters < 10 ? trim(liters, 1) : Math.round(liters)} liter${liters === 1 ? '' : 's'}`;
+  },
   // Water for a pot, in kitchen measures.
   potVolume(liters, u) {
     const half = (x) => {

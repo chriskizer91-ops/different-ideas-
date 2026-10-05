@@ -26,13 +26,36 @@ export function dayLengthHours(latDeg, date) {
   return (24 / Math.PI) * sunsetHourAngle(phi, solarDeclination(dayOfYear(date)));
 }
 
+// Seasonal correction for solar time, hours (FAO-56 eq. 32): the equation of time.
+export function seasonalCorrection(J) {
+  const b = (2 * Math.PI * (J - 81)) / 364;
+  return 0.1645 * Math.sin(2 * b) - 0.1255 * Math.cos(b) - 0.025 * Math.sin(b);
+}
+
+// Solar noon on the garden's clock, from its longitude, UTC offset and the date.
+export function solarNoonClock({ lon = 0, date, offsetSeconds = 0 }) {
+  return 12 + offsetSeconds / 3600 - lon / 15 - (date ? seasonalCorrection(dayOfYear(date)) : 0);
+}
+
+// Sunrise and sunset on the clock, when the sun's upper edge meets the
+// horizon (0.833° below, allowing for refraction). Null in polar day or night.
+export function sunTimes({ lat = 40, lon = 0, date, offsetSeconds = 0 }) {
+  const phi = (lat * Math.PI) / 180;
+  const d = solarDeclination(dayOfYear(date));
+  const cosW = (Math.sin((-0.833 * Math.PI) / 180) - Math.sin(phi) * Math.sin(d)) / (Math.cos(phi) * Math.cos(d));
+  const noon = solarNoonClock({ lon, date, offsetSeconds });
+  if (cosW >= 1) return { rise: null, set: null, noon, polar: 'night' };
+  if (cosW <= -1) return { rise: null, set: null, noon, polar: 'day' };
+  const half = (Math.acos(cosW) * 12) / Math.PI;
+  return { rise: noon - half, set: noon + half, noon, polar: null };
+}
+
 // Share of the day's evaporation already done at this clock hour (0 to 1).
 // Drying follows the sun: none before sunrise, all of it by sunset, fastest
-// around solar noon. Solar noon on the clock comes from the longitude and the
-// UTC offset; the equation of time (under 17 minutes) is left out.
+// around solar noon.
 export function dayFraction(hour, { lat = 40, lon = 0, date, offsetSeconds = 0 }) {
   const N = date ? dayLengthHours(lat, date) : 12;
-  const noon = clamp(12 + offsetSeconds / 3600 - lon / 15, 9, 15);
+  const noon = clamp(solarNoonClock({ lon, date, offsetSeconds }), 9, 15);
   if (N < 0.5) return hour < noon ? 0 : 1; // polar night
   const rise = noon - N / 2;
   const set = noon + N / 2;

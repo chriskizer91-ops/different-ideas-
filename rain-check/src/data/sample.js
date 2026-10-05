@@ -3,8 +3,9 @@
 
 import { addDays, dayOfYear } from '../lib/dates.js';
 import { penmanMonteith } from '../model/et0.js';
-import { extraterrestrialRadiation } from '../model/solar.js';
+import { extraterrestrialRadiation, sunTimes } from '../model/solar.js';
 import { historyStart } from '../model/climate.js';
+import { normalsStart } from '../model/normals.js';
 import { PAST_DAYS, FORECAST_DAYS } from './openMeteo.js';
 
 export const SAMPLE_LAT = 40;
@@ -38,7 +39,21 @@ function day(date, { high, low, humidity, wind, rain, rainHours, prob, sunShare 
   return { date, tmax: high, tmin: low, rain, rainHours, prob, et0, et0Api: null, et0Calc: et0, rs, u2: wind, rhMin, rhMax };
 }
 
-export function sampleForecast(opts, today) {
+// A day's temperature curve: coolest around dawn, warmest mid-afternoon.
+// Hours past 24 run into the next day.
+function tempAt(days, i, h) {
+  if (h >= 24) return days[i + 1] ? tempAt(days, i + 1, h - 24) : days[i].tmin;
+  const d = days[i];
+  const prev = days[i - 1] || d;
+  const next = days[i + 1] || d;
+  if (h < 6) return d.tmin + ((prev.tmax - d.tmin) * (1 + Math.cos((Math.PI * (h + 9)) / 15))) / 2;
+  if (h <= 15) return d.tmin + ((d.tmax - d.tmin) * (1 - Math.cos((Math.PI * (h - 6)) / 9))) / 2;
+  return next.tmin + ((d.tmax - next.tmin) * (1 + Math.cos((Math.PI * (h - 15)) / 15))) / 2;
+}
+
+const r1 = (x) => Math.round(x * 10) / 10;
+
+export function sampleForecast(opts, today, { lon = 0, offsetSeconds = 0 } = {}) {
   const o = { ...SAMPLE_DEFAULTS, ...opts };
   const next = rng(7);
   const s0 = season(today);
@@ -69,11 +84,28 @@ export function sampleForecast(opts, today) {
     days.push(day(date, { high, low, humidity, wind, rain, rainHours: rainHours || null, prob, sunShare: wet ? 0.35 : 0.62 + next() * 0.06 }));
   }
   const nights = {};
-  for (let i = 0; i + 1 < days.length; i++) {
-    const calm = days[i].u2 < 1.5 && days[i].rhMin < 60 && !days[i].rain && !days[i + 1].rain;
-    nights[days[i].date] = { low: days[i + 1].tmin, clearCalm: calm };
-  }
-  return { days, nights, todayIdx: PAST_DAYS };
+  const hours = {};
+  const recentFrom = days.length - 13;
+  days.forEach((d, i) => {
+    const sun = sunTimes({ lat: SAMPLE_LAT, lon, date: d.date, offsetSeconds });
+    d.sunrise = sun.rise;
+    d.sunset = sun.set;
+    if (i + 1 < days.length) {
+      const calm = d.u2 < 1.5 && d.rhMin < 60 && !d.rain && !days[i + 1].rain;
+      nights[d.date] = { low: days[i + 1].tmin, clearCalm: calm };
+      if (i >= recentFrom - 1) nights[d.date].temps = Array.from({ length: 17 }, (_, k) => r1(tempAt(days, i, 18 + k)));
+    }
+    if (i >= recentFrom) {
+      const wet = d.rain > 2;
+      const per = d.rain && d.rainHours ? d.rain / d.rainHours : 0;
+      hours[d.date] = {
+        t: Array.from({ length: 24 }, (_, h) => r1(tempAt(days, i, h))),
+        p: Array.from({ length: 24 }, (_, h) => (per && h >= 13 && h < 13 + d.rainHours ? r1(per) : 0)),
+        c: Array.from({ length: 24 }, () => (wet ? 85 : 15)),
+      };
+    }
+  });
+  return { days, nights, hours, todayIdx: PAST_DAYS };
 }
 
 // Three-plus years of ordinary seasons ending where the forecast begins.
@@ -109,4 +141,23 @@ export function sampleHistory(opts, today) {
     );
   }
   return days;
+}
+
+// Thirty years of highs and lows with some winters harsher than others, for
+// frost odds and normals in sample mode.
+export function sampleNormals(opts, today) {
+  const o = { ...SAMPLE_DEFAULTS, ...opts };
+  const next = rng(19);
+  const s0 = season(today);
+  const end = addDays(today, -7);
+  const out = [];
+  let year = null;
+  let anomaly = 0;
+  for (let date = normalsStart(today, SAMPLE_LAT); date <= end; date = addDays(date, 1)) {
+    if (date.slice(0, 4) !== year) (year = date.slice(0, 4)), (anomaly = (next() - 0.5) * 3);
+    const high = o.tHigh + SWING * (season(date) - s0) + anomaly + (next() - 0.5) * 7;
+    const low = high - 10 - next() * 3 + (next() - 0.5) * 3;
+    out.push({ date, tmax: r1(high), tmin: r1(low) });
+  }
+  return out;
 }

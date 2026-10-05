@@ -5,19 +5,38 @@ import { Alerts } from './Alerts.jsx';
 import { Weather } from './Weather.jsx';
 import { WaterChart } from './WaterChart.jsx';
 import { BedCard } from './BedCard.jsx';
+import { SoilDefs } from './SoilGauge.jsx';
+import { Sky } from './Sky.jsx';
+import { WeekPlanner } from './WeekPlanner.jsx';
+import { Climate } from './Climate.jsx';
+import { TimerBar, timerState, totalRun } from './Timer.jsx';
+import { unlockSound, chime, keepAwake } from './sound.js';
 import { PlacePicker, SampleControls, HowItWorks, Footer } from './Panels.jsx';
 import { headline, cap } from './text.js';
 import { defaultUnits } from '../lib/units.js';
 import { addDays, clockText, dayWord, daysBetween, deviceClock, gardenClock } from '../lib/dates.js';
 import { dayFraction } from '../model/solar.js';
-import { simulate } from '../model/waterBalance.js';
+import { simulate, planAhead } from '../model/waterBalance.js';
 import { feedingPlan } from '../model/feeding.js';
 import { buildAlerts } from '../model/alerts.js';
 import { climateStats, historyStart } from '../model/climate.js';
+import { climateNormals, normalsStart, doyIndex } from '../model/normals.js';
+import { howToWater, timerPhases } from '../model/watering.js';
 import { recentWeather, chartData, needsHistory, RANGES } from '../model/summary.js';
 import { isPot } from '../model/tables.js';
-import { fetchJson, forecastUrl, archiveUrl, parseForecast, packArchive, unpackArchive, joinHistory } from '../data/openMeteo.js';
-import { SAMPLE_DEFAULTS, SAMPLE_LAT, sampleForecast, sampleHistory } from '../data/sample.js';
+import {
+  fetchJson,
+  forecastUrl,
+  archiveUrl,
+  normalsUrl,
+  parseForecast,
+  packArchive,
+  unpackArchive,
+  packNormals,
+  unpackNormals,
+  joinHistory,
+} from '../data/openMeteo.js';
+import { SAMPLE_DEFAULTS, SAMPLE_LAT, sampleForecast, sampleHistory, sampleNormals } from '../data/sample.js';
 import {
   env,
   loadState,
@@ -26,6 +45,8 @@ import {
   saveForecast,
   loadHistory,
   saveHistory,
+  loadNormals,
+  saveNormals,
   placeKey,
   clearAll,
   newBed,
@@ -142,6 +163,49 @@ function useHistory(place, wx) {
   };
 }
 
+// Thirty years of daily highs and lows, saved for six months.
+function useNormals(place, wx) {
+  const key = placeKey(place);
+  const today = wx && !wx.sample ? wx.days[wx.T].date : null;
+  const month = today ? today.slice(0, 7) : null;
+  const [st, setSt] = useState({ status: 'idle', days: null });
+  const [nonce, setNonce] = useState(0);
+  const force = useRef(false);
+  useEffect(() => {
+    if (!place || !today) {
+      setSt({ status: 'idle', days: null });
+      return;
+    }
+    let live = true;
+    const start = normalsStart(today, place.lat);
+    const cached = force.current ? null : loadNormals(place);
+    force.current = false;
+    if (cached && cached.start <= start && daysBetween(cached.fetchedOn, today) <= 180) {
+      setSt({ status: 'ready', days: unpackNormals(cached) });
+      return;
+    }
+    setSt({ status: 'loading', days: null });
+    fetchJson(normalsUrl(place.lat, place.lon, start, addDays(today, -7)), 30000)
+      .then((json) => {
+        const packed = packNormals(json, key, today);
+        if (!packed) throw new Error('No records returned');
+        saveNormals(packed);
+        if (live) setSt({ status: 'ready', days: unpackNormals(packed) });
+      })
+      .catch(() => live && setSt({ status: 'failed', days: null }));
+    return () => {
+      live = false;
+    };
+  }, [key, month, nonce]);
+  return {
+    ...st,
+    retry: () => {
+      force.current = true;
+      setNonce((n) => n + 1);
+    },
+  };
+}
+
 const hhmm = (hour) => `${String(Math.floor(hour)).padStart(2, '0')}:${String(Math.floor((hour % 1) * 60)).padStart(2, '0')}`;
 
 export function App() {
@@ -157,6 +221,8 @@ export function App() {
   const [showPicker, setShowPicker] = useState(false);
   const [showHow, setShowHow] = useState(false);
   const [notice, setNotice] = useState(null);
+  const [timers, setTimers] = useState([]);
+  const [toast, setToast] = useState(null);
   const chartRef = useRef(null);
 
   useEffect(() => {
@@ -167,6 +233,7 @@ export function App() {
       setBeds(s.beds);
       if (RANGES.some((r) => r.key === s.chartRange)) setChartRange(s.chartRange);
       if (s.chartBedId) setChartBedId(s.chartBedId);
+      if (Array.isArray(s.timers)) setTimers(s.timers.filter((t) => t && t.bedId && Array.isArray(t.phases)));
       if (s.migratedFrom)
         setNotice('Your beds and pots moved over from the previous version. There are more soil types now, so check each bed’s soil in its settings.');
     }
@@ -176,9 +243,9 @@ export function App() {
 
   useEffect(() => {
     if (!ready) return;
-    const t = setTimeout(() => saveState({ units, place, beds, chartRange, chartBedId }), 400);
+    const t = setTimeout(() => saveState({ units, place, beds, chartRange, chartBedId, timers }), 400);
     return () => clearTimeout(t);
-  }, [ready, units, place, beds, chartRange, chartBedId]);
+  }, [ready, units, place, beds, chartRange, chartBedId, timers]);
 
   // ---- weather: live or saved forecast for the place, otherwise sample ----
   const fc = useForecast(place, ready, now);
@@ -192,8 +259,12 @@ export function App() {
   const devClock = deviceClock(new Date(now));
   const sampleWx = useMemo(() => {
     if (liveWx) return null;
-    const f = sampleForecast(sampleOpts, devClock.date);
-    return { ...f, T: f.todayIdx, lat: SAMPLE_LAT, lon: devClock.offsetSeconds / 240, offsetSeconds: devClock.offsetSeconds, sample: true };
+    // Place the sample garden on its time zone's meridian, so the sun keeps clock time (with daylight saving).
+    const y = +devClock.date.slice(0, 4);
+    const stdOffset = -Math.max(new Date(y, 0, 1).getTimezoneOffset(), new Date(y, 6, 1).getTimezoneOffset()) * 60;
+    const lon = stdOffset / 240;
+    const f = sampleForecast(sampleOpts, devClock.date, { lon, offsetSeconds: devClock.offsetSeconds });
+    return { ...f, T: f.todayIdx, lat: SAMPLE_LAT, lon, offsetSeconds: devClock.offsetSeconds, sample: true };
   }, [!!liveWx, sampleOpts, devClock.date]);
   const wx = liveWx || { ...sampleWx, clock: devClock };
   const { days, T } = wx;
@@ -214,13 +285,46 @@ export function App() {
   }, [wx.sample, sampleHist, hist.status, hist.days, days, T]);
   const climate = useMemo(() => (merged ? climateStats(merged.days.slice(0, merged.T), wx.lat) : null), [merged, wx.lat]);
 
+  // ---- thirty years of highs and lows: frost odds, zone, what's normal ----
+  const norm = useNormals(place, liveWx);
+  const sampleNormalDays = useMemo(() => (wx.sample ? sampleNormals(SAMPLE_DEFAULTS, today) : null), [wx.sample, today]);
+  const normals = useMemo(() => {
+    const d = wx.sample ? sampleNormalDays : norm.status === 'ready' ? norm.days : null;
+    return d ? climateNormals(d, wx.lat) : null;
+  }, [wx.sample, sampleNormalDays, norm.status, norm.days, wx.lat]);
+  const thisYear = useMemo(() => {
+    const src = merged ? merged.days : days;
+    const y = today.slice(0, 4);
+    return src.filter((d) => d.date.slice(0, 4) === y).map((d) => ({ k: doyIndex(d.date), tmax: d.tmax, tmin: d.tmin, forecast: d.date > today }));
+  }, [merged, days, today]);
+
   // ---- the plan ----
   const sims = useMemo(() => beds.map((bed) => ({ bed, sim: simulate(bed, days, T, { hour, fracOf }) })), [beds, days, T, hour, fracOf]);
   const warn = useMemo(
-    () => buildAlerts({ days, todayIdx: T, nights: wx.nights, hour, climate, rows: sims, lat: wx.lat }),
-    [sims, days, T, wx.nights, hour, climate, wx.lat],
+    () =>
+      buildAlerts({
+        days,
+        todayIdx: T,
+        nights: wx.nights,
+        hour,
+        climate: normals ? { p02Low: normals.p02Low } : climate,
+        rows: sims,
+        lat: wx.lat,
+        normals,
+      }),
+    [sims, days, T, wx.nights, hour, climate, normals, wx.lat],
   );
-  const rows = useMemo(() => sims.map((r) => ({ ...r, feed: feedingPlan(r.bed, days, T, r.sim, warn.heatByDate) })), [sims, warn, days, T]);
+  const rows = useMemo(
+    () =>
+      sims.map((r) => ({
+        ...r,
+        feed: feedingPlan(r.bed, days, T, r.sim, warn.heatByDate),
+        how: howToWater(r.bed, r.sim.model, r.sim.amountMm),
+      })),
+    [sims, warn, days, T],
+  );
+  const plans = useMemo(() => Object.fromEntries(rows.map((r) => [r.bed.id, planAhead(r.sim, days, T)])), [rows, days, T]);
+  const sunsets = useMemo(() => Object.fromEntries(days.map((d) => [d.date, d.sunset])), [days]);
   const recent = useMemo(() => recentWeather(days, T), [days, T]);
 
   const selected = rows.find((r) => r.bed.id === chartBedId) || rows.find((r) => r.sim.status === 'water') || rows[0] || null;
@@ -245,7 +349,7 @@ export function App() {
         const on = (d) => (e) => e.slice(0, 10) === d;
         let next = list;
         if (action === 'toggle') next = list.some(on(today)) ? list.filter((e) => !on(today)(e)) : [...list, stamp];
-        else if (action === 'again') next = [...list.filter((e) => !on(today)(e)), stamp];
+        else if (action === 'add-now') next = [...list, stamp];
         else if (action === 'add') next = list.some(on(date)) ? list : [...list, date];
         else if (action === 'remove') next = list.filter((e) => !on(date)(e));
         return { ...b, [field]: [...next].sort().slice(-500) };
@@ -280,6 +384,7 @@ export function App() {
     setChartRange('1m');
     setChartBedId(null);
     setNotice(null);
+    setTimers([]);
     setShowPicker(true);
   };
   const backup = () => {
@@ -301,6 +406,67 @@ export function App() {
     if (RANGES.some((r) => r.key === s.chartRange)) setChartRange(s.chartRange);
     setChartBedId(null);
     setOpenId(null);
+  };
+
+  // ---- watering timers ----
+  const [tick, setTick] = useState(Date.now());
+  const phaseSeen = useRef({});
+  useEffect(() => {
+    if (!timers.length) {
+      keepAwake(false);
+      return;
+    }
+    keepAwake(true);
+    setTick(Date.now());
+    const id = setInterval(() => setTick(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [timers.length]);
+  const clockAt = (ms) => (liveWx ? gardenClock(liveWx.offsetSeconds, ms) : deviceClock(new Date(ms)));
+  const say = (text) => {
+    setToast(text);
+    setTimeout(() => setToast((t) => (t === text ? null : t)), 5000);
+  };
+  // Ends a timer: 'done' logs a full watering, 'stop' logs what ran so far.
+  const finishTimer = (t, mode) => {
+    const st = timerState(t, Date.now());
+    const at = clockAt(t.startedAt);
+    const stamp = `${at.date}T${hhmm(at.hour)}`;
+    const bed = beds.find((b) => b.id === t.bedId);
+    let entry = null;
+    if (mode === 'done') entry = stamp;
+    else if (st.ran >= 60e3) entry = `${stamp}|${(t.netMm * Math.min(1, st.ran / totalRun(t))).toFixed(1)}`;
+    setTimers((ts) => ts.filter((x) => x.bedId !== t.bedId));
+    delete phaseSeen.current[t.bedId];
+    if (entry && bed) {
+      setBeds((bs) => bs.map((b) => (b.id === t.bedId ? { ...b, waterLog: [...(b.waterLog || []), entry].sort().slice(-500) } : b)));
+      say(mode === 'done' ? `${bed.name}: watering logged.` : `${bed.name}: logged the part that ran.`);
+    } else if (bed) say(`${bed.name}: timer stopped, nothing logged.`);
+  };
+  useEffect(() => {
+    if (!timers.length) return;
+    const nowMs = Date.now();
+    for (const t of timers) {
+      const st = timerState(t, nowMs);
+      const seen = phaseSeen.current[t.bedId];
+      if (st.done) {
+        chime(3);
+        finishTimer(t, 'done');
+        continue;
+      }
+      if (seen != null && seen !== st.k) chime(st.phase.kind === 'run' ? 2 : 1);
+      phaseSeen.current[t.bedId] = st.k;
+    }
+  }, [tick]);
+  const startTimer = (row) => {
+    unlockSound();
+    const phases = timerPhases(row.how);
+    if (!phases.length) return;
+    phaseSeen.current[row.bed.id] = 0;
+    setTimers((ts) => [...ts.filter((x) => x.bedId !== row.bed.id), { bedId: row.bed.id, startedAt: Date.now(), phases, netMm: row.how.netMm, method: row.how.method }]);
+  };
+  const jumpTo = (id) => {
+    const el = document.getElementById(`bed-${id}`);
+    if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   // ---- status line under the place name ----
@@ -382,40 +548,44 @@ export function App() {
           </p>
         ) : (
           <>
-            <Alerts alerts={warn.alerts} today={today} units={units} onPick={openBed} />
+            <Sky
+              wx={{ ...wx, fracNow: fracOf(today, hour) }}
+              units={units}
+              normals={normals}
+              heatLevel={warn.levels.heat[T] || 0}
+              coldTonight={warn.levels.cold[T] || 0}
+              nowMs={now}
+            />
+            <Alerts alerts={warn.alerts} today={today} units={units} onPick={openBed} normals={normals} sunsets={sunsets} />
             <h1 class="display h1" aria-live="polite">
               {headline(rows)}
             </h1>
-            <Weather s={recent} units={units} levels={warn.levels} T={T} nights={wx.nights} />
+            <WeekPlanner rows={rows} plans={plans} days={days} T={T} units={units} levels={warn.levels} nights={wx.nights} onOpen={openBed} />
             {wx.sample && <SampleControls opts={sampleOpts} setOpts={setSampleOpts} units={units} et0={days[T].et0} />}
-            <WaterChart
-              rows={rows}
-              row={selected}
-              onSelect={setChartBedId}
-              range={chartRange}
-              onRange={setChartRange}
-              chart={chart}
-              longState={longState}
-              onRetry={hist.retry}
-              place={place}
-              units={units}
-              sectionRef={chartRef}
-              climate={climate}
-            />
             <h2 class="display h2 beds-title">
               {rows.some((r) => isPot(r.bed)) ? (rows.every((r) => isPot(r.bed)) ? 'Your pots' : 'Your beds and pots') : 'Your beds'}
             </h2>
             <div class="cards">
               {rows.map((row) => (
-                <div id={`bed-${row.bed.id}`} key={row.bed.id}>
+                <div id={`bed-${row.bed.id}`} key={row.bed.id} class="card-wrap">
                   <BedCard
                     row={row}
                     days={days}
                     T={T}
                     units={units}
-                    hour={hour}
                     alerts={warn.alerts}
                     open={openId === row.bed.id}
+                    timer={timers.find((t) => t.bedId === row.bed.id && !timerState(t, tick).done) || null}
+                    now={tick}
+                    onStartTimer={() => startTimer(row)}
+                    onTimerDone={() => {
+                      const t = timers.find((x) => x.bedId === row.bed.id);
+                      if (t) finishTimer(t, 'done');
+                    }}
+                    onTimerStop={() => {
+                      const t = timers.find((x) => x.bedId === row.bed.id);
+                      if (t) finishTimer(t, 'stop');
+                    }}
                     onToggle={() => {
                       if (openId !== row.bed.id) setChartBedId(row.bed.id);
                       setOpenId((o) => (o === row.bed.id ? null : row.bed.id));
@@ -423,7 +593,10 @@ export function App() {
                     onShowChart={() => showChart(row.bed.id)}
                     onUpdate={(patch) => update(row.bed.id, patch)}
                     onLog={(field, action, date) => log(row.bed.id, field, action, date)}
-                    onRemove={() => setBeds((bs) => bs.filter((b) => b.id !== row.bed.id))}
+                    onRemove={() => {
+                      setTimers((ts) => ts.filter((t) => t.bedId !== row.bed.id));
+                      setBeds((bs) => bs.filter((b) => b.id !== row.bed.id));
+                    }}
                   />
                 </div>
               ))}
@@ -438,11 +611,45 @@ export function App() {
                 </button>
               ))}
             </div>
+            <Weather s={recent} units={units} />
+            <WaterChart
+              rows={rows}
+              row={selected}
+              onSelect={setChartBedId}
+              range={chartRange}
+              onRange={setChartRange}
+              chart={chart}
+              longState={longState}
+              onRetry={hist.retry}
+              place={place}
+              units={units}
+              sectionRef={chartRef}
+              climate={normals ? null : climate}
+            />
+            <Climate
+              normals={normals}
+              state={wx.sample ? 'ready' : norm.status}
+              onRetry={norm.retry}
+              thisYear={thisYear}
+              today={today}
+              units={units}
+              place={place}
+            />
             <HowItWorks open={showHow} onToggle={() => setShowHow((v) => !v)} day={days[T]} units={units} sample={wx.sample} />
           </>
         )}
         <Footer onBackup={backup} onRestore={restore} onReset={reset} canSave={env.canSave} />
       </main>
+      <TimerBar timers={timers} beds={beds} now={tick} onJump={jumpTo} onStop={(id) => {
+        const t = timers.find((x) => x.bedId === id);
+        if (t) finishTimer(t, 'stop');
+      }} />
+      {toast && (
+        <div class="toast" role="status">
+          {toast}
+        </div>
+      )}
+      <SoilDefs />
     </div>
   );
 }

@@ -4,13 +4,17 @@ A weather-aware watering, feeding, frost and heat plan for garden beds and pots,
 
 Open `rain-check.html` in any modern browser. Set your town (or use your location), add your beds and pots, and it tells you what needs water today, how much, and what's coming: frost, freezes and heat waves, with what to do for each bed. Everything is saved in your browser; use **Back up** at the bottom of the page to keep a copy.
 
-Weather comes from [Open-Meteo](https://open-meteo.com) (free, no account, CC BY 4.0): the last three months and the next ten days, plus three-plus years of history for the long charts and frost dates. Without a location it runs on sample weather, with sliders to try heat, humidity, wind, rain and cold snaps.
+Weather comes from [Open-Meteo](https://open-meteo.com) (free, no account, CC BY 4.0): the last three months and the next ten days hour by hour, three-plus years of daily history for the long charts, and 30 years of highs and lows for frost odds and normals. The long records are saved in the browser and refreshed every month or six months. Without a location it runs on sample weather, with sliders to try heat, humidity, wind, rain and cold snaps.
 
 ## What it does
 
 **Watering plan**
 - Each bed or pot is a bank account of water: plants draw it out each day, the rain that soaks in puts it back. When the account would fall below the gold refill line by the end of today, it's time to water, and the amount refills it.
-- The gauge on each card shows the water left **now**, with the rest of today's drying hatched above the fill, so the gauge and the advice always agree.
+- Each card's gauge is a **soil cutaway**: the soil drawn by its texture (gritty sand, layered clay, dark compost), the roots drawn to their real depth (a young tree's stop short of the soil below), water filled to what's left **now**, the rest of today's drying hatched, and the gold line where it's time to water. Pots are drawn as their real shape, material and plant spread.
+- **Minutes, not inches.** Pick how you water each bed (sprinkler, hose, soaker hose, drip or watering can) and the card says "run the sprinkler 25 minutes" or "2 cans", allowing for what's lost on the way (about a quarter for sprinklers). Measure your own sprinkler with a tuna can or your hose with a bucket. When a sprinkler outpaces the soil, it splits the run into cycles with half an hour to soak in between.
+- **A watering timer** on each card counts down, chimes between cycles, and logs the watering when it finishes. Stop it early and only what ran is logged.
+- **This week**: every bed and pot across the next seven days, as if you follow the plan, with the water each ends the day with, waterings, rain that covers it, and frost or heat nights. Tap a day for the details.
+- **The sky now**: the sun's path from sunrise to sunset with how much of today's drying is done, the moon at night, clouds and rain from the hourly forecast, and frost on freezing nights.
 - Beds: plant type, seven soil textures, sun (including reflected heat from walls and paving), slope, mulch, area, and planting date.
 - Pots: size, mix, material (plastic, wood, terracotta, fabric), how far the plant spreads past the rim, shelter from rain, and how many pots are alike.
 - Quick "last watered" buttons for new beds, back-dated waterings and feedings, and a finger check that tunes each bed's drying rate to what you find.
@@ -26,14 +30,16 @@ Weather comes from [Open-Meteo](https://open-meteo.com) (free, no account, CC BY
 | 4 Extreme | Extreme cold: 10°F / −12°C, or once history loads, colder than 98% of local nights (and at least 20°F / −7°C) | Extreme heat wave |
 
 - Frost, freeze and hard freeze follow the US National Weather Service's frost advisory, freeze warning and hard freeze warning.
-- Night lows come from the hourly forecast. Warnings name the beds and pots at risk and what to do for each, flag the first frost of the season and late spring frosts, and say which dry beds to water before a hard freeze.
+- Night lows come from the hourly forecast. Each cold night is drawn **hour by hour**: how long it stays below 32°F and 28°F, the coldest hour, and when to cover and uncover plants.
+- Warnings name the beds and pots at risk and what to do for each, flag the first frost of the season and late spring frosts, and say which dry beds to water before a hard freeze.
+- With 30 years of records loaded, they say how unusual it is ("colder than 97% of early-October nights here") and how rare the timing is ("only 2 of the last 30 falls had a hard freeze this early").
 - Conditions that have become routine (the fifth hard freeze in a midwinter week) are shown as a quiet line instead of a new alarm. A colder night than recent ones still raises the full warning.
 - The seven-day outlook marks frost nights and hot days, and the chart has a strip of frost and heat days underneath.
 
-**History**
+**History and climate**
 - Soil water charts over 1 month, 3 months, 12 months or 3 years, with rain bars, the refill line, and frost and heat days. Tap or drag across the chart (or use the arrow keys) to read any day.
-- Frost dates from the local record: the range of last spring freezes and first fall freezes at 32°F and 28°F, and the length of the frost-free season.
 - Counts of hot days and freezing nights, and the hottest and coldest days, for any span.
+- **Your climate**, from 30 years of daily highs and lows: an estimated USDA hardiness zone; frost odds the way NOAA publishes them (the last spring freeze is past by Apr 12 in half of years and by Apr 27 in 9 of 10); the frost-free season; and a year chart of normal highs and lows, with this year drawn over it and the chance of a freezing night or a hot day for every date.
 
 **Everyday use**
 - Keeps the last forecast, so it still works offline and says how old the forecast is.
@@ -54,7 +60,13 @@ The method is the UN Food and Agriculture Organization's irrigation guide, FAO-5
 | Stress | Below the line plants close up and use less (FAO-56's Ks), so a dry spell drains the soil more and more slowly. |
 | Rain | Showers under a fifth of the day's ET₀ evaporate. Leaves catch the first 0.5 to 2 mm. Rain falling faster than the soil can take it in runs off, from the day's rain total and its hours of rain: clay takes about 4 mm an hour, loam 13, sand 30. Slopes shed more, mulch less. Forecast rain counts at its amount × its chance. |
 | Pots | The same account, sized by the pot's volume and mix. Water leaves through the whole plant but rain only enters the rim, so the plant factor grows with spread (up to 4.5×); porous walls and wind add loss; rain is cut for shelter and for leaves that shed it. |
-| Timing | Waterings are logged with the time of day; drying through the day follows the sun at your location. |
+| Timing | Waterings are logged with the time of day; drying through the day follows the sun at your location, using its sunrise, sunset and solar noon. |
+| How long to water | What soaks in ÷ efficiency (sprinkler 0.75, hose 0.85, soaker and drip 0.9, can 0.95), then by the sprinkler's rate, the hose's flow, the drip emitters, or the can size. |
+| Cycle and soak | A sprinkler faster than the soil's intake rate fills the surface dips and runs off after store ÷ (rate − intake) hours, so longer runs are split into runs no longer than that. |
+| Week plan | Follows the bank through the forecast, watering each morning a bed would otherwise end below the line, and not when it's below 40°F. |
+| Frost odds | From the last 30 frost seasons: for each, the last spring and first fall night at or below 32°F and 28°F. The 50% date is the middle year; the 10% and 90% dates are the one-in-ten years. |
+| Hardiness zone | The average of each winter's coldest night, in the USDA's 10°F zones split into a and b halves. Gridded records smooth out frost pockets, so it's an estimate. |
+| Normals | For each day of the year, the spread of highs and lows within a week either side over 30 years, used for "how unusual" and the year chart. |
 
 ## Building
 
@@ -63,16 +75,16 @@ The app is written as readable source and built into the single HTML file. Don't
 ```
 npm install
 npm run build   # writes rain-check.html
-npm test        # 47 tests: the FAO-56 checks, water bank, warnings, frost dates, data parsing
+npm test        # 66 tests: the FAO-56 checks, water bank, watering times, warnings, frost odds, data parsing
 ```
 
 The built file keeps the app code unminified, so it can still be read.
 
 | Path | Contents |
 | --- | --- |
-| `src/model/` | The math, with no browser code: `et0.js`, `solar.js` (sun and day length), `tables.js` (plants, soils, pots), `planting.js` (turns a bed into daily numbers), `waterBalance.js` (the bank and today's plan), `feeding.js`, `alerts.js` (frost and heat ladders), `climate.js` (frost dates, extremes), `summary.js` (recent weather, chart data) |
+| `src/model/` | The math, with no browser code: `et0.js`, `solar.js` (sun, day length, sunrise and sunset), `tables.js` (plants, soils, pots), `planting.js` (turns a bed into daily numbers), `waterBalance.js` (the bank, today's plan, the week plan), `watering.js` (methods, minutes, cans, cycle and soak), `feeding.js`, `thresholds.js` and `alerts.js` (frost and heat ladders, night detail), `climate.js` (frost seasons, extremes), `normals.js` (30-year frost odds, zone, normals), `summary.js` (recent weather, chart data) |
 | `src/data/` | `openMeteo.js` (requests and parsing), `store.js` (saving, offline forecast, backups, moving data over from version 1), `sample.js` (sample weather) |
-| `src/ui/` | Preact components: `App.jsx`, `BedCard.jsx`, `BedDetails.jsx`, `Gauge.jsx`, `Alerts.jsx`, `Weather.jsx`, `WaterChart.jsx`, `Panels.jsx`, and `text.js` for the wording |
+| `src/ui/` | Preact components: `App.jsx`, `Sky.jsx`, `Alerts.jsx` and `NightChart.jsx`, `WeekPlanner.jsx`, `BedCard.jsx` with `SoilGauge.jsx`, `Timer.jsx` and `BedDetails.jsx` (with `WaterMethod.jsx`), `Weather.jsx`, `WaterChart.jsx`, `Climate.jsx`, `Panels.jsx`; `text.js` holds the wording |
 | `src/lib/` | Dates and units |
 | `src/index.html`, `src/styles.css` | Page shell and styles |
 | `test/` | Node tests (`node --test`) |

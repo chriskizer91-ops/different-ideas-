@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { simulate, parseLog, dryDay } from '../src/model/waterBalance.js';
+import { simulate, parseLog, dryDay, planAhead } from '../src/model/waterBalance.js';
 import { bedModel, adjustP, dormancyFactor, establishment, checkTune } from '../src/model/planting.js';
 import { PLANTS } from '../src/model/tables.js';
 import { makeDays, bed, pot, near } from './helpers.mjs';
@@ -140,10 +140,60 @@ test('finger checks nudge the drying rate, within limits', () => {
   assert.equal(checkTune(Array(40).fill({ v: 1 })), 2);
 });
 
-test('the watering log keeps the latest time of each day', () => {
-  const m = parseLog(['2026-07-01', '2026-07-02T08:30', '2026-07-02T17:15']);
-  assert.equal(m.get('2026-07-01'), null);
-  assert.ok(near(m.get('2026-07-02'), 17.25, 1e-9));
+test('the watering log reads times, amounts and several waterings a day', () => {
+  const m = parseLog(['2026-07-01', '2026-07-02T17:15', '2026-07-02T08:30|6.5', 'junk']);
+  assert.deepEqual(m.get('2026-07-01'), [{ date: '2026-07-01', hour: null, mm: null }]);
+  const d2 = m.get('2026-07-02');
+  assert.equal(d2.length, 2);
+  assert.ok(near(d2[0].hour, 8.5, 1e-9));
+  assert.equal(d2[0].mm, 6.5);
+  assert.ok(near(d2[1].hour, 17.25, 1e-9));
+  assert.equal(d2[1].mm, null);
+});
+
+test('a watering cut short only puts back what went on', () => {
+  const days = makeDays(20);
+  const dry = simulate(bed({ waterLog: [days[10].date] }), days, 14, { hour: 6 });
+  const part = simulate(bed({ waterLog: [days[10].date, `${days[14].date}T06:00|5`] }), days, 14, { hour: 6 });
+  const full = simulate(bed({ waterLog: [days[10].date, `${days[14].date}T06:00`] }), days, 14, { hour: 6 });
+  assert.ok(near(part.Dnow, Math.max(0, dry.Dnow - 5), 0.2), `part ${part.Dnow} dry ${dry.Dnow}`);
+  assert.ok(full.Dnow < 0.5);
+  // not enough to carry it through the day, so it still needs finishing
+  assert.equal(part.status, 'water');
+  assert.equal(part.partial, true);
+  assert.equal(full.status, 'done');
+});
+
+test('a pot watered at dawn on a hot day says when it will need water again', () => {
+  const days = makeDays(10, { et0: 8, tmax: 36 });
+  const frac = (d, h) => Math.min(1, Math.max(0, (h - 6) / 13));
+  const p = pot({ potSize: 'xs', spread: 'big', waterLog: [`${days[5].date}T06:30`] });
+  const morning = simulate(p, days, 5, { hour: 7, fracOf: frac });
+  assert.equal(morning.status, 'done');
+  assert.ok(morning.againAt > 9 && morning.againAt < 19, `again at ${morning.againAt}`);
+  const later = simulate(p, days, 5, { hour: 18, fracOf: frac });
+  assert.equal(later.status, 'water');
+  assert.equal(later.again, true);
+});
+
+test('the week plan waters on schedule and the bank stays above empty', () => {
+  const days = makeDays(30, { et0: 6 });
+  const sim = simulate(bed({ waterLog: [days[18].date] }), days, 20, { hour: 7 });
+  const week = planAhead(sim, days, 20);
+  assert.equal(week.length, 7);
+  const waters = week.filter((d) => d.action === 'water');
+  assert.ok(waters.length >= 2, `waterings ${waters.length}`);
+  for (const d of week) assert.ok(d.moisture > 0);
+  // a rainy week needs less
+  const wet = makeDays(30, { et0: 6 }, { 22: { rain: 25, rainHours: 5, prob: 90 }, 25: { rain: 25, rainHours: 5, prob: 90 } });
+  const wetWeek = planAhead(simulate(bed({ waterLog: [days[18].date] }), wet, 20, { hour: 7 }), wet, 20);
+  assert.ok(wetWeek.filter((d) => d.action === 'water').length < waters.length);
+});
+
+test('a pot under cover gets no rain in the week plan', () => {
+  const days = makeDays(30, { et0: 4 }, { 22: { rain: 25, rainHours: 5, prob: 90 } });
+  const covered = planAhead(simulate(pot({ rainIn: 'covered' }), days, 20), days, 20);
+  assert.equal(covered[2].rainIn, 0);
 });
 
 test('one dry day never overshoots the bank', () => {

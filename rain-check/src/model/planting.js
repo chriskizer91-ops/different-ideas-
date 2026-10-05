@@ -81,6 +81,7 @@ function groundModel(bed) {
     mulched,
     tune,
     intake,
+    store,
     areaM2: Math.max(0.01, Number(bed.areaM2) || 0),
     growth,
     rootMm,

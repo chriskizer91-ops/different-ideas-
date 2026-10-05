@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { useWidth } from './hooks.js';
 import { LoaderCircle, iconFor } from './icons.js';
 import { Segmented } from './controls.jsx';
 import { fmt } from '../lib/units.js';
@@ -6,21 +7,6 @@ import { monthDay, monthDayYear, monthName } from '../lib/dates.js';
 import { RANGES } from '../model/summary.js';
 import { COLD_AT, HEAT_AT } from '../model/alerts.js';
 import { isPot } from '../model/tables.js';
-
-function useWidth() {
-  const ref = useRef(null);
-  const [w, setW] = useState(340);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    setW(el.clientWidth || 340);
-    if (typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver((entries) => setW(Math.round(entries[0].contentRect.width)));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  return [ref, w];
-}
 
 const tickLabel = (d, key) =>
   key === '1m' ? `${+d.slice(5, 7)}/${+d.slice(8, 10)}` : d.slice(5, 7) === '01' ? `${monthName(d)} ’${d.slice(2, 4)}` : monthName(d);

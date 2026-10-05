@@ -15,8 +15,11 @@ const DAILY = [
   'precipitation_probability_max',
   'et0_fao_evapotranspiration',
   'shortwave_radiation_sum',
+  'sunrise',
+  'sunset',
 ];
-const HOURLY = ['temperature_2m', 'relative_humidity_2m', 'wind_speed_10m', 'cloud_cover'];
+const HOURLY = ['temperature_2m', 'relative_humidity_2m', 'wind_speed_10m', 'cloud_cover', 'precipitation'];
+const RECENT_DAYS = 13; // hour-by-hour detail is kept for the last few days and the forecast
 const ARCHIVE_DAILY = ['temperature_2m_max', 'temperature_2m_min', 'precipitation_sum', 'precipitation_hours', 'et0_fao_evapotranspiration'];
 
 export const forecastUrl = (lat, lon) =>
@@ -54,10 +57,17 @@ export async function searchPlaces(name) {
 
 const pick = (obj, key, i) => (obj[key] && obj[key][i] != null ? obj[key][i] : null);
 
-// Hourly readings grouped by day (humidity range, mean wind) and by night
-// (lowest temperature from 6 pm to 9 am, and whether the sky stays clear and calm).
+const r1 = (x) => (x == null ? null : Math.round(x * 10) / 10);
+
+// "2026-10-05T07:02" -> 7.03
+export const clockHour = (iso) => (typeof iso === 'string' && iso.length >= 16 ? +iso.slice(11, 13) + +iso.slice(14, 16) / 60 : null);
+
+// Hourly readings grouped by day (humidity range, mean wind, and the hours
+// themselves) and by night: 6 pm to 10 am, with the low (to 9 am) and whether
+// the small hours stay clear and calm, when frost forms.
 function hourlyByDay(hourly) {
   const byDay = {};
+  const hours = {};
   const byNight = {};
   const times = hourly.time || [];
   times.forEach((t, i) => {
@@ -67,19 +77,27 @@ function hourlyByDay(hourly) {
     const w = pick(hourly, 'wind_speed_10m', i);
     const temp = pick(hourly, 'temperature_2m', i);
     const cloud = pick(hourly, 'cloud_cover', i);
+    const precip = pick(hourly, 'precipitation', i);
     const d = (byDay[date] = byDay[date] || { rhMin: null, rhMax: null, wSum: 0, wN: 0 });
     if (rh != null) {
       d.rhMin = d.rhMin == null ? rh : Math.min(d.rhMin, rh);
       d.rhMax = d.rhMax == null ? rh : Math.max(d.rhMax, rh);
     }
     if (w != null) (d.wSum += w), d.wN++;
-    // the night that starts on the evening of `night`
-    const night = h >= 18 ? date : h <= 9 ? addDays(date, -1) : null;
+    const hd = (hours[date] = hours[date] || { t: Array(24).fill(null), p: Array(24).fill(null), c: Array(24).fill(null) });
+    hd.t[h] = r1(temp);
+    hd.p[h] = r1(precip);
+    hd.c[h] = cloud;
+    // the night that starts on the evening of `night`: index 0 is 6 pm, 16 is 10 am
+    const night = h >= 18 ? date : h <= 10 ? addDays(date, -1) : null;
     if (night && temp != null) {
-      const n = (byNight[night] = byNight[night] || { low: null, hours: 0, cloudSum: 0, cloudN: 0, windSum: 0, windN: 0 });
-      n.low = n.low == null ? temp : Math.min(n.low, temp);
-      n.hours++;
-      // clear-and-calm is judged over the small hours, when frost forms
+      const k = h >= 18 ? h - 18 : h + 6;
+      const n = (byNight[night] = byNight[night] || { low: null, hours: 0, temps: Array(17).fill(null), cloudSum: 0, cloudN: 0, windSum: 0, windN: 0 });
+      n.temps[k] = r1(temp);
+      if (k <= 15) {
+        n.low = n.low == null ? temp : Math.min(n.low, temp);
+        n.hours++;
+      }
       if (h >= 21 || h <= 6) {
         if (cloud != null) (n.cloudSum += cloud), n.cloudN++;
         if (w != null) (n.windSum += w), n.windN++;
@@ -91,15 +109,15 @@ function hourlyByDay(hourly) {
     if (n.hours < 12) continue; // the first and last nights are cut off
     const cloud = n.cloudN ? n.cloudSum / n.cloudN : 100;
     const wind = n.windN ? windAt2m(n.windSum / n.windN) : 5;
-    nights[date] = { low: n.low, clearCalm: cloud < 30 && wind < 1.5 };
+    nights[date] = { low: n.low, clearCalm: cloud < 30 && wind < 1.5, temps: n.temps };
   }
-  return { byDay, nights };
+  return { byDay, nights, hours };
 }
 
 export function parseForecast(json, lat) {
   const daily = json.daily || {};
   const elev = json.elevation != null ? json.elevation : 0;
-  const { byDay, nights } = hourlyByDay(json.hourly || {});
+  const { byDay, nights, hours } = hourlyByDay(json.hourly || {});
   const days = (daily.time || []).map((date, i) => {
     const h = byDay[date] || { rhMin: null, rhMax: null, wN: 0 };
     const tmax = pick(daily, 'temperature_2m_max', i);
@@ -127,9 +145,16 @@ export function parseForecast(json, lat) {
       u2,
       rhMin: h.rhMin,
       rhMax: h.rhMax,
+      sunrise: clockHour(pick(daily, 'sunrise', i)),
+      sunset: clockHour(pick(daily, 'sunset', i)),
     };
   });
-  return { days, nights, offsetSeconds: json.utc_offset_seconds || 0, elevation: elev, timezone: json.timezone || null };
+  // Keep hour-by-hour detail only for recent days and the forecast, to keep the saved copy small.
+  const recent = new Set(days.slice(-RECENT_DAYS).map((d) => d.date));
+  const keptHours = {};
+  for (const d of Object.keys(hours)) if (recent.has(d)) keptHours[d] = hours[d];
+  for (const [d, n] of Object.entries(nights)) if (!recent.has(d)) delete n.temps;
+  return { days, nights, hours: keptHours, offsetSeconds: json.utc_offset_seconds || 0, elevation: elev, timezone: json.timezone || null };
 }
 
 // The archive, packed small for saving: one array per field, one decimal.
@@ -179,4 +204,21 @@ export function joinHistory(history, forecastDays) {
   const before = history.filter((d) => d.date < first);
   if (!before.length || addDays(before[before.length - 1].date, 1) !== first) return null;
   return before.concat(forecastDays);
+}
+
+// ---- 30 years of daily highs and lows, for climate normals ----
+export const normalsUrl = (lat, lon, start, end) =>
+  `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}` +
+  `&start_date=${start}&end_date=${end}&daily=temperature_2m_max,temperature_2m_min&timezone=auto`;
+
+export function packNormals(json, key, fetchedOn) {
+  const d = json.daily || {};
+  const time = d.time || [];
+  if (!time.length) return null;
+  const col = (k) => time.map((_, i) => r1(pick(d, k, i)));
+  return { key, fetchedOn, start: time[0], end: time[time.length - 1], tmax: col('temperature_2m_max'), tmin: col('temperature_2m_min') };
+}
+
+export function unpackNormals(p) {
+  return p.tmax.map((tmax, i) => ({ date: addDays(p.start, i), tmax, tmin: p.tmin[i] }));
 }

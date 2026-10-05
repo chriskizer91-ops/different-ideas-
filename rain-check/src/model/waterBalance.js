@@ -9,16 +9,29 @@ export const COLD_WATER_C = 4.5; // 40°F: below this high, soil may be frozen a
 
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 
-// Watering log entries are 'YYYY-MM-DD' (assume early morning) or
-// 'YYYY-MM-DDTHH:MM' (logged at that time of day). Keeps the last one per day.
+// Watering log entries:
+//   'YYYY-MM-DD'             a full watering, early that morning
+//   'YYYY-MM-DDTHH:MM'       a full watering at that time
+//   'YYYY-MM-DDTHH:MM|12.5'  12.5 mm soaked in at that time (a watering cut short)
+export function parseEntry(e) {
+  if (typeof e !== 'string' || e.length < 10) return null;
+  const [stamp, amt] = e.split('|');
+  const date = stamp.slice(0, 10);
+  const hour = stamp.length >= 16 ? +stamp.slice(11, 13) + +stamp.slice(14, 16) / 60 : null;
+  const mm = amt != null && amt !== '' && Number.isFinite(+amt) ? Math.max(0, +amt) : null;
+  return { date, hour: Number.isFinite(hour) ? hour : null, mm };
+}
+
+// Waterings grouped by day, each day's in time order.
 export function parseLog(entries) {
   const m = new Map();
   for (const e of entries || []) {
-    if (typeof e !== 'string' || e.length < 10) continue;
-    const date = e.slice(0, 10);
-    const hour = e.length >= 16 ? +e.slice(11, 13) + +e.slice(14, 16) / 60 : null;
-    if (!m.has(date) || (hour ?? 0) > (m.get(date) ?? 0)) m.set(date, hour);
+    const w = parseEntry(e);
+    if (!w) continue;
+    if (!m.has(w.date)) m.set(w.date, []);
+    m.get(w.date).push(w);
   }
+  for (const list of m.values()) list.sort((a, b) => (a.hour ?? 0) - (b.hour ?? 0));
   return m;
 }
 
@@ -42,7 +55,7 @@ export function rollingT7(days) {
   return out;
 }
 
-// One day without watering: rain first, then drying in small steps so a pot
+// Drying without watering: rain first, then drying in small steps so a pot
 // that can empty in a day slows down properly as it gets dry.
 export function dryDay(D, etc, rainIn, taw, raw) {
   D = Math.max(0, D - rainIn);
@@ -54,6 +67,30 @@ export function dryDay(D, etc, rainIn, taw, raw) {
     D = Math.min(taw, D + (ks * etc) / n);
   }
   return D;
+}
+
+/**
+ * One day, with any waterings at their times. The day's rain and drying are
+ * spread over it in step with the sun.
+ *   day     { etc, rainIn, taw, raw }
+ *   events  [{ f, mm }]: f is the share of the day's drying done when the
+ *           water went on; mm is how much soaked in, or null for a full soak
+ *   until   stop part-way through the day (0 to 1)
+ */
+export function runDay(D, day, events = [], until = 1) {
+  let at = 0;
+  const to = (f) => {
+    const share = Math.max(0, f - at);
+    if (share > 0) D = dryDay(D, day.etc * share, day.rainIn * share, day.taw, day.raw);
+    at = Math.max(at, f);
+  };
+  for (const ev of events) {
+    if (ev.f > until) break;
+    to(ev.f);
+    D = ev.mm == null ? 0 : Math.max(0, D - ev.mm);
+  }
+  to(until);
+  return Math.min(D, day.taw);
 }
 
 const defaultFrac = (date, hour) => clamp((hour - 6) / 13, 0, 1);
@@ -72,6 +109,7 @@ export function simulate(bed, days, todayIdx, { hour = 12, fracOf = defaultFrac,
   const n = days.length;
   const series = new Array(n);
   let D = 0; // the bank starts full: the oldest day shown is assumed soaked
+  const eventsOn = (date) => (log.get(date) || []).map((w) => ({ f: w.hour == null ? 0 : fracOf(date, w.hour), mm: w.mm, hour: w.hour }));
 
   for (let i = 0; i < n; i++) {
     const day = days[i];
@@ -89,16 +127,8 @@ export function simulate(bed, days, todayIdx, { hour = 12, fracOf = defaultFrac,
     const r = m.rain(day.rain || 0, day.rainHours, et0);
     const rainIn = r.eff * chance;
     const Dstart = D;
-    const watered = i <= todayIdx && log.has(date);
-    if (watered) {
-      // Drying before the watering is wiped out by it; the rest of the day
-      // dries the refilled soil.
-      const h = log.get(date);
-      const left = 1 - (h == null ? 0 : fracOf(date, h));
-      D = clamp(left * (etc - rainIn), 0, taw);
-    } else {
-      D = dryDay(D, etc, rainIn, taw, raw);
-    }
+    const events = i <= todayIdx ? eventsOn(date) : [];
+    D = runDay(D, { etc, rainIn, taw, raw }, events);
     series[i] = {
       date,
       Dstart,
@@ -116,30 +146,24 @@ export function simulate(bed, days, todayIdx, { hour = 12, fracOf = defaultFrac,
       moisture: 100 * (1 - D / taw),
       refillAt: 100 * (1 - p),
       forecast: i > todayIdx,
-      watered,
+      watered: events.length > 0,
     };
   }
 
-  return { model: m, series, ...todayPlan(m, bed, days, todayIdx, series, log, { hour, fracOf, horizon, t7 }) };
+  const plan = todayPlan(m, days, todayIdx, series, eventsOn(days[todayIdx].date), { hour, fracOf, horizon, t7 });
+  return { model: m, series, ...plan };
 }
 
-function todayPlan(m, bed, days, T, series, log, { hour, fracOf, horizon, t7 }) {
+function todayPlan(m, days, T, series, events, { hour, fracOf, horizon, t7 }) {
   const n = days.length;
   const s = series[T];
   const date = days[T].date;
-  const watered = log.has(date);
-  const wHour = watered ? log.get(date) : null;
+  const watered = events.length > 0;
   const nowFrac = fracOf(date, hour);
+  const day = { etc: s.etc, rainIn: s.rainIn, taw: s.taw, raw: s.raw };
 
-  // Where the bank ends today if nothing is watered.
-  const DendDry = watered ? dryDay(s.Dstart, s.etc, s.rainIn, s.taw, s.raw) : s.D;
-  let Dnow;
-  if (watered) {
-    const f = wHour == null ? 0 : fracOf(date, wHour);
-    Dnow = nowFrac <= f ? 0 : (s.D * (nowFrac - f)) / Math.max(1e-6, 1 - f);
-  } else {
-    Dnow = s.Dstart + nowFrac * (s.D - s.Dstart);
-  }
+  const DendDry = runDay(s.Dstart, day, [], 1); // if nothing had been watered today
+  const Dnow = runDay(s.Dstart, day, events, nowFrac);
 
   // Rain likely by tomorrow (at least an even chance), as it would soak in.
   let rainSoon = 0;
@@ -157,20 +181,33 @@ function todayPlan(m, bed, days, T, series, log, { hour, fracOf, horizon, t7 }) 
     for (let i = from; i <= last; i++) if (days[i].tmax == null || days[i].tmax >= COLD_WATER_C) return i;
     return null;
   };
+  const cold = days[T].tmax != null && days[T].tmax < COLD_WATER_C;
+  // A watering cut short that leaves the bed due again today still needs finishing.
+  const partial = watered && events[events.length - 1].mm != null;
 
   let status;
   let dueIdx = null;
   let amountMm = 0;
-  if (watered) {
+  let againAt = null;
+  if (watered && Dnow < s.raw && !(partial && s.D >= s.raw)) {
     status = 'done';
-    dueIdx = firstDue(T + 1);
+    // A pot on a hot day can be back below the line before evening.
+    if (s.D >= s.raw) {
+      for (let h = Math.ceil(hour * 4) / 4; h <= 24; h += 0.25) {
+        if (runDay(s.Dstart, day, events, fracOf(date, h)) >= s.raw) {
+          againAt = h;
+          break;
+        }
+      }
+    }
+    dueIdx = againAt != null ? null : firstDue(T + 1);
     amountMm = dueIdx != null ? series[dueIdx].Dstart : 0;
-  } else if (DendDry >= s.raw) {
+  } else if (watered || DendDry >= s.raw) {
     amountMm = Dnow;
     const next = series[T + 1] || s;
     const tomorrowDry = DendDry + next.etc < 0.85 * s.taw;
-    if (rainSoon >= 0.6 * DendDry && tomorrowDry) status = 'wait';
-    else if (days[T].tmax != null && days[T].tmax < COLD_WATER_C) {
+    if (!watered && rainSoon >= 0.6 * DendDry && tomorrowDry) status = 'wait';
+    else if (cold) {
       status = 'cold';
       dueIdx = warmDay(T + 1);
     } else {
@@ -185,13 +222,15 @@ function todayPlan(m, bed, days, T, series, log, { hour, fracOf, horizon, t7 }) 
 
   // Most recent soaking rain, for showing how much of it counted.
   let lastRain = null;
-  for (let i = T; i >= 0; i--) {
-    if (series[i].rain >= 2.5 && !series[i].forecast && i < T) {
+  for (let i = T - 1; i >= 0; i--) {
+    if (series[i].rain >= 2.5) {
       lastRain = { date: series[i].date, rain: series[i].rain, soaked: series[i].rainIn, runoff: series[i].runoff, lost: series[i].lost };
       break;
     }
   }
 
+  const Dend = watered ? s.D : DendDry;
+  const lastWatering = watered ? events[events.length - 1] : null;
   return {
     status,
     dueIdx,
@@ -207,20 +246,77 @@ function todayPlan(m, bed, days, T, series, log, { hour, fracOf, horizon, t7 }) 
     etcToday: s.etc,
     growth: m.growth(date),
     dormancy: m.dormancy(t7[T]),
+    nowFrac,
     Dstart: s.Dstart,
     Dnow,
-    Dend: watered ? s.D : DendDry,
+    Dend,
     moistureNow: 100 * (1 - Dnow / s.taw),
-    moistureTonight: 100 * (1 - (watered ? s.D : DendDry) / s.taw),
+    moistureTonight: 100 * (1 - Dend / s.taw),
     // Dropping below the line later today rather than already there.
-    crossesLater: !watered && status === 'water' && Dnow < s.raw,
-    veryDry: !watered && Dnow >= s.raw + 0.5 * (s.taw - s.raw),
+    crossesLater: status === 'water' && Dnow < s.raw,
+    veryDry: Dnow >= s.raw + 0.5 * (s.taw - s.raw),
     // A pot watered at dawn would be back below the line by mid-afternoon.
     twice: m.pot && 0.75 * s.etc >= s.raw,
     wateredToday: watered,
-    wateredAt: wHour,
+    waterings: events.length,
+    again: watered && status === 'water',
+    partial: watered && status === 'water' && partial,
+    againAt,
+    wateredAt: lastWatering ? lastWatering.hour : null,
     lastRain,
   };
+}
+
+/**
+ * The week ahead if you follow the plan: water each morning the bed would
+ * otherwise end the day below the line (unless it's too cold), and see how
+ * the bank rises and falls.
+ */
+export function planAhead(sim, days, T, { horizon = HORIZON } = {}) {
+  const s = sim.series;
+  const out = [];
+  let D = s[T].Dstart;
+  for (let k = 0; k < horizon && T + k < days.length; k++) {
+    const i = T + k;
+    const p = s[i];
+    const day = { etc: p.etc, rainIn: p.rainIn, taw: p.taw, raw: p.raw };
+    const tmax = days[i].tmax;
+    let action = null;
+    let amountMm = 0;
+    if (k === 0) {
+      if (sim.status === 'water') {
+        action = sim.again ? 'again' : 'water';
+        amountMm = sim.amountMm;
+        D = runDay(0, day, [], 1 - sim.nowFrac); // watered now; the rest of today still dries it
+      } else {
+        action = sim.status === 'done' ? 'done' : sim.status === 'wait' ? 'wait' : sim.status === 'cold' ? 'cold' : null;
+        D = sim.Dend;
+      }
+    } else {
+      const dry = runDay(D, day);
+      if (dry >= p.raw) {
+        if (tmax != null && tmax < COLD_WATER_C) {
+          action = 'cold';
+          D = dry;
+        } else {
+          action = 'water';
+          amountMm = D;
+          D = runDay(0, day);
+        }
+      } else D = dry;
+    }
+    out.push({
+      date: days[i].date,
+      i,
+      action,
+      amountMm,
+      moisture: 100 * (1 - D / p.taw),
+      refillAt: p.refillAt,
+      rainIn: p.rainIn,
+      rain: p.rain,
+    });
+  }
+  return out;
 }
 
 // Stretches of days below the refill line, for the chart summary.

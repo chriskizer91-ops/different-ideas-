@@ -19,11 +19,10 @@
 
 import { daysBetween, monthOf } from '../lib/dates.js';
 import { isPot, plantOf } from './tables.js';
+import { COLD_AT, HEAT_AT, SEVERITY } from './thresholds.js';
+import { colderThan, hotterThan, freezeTiming } from './normals.js';
 
-export const SEVERITY = ['', 'Advisory', 'Warning', 'Severe', 'Extreme'];
-
-export const COLD_AT = { frost: 2, frostClearCalm: 3.5, freeze: 0, hard: -2.2, extreme: -12.2, extremeFloor: -6.7 };
-export const HEAT_AT = { hot: 32.2, veryHot: 35, extreme: 37.8 };
+export { COLD_AT, HEAT_AT, SEVERITY };
 
 const COLD_NAMES = ['', 'Frost', 'Freeze', 'Hard freeze', 'Extreme cold'];
 const HEAT_NAMES = ['', 'Hot', 'Very hot', 'Extreme heat', 'Extreme heat'];
@@ -114,7 +113,7 @@ const HEAT_ACTIONS = [
 ];
 
 // Which of the user's beds and pots a warning touches, and what to do for each.
-function coldRisk(bed, level, sim) {
+export function coldRisk(bed, level, sim) {
   const plant = plantOf(bed);
   const young = sim && sim.growth < 1;
   if (isPot(bed)) {
@@ -134,7 +133,7 @@ function coldRisk(bed, level, sim) {
   return null;
 }
 
-function heatRisk(bed, level, sim) {
+export function heatRisk(bed, level, sim) {
   const young = sim && sim.growth < 1;
   if (isPot(bed)) return level >= 2 ? 'Check it morning and afternoon; move it into afternoon shade.' : 'It will dry fast. Check it in the afternoon.';
   if (bed.plant === 'veg' || bed.plant === 'flowers') return level >= 2 ? 'Water at dawn and shade it in the afternoon if you can.' : 'Water early in the day.';
@@ -144,6 +143,48 @@ function heatRisk(bed, level, sim) {
   return null;
 }
 
+// When a night is at or below a temperature, from hourly readings that start at
+// 6 pm (index 0) and run to 10 am (index 16). Hours past 24 are the next morning.
+function span(temps, c) {
+  let from = null;
+  let to = null;
+  let hours = 0;
+  temps.forEach((t, k) => {
+    if (t != null && k <= 15 && t <= c) {
+      if (from == null) from = 18 + k;
+      to = 18 + k + 1;
+      hours++;
+    }
+  });
+  return hours ? { from, to, hours } : null;
+}
+
+// Hour by hour through one night: the coldest hour, how long it stays at
+// frost, freeze and hard-freeze levels, and when it's warm enough to uncover.
+export function nightDetail(temps) {
+  if (!temps || temps.filter((t) => t != null).length < 10) return null;
+  let min = null;
+  let minHour = null;
+  temps.forEach((t, k) => {
+    if (t != null && k <= 15 && (min == null || t < min)) (min = t), (minHour = 18 + k);
+  });
+  let uncover = null;
+  for (let k = minHour - 18 + 1; k < temps.length; k++)
+    if (temps[k] != null && temps[k] > COLD_AT.frost) {
+      uncover = 18 + k;
+      break;
+    }
+  return {
+    temps,
+    min,
+    minHour,
+    frost: span(temps, COLD_AT.frost),
+    freeze: span(temps, COLD_AT.freeze),
+    hard: span(temps, COLD_AT.hard),
+    uncover,
+  };
+}
+
 /**
  * Builds the warnings for the week ahead.
  *   days, todayIdx  the daily weather, past and forecast
@@ -151,8 +192,9 @@ function heatRisk(bed, level, sim) {
  *   hour            clock hour at the garden
  *   climate         { p02Low } from the 3-year record, optional
  *   rows            [{ bed, sim }] for naming the beds and pots at risk
+ *   normals         30-year normals, optional, for how unusual and how early or late
  */
-export function buildAlerts({ days, todayIdx, nights = {}, hour = 12, climate = null, rows = [], lat = 40 }) {
+export function buildAlerts({ days, todayIdx, nights = {}, hour = 12, climate = null, rows = [], lat = 40, normals = null }) {
   const L = levelsByDay(days, nights, climate);
   const T = todayIdx;
   const last = Math.min(days.length - 1, T + 6);
@@ -164,7 +206,18 @@ export function buildAlerts({ days, todayIdx, nights = {}, hour = 12, climate = 
   for (let i = T; i <= last; i++) {
     if (!L.cold[i]) continue;
     const n = nightLow(days, nights, i);
-    if (n) coldDays.push({ i, date: days[i].date, level: L.cold[i], value: n.low, clearCalm: n.clearCalm });
+    if (!n) continue;
+    const night = nights[days[i].date];
+    coldDays.push({
+      i,
+      date: days[i].date,
+      level: L.cold[i],
+      value: n.low,
+      clearCalm: n.clearCalm,
+      detail: night && night.temps ? nightDetail(night.temps) : null,
+      // the night's low is the next morning's minimum
+      colder: normals && days[i + 1] ? colderThan(normals.daily, days[i + 1].date, n.low) : null,
+    });
   }
   if (coldDays.length) {
     const peak = coldDays.reduce((a, b) => (b.level > a.level || (b.level === a.level && b.value < a.value) ? b : a));
@@ -192,6 +245,11 @@ export function buildAlerts({ days, todayIdx, nights = {}, hour = 12, climate = 
       late,
       peak,
       days: coldDays,
+      // How often a freeze this early in the fall, or this late in the spring, happened before.
+      timing:
+        normals && peak.level >= 2
+          ? freezeTiming(peak.level >= 3 ? normals.hard : normals.freeze, days[peak.i + 1] ? days[peak.i + 1].date : peak.date, lat)
+          : null,
       extremeAt: L.extremeAt,
       action: COLD_ACTIONS[peak.level],
       atRisk: risks(rows, (bed, sim) => coldRisk(bed, peak.level, sim)),
@@ -207,7 +265,14 @@ export function buildAlerts({ days, todayIdx, nights = {}, hour = 12, climate = 
   const heatDays = [];
   for (let i = hour >= 16 ? T + 1 : T; i <= last; i++) {
     if (!L.heat[i]) continue;
-    heatDays.push({ i, date: days[i].date, level: L.heat[i], value: days[i].tmax, wave: L.wave[i] });
+    heatDays.push({
+      i,
+      date: days[i].date,
+      level: L.heat[i],
+      value: days[i].tmax,
+      wave: L.wave[i],
+      hotter: normals ? hotterThan(normals.daily, days[i].date, days[i].tmax) : null,
+    });
   }
   if (heatDays.length) {
     const peak = heatDays.reduce((a, b) => (b.level > a.level || (b.level === a.level && b.value > a.value) ? b : a));
