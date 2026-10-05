@@ -114,7 +114,10 @@ textarea{width:100%;resize:vertical;display:block;margin-bottom:8px}
 #brushRow{display:flex;align-items:center;gap:10px;padding:6px 12px 0;font-size:13px}
 #brushRow input{flex:1;accent-color:var(--ink);height:28px;margin:0}
 #brushRow output{min-width:1.5ch;text-align:right;font-weight:700}
-#brushRow[hidden]{display:none}
+#brushRow[hidden],.slideRow[hidden]{display:none}
+.slideRow{display:flex;align-items:center;gap:10px;padding:6px 12px 0;font-size:13px}
+.slideRow input{flex:1;accent-color:var(--ink);height:28px;margin:0}
+.slideRow output{min-width:5ch;text-align:right;font-weight:700}
 #tools{display:flex;gap:6px;overflow-x:auto;padding:8px 8px 10px;scrollbar-width:none;touch-action:pan-x}
 #tools::-webkit-scrollbar{display:none}
 .tool{flex:0 0 auto;min-width:62px;height:58px;padding:4px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:var(--panel-2);border:2px solid var(--ink);box-shadow:0 3px 0 var(--shadow);font-size:12px;white-space:nowrap}

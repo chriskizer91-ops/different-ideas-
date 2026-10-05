@@ -39,7 +39,7 @@ function terraBrush(tx,ty,fn){
 function raiseLand(tx,ty,dir){
   terraBrush(tx,ty,(i,f)=>{
     const t=tile[i];
-    let step=dir*Math.max(1,Math.round(6*f));
+    let step=dir*Math.max(1,Math.round(6*f*sculptStr/5));
     if(dir>0&&t<=WATER&&elev[i]+step<SL&&f>.5)step=Math.max(step,SL-elev[i]);
     elev[i]=Math.max(4,Math.min(255,elev[i]+step));
     reclass(i,false);
@@ -109,10 +109,12 @@ function makeRiver(tx,ty){
 /* the oceans rise or fall a step at a time */
 function seaStep(){
   if(SL===seaGoal)return;
-  SL+=SL<seaGoal?1:-1;
+  const up=SL<seaGoal;SL+=up?1:-1;
+  /* only the shore line at the old and new level changes; inland lakes keep their water */
+  const edgeE=up?SL-1:SL;
   for(let i=0;i<N;i++){
-    const t=tile[i],wet=t<=WATER,low=elev[i]<SL;
-    if(wet!==low)reclass(i,false);
+    const t=tile[i],wet=t<=WATER;
+    if(elev[i]===edgeE&&(up?!wet:wet))reclass(i,false);
     else if(wet&&t===WATER&&elev[i]<SL-30){tile[i]=DEEP;touch(i);}
     else if(wet&&t===DEEP&&elev[i]>=SL-30){tile[i]=WATER;touch(i);}
   }
@@ -149,3 +151,156 @@ function stormsStep(){
   storms.length=w;
 }
 function stormAmt(s){return Math.min(1,s.t/120,(s.life-s.t)/120);}
+/* ---------- reading the land: heights in metres, peaks, the readout ---------- */
+/* heights in metres: plains up to 900 m, hills to 2,200, mountains to 4,200, peaks to 8,000 */
+function metres(e){
+  const d=e-SL;if(d<0)return-Math.round(-d*60/10)*10;
+  const m=d<58?d/58*900:d<88?900+(d-58)/30*1300:d<118?2200+(d-88)/30*2000:4200+(d-118)/37*3800;
+  return Math.round(m/10)*10;
+}
+function fmtM(m){return(m<0?'-':'')+Math.abs(m).toLocaleString('en-US')+' m';}
+let spotCache={t:0,list:[]};
+function drawSpotHeights(ox,oy,z,x0,y0,x1,y1){
+  const t=now();
+  if(t-spotCache.t>700){
+    const cell=Math.max(8,Math.round(90/Math.max(1,cam.z))),list=[];
+    const xa=Math.max(1,x0|0),ya=Math.max(1,y0|0),xb=Math.min(W-2,x1|0),yb=Math.min(H-2,y1|0);
+    for(let cy=ya;cy<yb;cy+=cell)for(let cx=xa;cx<xb;cx+=cell){
+      let bi=-1,be=-1;
+      for(let y=cy;y<Math.min(yb,cy+cell);y++)for(let x=cx;x<Math.min(xb,cx+cell);x++){const i=y*W+x;if(elev[i]>be){be=elev[i];bi=i;}}
+      if(bi<0||be-SL<25)continue;
+      const bx=bi%W,by=(bi/W)|0;let top=true;
+      for(let dy=-2;dy<=2&&top;dy++)for(let dx=-2;dx<=2;dx++){const x=bx+dx,y=by+dy;if(inB(x,y)&&elev[y*W+x]>be){top=false;break;}}
+      if(top)list.push([bx,by,be]);
+    }
+    list.sort((a,b)=>b[2]-a[2]);list.length=Math.min(list.length,30);
+    spotCache={t,list};
+  }
+  ctx.textAlign='left';ctx.textBaseline='middle';ctx.font='600 '+Math.round(11*dpr)+'px '+FONT;
+  for(const[x,y,e]of spotCache.list){
+    const px=ox+(x+.5)*z,py=oy+(y+.5)*z;
+    ctx.fillStyle='#3a2414';ctx.beginPath();ctx.moveTo(px,py-4*dpr);ctx.lineTo(px+4*dpr,py+3*dpr);ctx.lineTo(px-4*dpr,py+3*dpr);ctx.closePath();ctx.fill();
+    ctx.lineWidth=3*dpr;ctx.strokeStyle='rgba(255,252,240,.85)';const s=fmtM(metres(e));
+    ctx.strokeText(s,px+6*dpr,py);ctx.fillStyle='#3a2414';ctx.fillText(s,px+6*dpr,py);
+  }
+}
+/* the height under the pointer */
+function drawReadout(ox,oy,z){
+  const p=hoverP;if(!p||busy)return;
+  const t=toTile(p);if(!inB(t.x,t.y))return;
+  const i=t.y*W+t.x,m=metres(elev[i]),txt=(m<0?'Depth '+fmtM(-m):'Height '+fmtM(m))+' · '+TD[tile[i]].n;
+  ctx.font='600 '+Math.round(12*dpr)+'px '+FONT;ctx.textAlign='left';ctx.textBaseline='top';
+  const w=ctx.measureText(txt).width,x=p.x*dpr+14*dpr,y=p.y*dpr+14*dpr;
+  ctx.fillStyle='rgba(11,24,40,.88)';ctx.fillRect(x-5*dpr,y-4*dpr,w+10*dpr,20*dpr);
+  ctx.fillStyle='#fff6d6';ctx.fillText(txt,x,y);
+}
+/* ---------- sculpting: strength, smoothing, ridges, valleys, terraces, erosion ---------- */
+let sculptStr=5,flatGoal=-1,strokeSeed=0;
+function sculptStart(){flatGoal=-1;strokeSeed=(Math.random()*9999)|0;}
+const sround=v=>Math.max(0,Math.min(255,Math.floor(v+Math.random())));
+function vnoise(x,y){
+  const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
+  const a=hsh(xi,yi),b=hsh(xi+1,yi),c=hsh(xi,yi+1),d=hsh(xi+1,yi+1);
+  return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v;
+}
+function sculpt(id,tx,ty){
+  const k=sculptStr/5,touched=[];
+  if(id==='smooth'){
+    const upd=[];
+    terraBrush(tx,ty,(i,f,x,y)=>{let s=0,n=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const xx=x+dx,yy=y+dy;if(inB(xx,yy)){s+=elev[yy*W+xx];n++;}}upd.push(i,s/n,f);});
+    for(let m=0;m<upd.length;m+=3){const i=upd[m];elev[i]=sround(elev[i]+(upd[m+1]-elev[i])*Math.min(1,.55*upd[m+2]*k));touched.push(i);}
+  }else if(id==='flatten'){
+    if(flatGoal<0&&inB(tx,ty))flatGoal=elev[ty*W+tx];
+    terraBrush(tx,ty,(i,f)=>{elev[i]=sround(elev[i]+(flatGoal-elev[i])*Math.min(1,.4*f*k));touched.push(i);});
+  }else if(id==='roughen'){
+    terraBrush(tx,ty,(i,f,x,y)=>{const n=vnoise(x*.45+strokeSeed,y*.45)*.65+vnoise(x*1.1+strokeSeed,y*1.1+7)*.35;elev[i]=sround(elev[i]+(n-.5)*7*f*k);touched.push(i);});
+  }else if(id==='ridge'){
+    terraBrush(tx,ty,(i,f,x,y)=>{const n=1-Math.abs(2*vnoise(x*.32+strokeSeed,y*.32)-1),r=n*n;elev[i]=sround(elev[i]+(1.5+r*7)*Math.pow(f,1.3)*k);touched.push(i);});
+  }else if(id==='valley'){
+    terraBrush(tx,ty,(i,f)=>{elev[i]=sround(elev[i]-Math.pow(f,1.8)*7*k);touched.push(i);});
+  }else if(id==='terrace'){
+    terraBrush(tx,ty,(i,f)=>{const d=elev[i]-SL;if(d<0)return;const goal=SL+Math.round(d/9)*9;elev[i]=sround(elev[i]+(goal-elev[i])*Math.min(1,.5*f*k));touched.push(i);});
+  }else if(id==='erode'){
+    for(let it=0;it<2+((k*2)|0);it++)terraBrush(tx,ty,(i,f,x,y)=>{
+      let lo=-1,le=elev[i];
+      for(let n=0;n<8;n++){const xx=x+DIRS[n][0],yy=y+DIRS[n][1];if(!inB(xx,yy))continue;const j=yy*W+xx;if(elev[j]<le){le=elev[j];lo=j;}}
+      if(lo<0)return;
+      const d=elev[i]-le;if(d<2)return;
+      const mv=Math.min(d*.45,(d-1)*.35*f*Math.min(2,k));
+      elev[i]=sround(elev[i]-mv);elev[lo]=sround(elev[lo]+mv*.6);touched.push(i,lo);
+    });
+  }
+  for(const i of touched)reclass(i,false);
+  regionsDirty=true;
+}
+/* ---------- water finds its way: basins fill into lakes, rain gathers into rivers ---------- */
+function letWaterFlow(){
+  /* old rivers dry up first, so the new network follows today's land */
+  for(let i=0;i<N;i++)if(tile[i]===RIVER&&!bmap[i]){const n=bandOf(elev[i])===0?biomeFor(i):HILL;setTile(i,n);soil[i]=soilFor(n);}
+  const F=new Int16Array(N),seen=new Uint8Array(N),parent=new Int32Array(N).fill(-1),order=new Int32Array(N);
+  const qs=[],qh=new Int32Array(512);for(let l=0;l<512;l++)qs.push([]);
+  let on=0,cur=0;
+  const push=(i,l)=>{qs[l].push(i);if(l<cur)cur=l;};
+  for(let i=0;i<N;i++){
+    const x=i%W,y=(i/W)|0,edge=x===0||y===0||x===W-1||y===H-1;
+    if((tile[i]<=WATER&&elev[i]<SL)||edge){seen[i]=1;F[i]=elev[i];push(i,elev[i]);}
+  }
+  cur=0;
+  for(;;){
+    while(cur<512&&qh[cur]>=qs[cur].length)cur++;
+    if(cur>=512)break;
+    const i=qs[cur][qh[cur]++];order[on++]=i;
+    const x=i%W,y=(i/W)|0;
+    for(let n=0;n<8;n++){
+      const xx=x+DIRS[n][0],yy=y+DIRS[n][1];if(xx<0||yy<0||xx>=W||yy>=H)continue;
+      const j=yy*W+xx;if(seen[j])continue;
+      seen[j]=1;F[j]=Math.max(elev[j],F[i]);parent[j]=i;push(j,F[j]);
+    }
+  }
+  /* lakes: filled hollows on land, if big enough to matter */
+  let lakes=0;const lk=new Uint8Array(N);
+  for(let i=0;i<N;i++)if(F[i]>elev[i]&&tile[i]>WATER&&elev[i]>=SL&&WALK[tile[i]])lk[i]=1;
+  const comp=[];
+  for(let s=0;s<N;s++){
+    if(lk[s]!==1)continue;
+    comp.length=0;const st=[s];lk[s]=2;
+    while(st.length){const i=st.pop();comp.push(i);const x=i%W,y=(i/W)|0;for(let n=0;n<8;n+=2){const xx=x+DIRS[n][0],yy=y+DIRS[n][1];if(!inB(xx,yy))continue;const j=yy*W+xx;if(lk[j]===1){lk[j]=2;st.push(j);}}}
+    let deep=0;for(const i of comp)deep=Math.max(deep,F[i]-elev[i]);
+    if(comp.length<4||deep<3)continue;
+    lakes++;
+    for(const i of comp){if(bmap[i])destroyBld(bmap[i]);setTile(i,WATER);soil[i]=SAND;}
+  }
+  /* rivers: where the gathered rain grows large */
+  const acc=new Float32Array(N);
+  for(let m=on-1;m>=0;m--){
+    const i=order[m];acc[i]+=.5+moist[i]/255;
+    const p=parent[i];if(p>=0)acc[p]+=acc[i];
+  }
+  const landAcc=[];
+  for(let i=0;i<N;i++)if(tile[i]>WATER&&tile[i]!==MOUNT&&tile[i]!==SNOW&&tile[i]!==LAVA)landAcc.push(acc[i]);
+  if(!landAcc.length)return{lakes,rivers:0};
+  landAcc.sort((a,b)=>b-a);
+  const thr=Math.max(40,landAcc[Math.min(landAcc.length-1,Math.floor(landAcc.length*.013))]);
+  let rivers=0;
+  for(let i=0;i<N;i++){
+    const t=tile[i];
+    if(acc[i]<thr||t<=WATER||t===MOUNT||t===SNOW||t===LAVA)continue;
+    const b=bmap[i];if(b&&b.solid)continue;
+    if(b)destroyBld(b);
+    setTile(i,RIVER);soil[i]=GRASS;rivers++;
+  }
+  regionsDirty=true;dirtyOver=true;
+  return{lakes,rivers};
+}
+/* ---------- empty worlds to sculpt from scratch ---------- */
+function blankWorld(kind,rnd){
+  for(let i=0;i<N;i++){
+    const x=i%W,y=(i/W)|0,edge=Math.min(x,y,W-1-x,H-1-y);
+    if(kind==='ocean'||edge<4){
+      elev[i]=Math.round(40+vnoise(x*.05,y*.05)*30);tile[i]=elev[i]<SL-30?DEEP:WATER;soil[i]=SAND;
+    }else{
+      elev[i]=Math.round(102+Math.min(edge-4,46)/46*9+vnoise(x*.06,y*.06)*3);
+      const t=biomeFor(i);tile[i]=t===SAND?GRASS:t;soil[i]=soilFor(tile[i]);
+    }
+  }
+}

@@ -22,7 +22,7 @@ const SH_TERRAIN_FS=`#version 300 es
 precision highp float;precision highp int;
 uniform highp sampler2D uTerr,uSm,uOwn,uKPal,uBio,uNz;
 uniform vec2 uRes,uCam,uWorld,uSun,uWind;
-uniform float uZoom,uTime,uSeas,uSAmp,uBord,uCloud,uDay,uDet,uSL,uTreeA;
+uniform float uZoom,uTime,uSeas,uSAmp,uBord,uCloud,uDay,uDet,uSL,uTreeA,uTopo;
 uniform vec4 uSt[6];uniform int uNSt;
 out vec4 o;
 ${SH_COMMON}
@@ -55,9 +55,28 @@ float roadD(ivec2 t,vec2 f,out int ax){
   ax=hz?1:vt?2:0;
   return d;
 }
+/* topographic colours: green lowlands through tan and brown to grey rock and snow */
+vec3 hypso(float h){
+  vec3 c0=vec3(.45,.68,.44),c1=vec3(.62,.79,.52),c2=vec3(.84,.87,.6),c3=vec3(.92,.8,.55),c4=vec3(.82,.62,.43),c5=vec3(.66,.5,.42),c6=vec3(.8,.78,.77),c7=vec3(.98,.98,.99);
+  if(h<25.)return mix(c0,c1,h/25.);
+  if(h<50.)return mix(c1,c2,(h-25.)/25.);
+  if(h<65.)return mix(c2,c3,(h-50.)/15.);
+  if(h<87.)return mix(c3,c4,(h-65.)/22.);
+  if(h<105.)return mix(c4,c5,(h-87.)/18.);
+  if(h<125.)return mix(c5,c6,(h-105.)/20.);
+  return mix(c6,c7,clamp((h-125.)/20.,0.,1.));
+}
+vec3 bathy(float d){return mix(vec3(.74,.88,.95),vec3(.24,.47,.72),clamp(d/75.,0.,1.));}
 void main(){
   vec2 fc=vec2(gl_FragCoord.x,uRes.y-gl_FragCoord.y);
   vec2 wp=uCam+fc/uZoom;
+  /* contour field, from the unquantised position so lines stay crisp */
+  vec4 sct=SM(clamp(wp,vec2(.5),uWorld-.5));
+  float hct=sct.g*255.-uSL,hv=(hct+2.5)/5.,fwh=max(fwidth(hv),1e-4),dcl=abs(fract(hv-.5)-.5),rv=floor(hv+.5);
+  bool idxL=mod(rv,5.)<.5;
+  float lineA=1.-smoothstep(fwh*(idxL?.7:.35),fwh*(idxL?1.7:1.2),dcl);
+  vec2 gw=wp/25.,gfw=max(fwidth(gw),vec2(1e-4)),gd=abs(fract(gw-.5)-.5);
+  float gridA=1.-smoothstep(gfw.x*.4,gfw.x*1.2,min(gd.x,gd.y*gfw.x/gfw.y));
   float q=uZoom>=9.?AP:(uZoom>=4.5?8.:0.);
   vec2 ap=q>0.?(floor(wp*q)+.5)/q:wp;
   ivec2 ai=ivec2(floor(ap*AP));
@@ -224,6 +243,26 @@ void main(){
     if(ty!=8&&ty!=9&&(fl&3)==0&&rk==0&&te<-.03+.22*wint)
       c=mix(vec3(.94,.97,1.),vec3(.76,.83,.94),clamp(-dif*3.,0.,1.))*(h>.92?.97:1.);
   }
+  if(uTopo>1.5&&!outW){
+    /* the topographic map */
+    bool wet=sct.r<.5;
+    float hq=floor(hv)*5.;
+    c=wet?bathy(-hq):hypso(max(0.,hq));
+    float g1=SM(wp+vec2(.6,0.)).g,g2=SM(wp-vec2(.6,0.)).g,g3=SM(wp+vec2(0.,.6)).g,g4=SM(wp-vec2(0.,.6)).g;
+    vec3 nn=normalize(vec3((g2-g1)*12.,(g4-g3)*12.,1.));
+    if(!wet)c*=clamp(1.+(dot(nn,normalize(vec3(-.6,-.7,.8)))-.8)*.7,.7,1.15);
+    if(!wet&&(ty0==4||ty0==12||ty0==14)&&((ai.x+ai.y*3)%5==0))c*=vec3(.82,.93,.8);
+    if(ty0==16)c=vec3(.38,.62,.86);
+    if((fl&2)!=0&&(ai.y&2)==0)c=mix(c,vec3(.9,.9,.6),.5);
+    if((fl&8)!=0){vec2 f=fract(wp);if(max(abs(f.x-.5),abs(f.y-.5))<.36)c=vec3(.28,.27,.3);}
+    if((rb&3)>0){int ax;float d=roadD(t0,fract(wp),ax);if(d<.08)c=(rb&3)==1?vec3(.78,.22,.18):vec3(.55,.3,.26);}
+    vec3 lc=wet?vec3(.28,.5,.78):vec3(.46,.3,.17);
+    c=mix(c,lc,lineA*(idxL?.95:.6));
+    if(abs(hct)<3.&&abs(sct.r-.5)<.2)c=mix(c,vec3(.1,.25,.45),.85);
+    c=mix(c,vec3(.25,.45,.75),gridA*.3);
+  }else if(uTopo>.5&&!outW&&sct.r>=.5){
+    c=mix(c,c*.7,lineA*(idxL?.6:.32));
+  }
   if(!outW&&uBord>.5){
     int k0=KID(t0);
     if(k0>0){
@@ -234,8 +273,8 @@ void main(){
       if(e)c=mix(c,kc*1.1+.06,.82);
     }
   }
-  if(uCloud>.5){float cs=fbm((ap+uSun*3.)*.028+uWind);c*=1.-step(.6,cs)*.16*uDay;}
-  if(uNSt>0){float st=stormAt(ap);c*=1.-st*.32;c=mix(c,vec3(dot(c,vec3(.33))),st*.35);}
+  if(uCloud>.5&&uTopo<1.5){float cs=fbm((ap+uSun*3.)*.028+uWind);c*=1.-step(.6,cs)*.16*uDay;}
+  if(uNSt>0&&uTopo<1.5){float st=stormAt(ap);c*=1.-st*.32;c=mix(c,vec3(dot(c,vec3(.33))),st*.35);}
   if(outW){vec2 d=max(-wp,wp-uWorld);c*=max(.7,1.-max(d.x,d.y)*.008);}
   o=vec4(c,1.);
 }`;

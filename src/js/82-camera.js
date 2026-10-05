@@ -59,7 +59,8 @@ function drawCursor(ox,oy,z){
   if(tool.mode!=='brush'&&tool.mode!=='spawn'&&tool.mode!=='tap')return;
   if(tool.id==='inspect'||tool.id==='flood'||tool.id==='ebb')return;
   const t=toTile(p),px=ox+(t.x+.5)*z,py=oy+(t.y+.5)*z;
-  const r=tool.mode==='tap'?.6:tool.id==='raise'||tool.id==='lower'||tool.id==='flatten'||tool.id==='warm'||tool.id==='cool'||tool.id==='wet'||tool.id==='dry'||tool.id==='plant'?brush+.5:Math.max(.6,brush-.5);
+  if(tool.mode==='slider')return;
+  const r=tool.mode==='tap'?.6:tool.sculpt||tool.id==='warm'||tool.id==='cool'||tool.id==='wet'||tool.id==='dry'||tool.id==='plant'?brush+.5:Math.max(.6,brush-.5);
   ctx.save();ctx.lineWidth=Math.max(1.5,dpr*1.5);
   ctx.strokeStyle='rgba(11,24,40,.7)';ctx.beginPath();ctx.arc(px,py,r*z+1.5*dpr,0,6.283);ctx.stroke();
   ctx.strokeStyle='rgba(255,236,150,.95)';ctx.beginPath();ctx.arc(px,py,r*z,0,6.283);ctx.stroke();

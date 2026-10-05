@@ -89,7 +89,7 @@ function buildSheet(){
   }else{
     body.innerHTML='<h3>This world</h3>'+
       optRow('Graphics','gfx',[['hd','HD'],['classic','Classic']])+optRow('Sharpness','quality',[['fast','Fast'],['balanced','Balanced'],['sharp','Sharp']])+
-      optRow('Day and night','night',ONOFF)+optRow('Seasons','seasons',ONOFF)+optRow('Weather','weather',ONOFF)+optRow('Clouds','clouds',ONOFF)+optRow('Names on the map','labels',ONOFF)+
+      optRow('Day and night','night',ONOFF)+optRow('Seasons','seasons',ONOFF)+optRow('Weather','weather',ONOFF)+optRow('Clouds','clouds',ONOFF)+optRow('Contour lines','contours',ONOFF)+optRow('Names on the map','labels',ONOFF)+
       optRow('Realm borders','borders',ONOFF)+optRow('Minimap','minimap',ONOFF)+optRow('Trees and peaks up close','detail',ONOFF)+
       optRow('Disasters','disasters',[['off','Off'],['rare','Rare'],['wild','Wild']])+
       optRow('Temper of rulers','mood',[['gentle','Gentle'],['normal','Normal'],['bloodthirsty','Bloodthirsty']])+
@@ -99,7 +99,7 @@ function buildSheet(){
       '<h3>Saved worlds</h3><p class="fine">Worlds are kept in this browser only.</p>'+optRow('Autosave','autosave',ONOFF)+'<div id="saves"><p class="fine">Looking for saved worlds</p></div>'+
       '<h3>New world</h3>'+
       optRow('Size','size',[['cozy','Cozy'],['grand','Grand'],['colossal','Colossal']])+
-      optRow('Land','land',[['islands','Islands'],['continents','Continents'],['pangea','One landmass']])+
+      optRow('Land','land',[['islands','Islands'],['continents','Continents'],['pangea','One landmass'],['flat','Flat plain'],['ocean','Empty ocean']])+
       optRow('Climate','climate',[['cold','Cold'],['temperate','Temperate'],['hot','Hot']])+
       optRow('Peoples','peoples',[['none','None'],['few','A few'],['many','Many']])+
       optRow('Head start','history',[['0','None'],['60','60 yrs'],['150','150 yrs'],['300','300 yrs']])+
@@ -227,18 +227,26 @@ const CATS=[
     {id:'history',label:'History',ico:'\uD83D\uDCC8',mode:'action'},
     {id:'settings',label:'Settings',ico:'\u2699\uFE0F',mode:'action'}]},
   {label:'Shape',tools:[
-    {id:'raise',label:'Raise land',ico:'\u26F0\uFE0F',mode:'brush'},
-    {id:'lower',label:'Lower land',ico:'\u{1F573}\uFE0F',mode:'brush'},
-    {id:'flatten',label:'Flatten',ico:'\u{1F7F0}',mode:'brush'},
-    {id:'spring',label:'River',ico:'\u{1F3DE}\uFE0F',mode:'tap'},
+    {id:'topo',label:'Topo map',ico:'\u{1F5FA}\uFE0F',mode:'action'},
+    {id:'raise',label:'Raise',ico:'\u26F0\uFE0F',mode:'brush',sculpt:1},
+    {id:'lower',label:'Lower',ico:'\u{1F573}\uFE0F',mode:'brush',sculpt:1},
+    {id:'smooth',label:'Smooth',ico:'\u3030\uFE0F',mode:'brush',sculpt:1},
+    {id:'flatten',label:'Flatten',ico:'\u{1F7F0}',mode:'brush',sculpt:1},
+    {id:'ridge',label:'Ridges',ico:'\u{1F3D4}\uFE0F',mode:'brush',sculpt:1},
+    {id:'valley',label:'Valley',ico:'\u{1F3DE}\uFE0F',mode:'brush',sculpt:1},
+    {id:'terrace',label:'Terraces',ico:'\u{1F3EF}',mode:'brush',sculpt:1},
+    {id:'roughen',label:'Roughen',ico:'\u{1FAA8}',mode:'brush',sculpt:1},
+    {id:'erode',label:'Erode',ico:'\u{1F4A8}',mode:'brush',sculpt:1},
+    {id:'flow',label:'Water flows',ico:'\u{1F4A6}',mode:'action'},
+    {id:'spring',label:'Spring',ico:'\u26F2',mode:'tap'},
+    {id:'sea',label:'Sea level',ico:'\u{1F30A}',mode:'slider'}]},
+  {label:'Paint',tools:[
     {id:'plant',label:'Plant trees',ico:'\u{1F333}',mode:'brush'},
     {id:'warm',label:'Warmer',ico:'\u2600\uFE0F',mode:'brush'},
     {id:'cool',label:'Colder',ico:'\u2744\uFE0F',mode:'brush'},
     {id:'wet',label:'Wetter',ico:'\u{1F4A7}',mode:'brush'},
     {id:'dry',label:'Drier',ico:'\u{1F335}',mode:'brush'},
-    {id:'flood',label:'Great flood',ico:'\u{1F30A}',mode:'tap'},
-    {id:'ebb',label:'Seas recede',ico:'\u{1F3D6}\uFE0F',mode:'tap'}]},
-  {label:'Paint',tools:[land('Ocean',DEEP),land('Shallows',WATER),land('Beach',SAND),land('Grass',GRASS),land('Forest',FOREST),land('Jungle',JUNGLE),
+    land('Ocean',DEEP),land('Shallows',WATER),land('Beach',SAND),land('Grass',GRASS),land('Forest',FOREST),land('Jungle',JUNGLE),
     land('Pines',PINE),land('Savanna',SAVANNA),land('Desert',DESERT),land('Tundra',TUNDRA),land('Swamp',SWAMP),land('Hills',HILL),
     land('Mountain',MOUNT),land('River',RIVER),land('Lava',LAVA)]},
   {label:'Life',tools:[
@@ -284,12 +292,15 @@ function buildTools(reset){
     const ic=document.createElement('span');
     if(t.sw){ic.className='sw';ic.style.background=t.sw;}else{ic.className='ico';ic.textContent=t.id==='sound'?(S.sound?'\u{1F50A}':'\u{1F507}'):t.ico;}
     if(t.id==='sound'){b.setAttribute('aria-pressed',String(!!S.sound));}
+    if(t.id==='topo'){b.setAttribute('aria-pressed',String(S.topo==='map'));}
     const lb=document.createElement('span');lb.textContent=t.label;
     b.appendChild(ic);b.appendChild(lb);
     b.addEventListener('click',()=>{
       if(typeof AU!=='undefined')AU.unlock();snd('click');
       if(t.id==='sound'){S.sound=!S.sound;saveSettings();if(typeof AU!=='undefined'){AU.unlock();AU.setOn(S.sound);AU.setMusic(S.music);}toast(S.sound?'Sound on.':'Sound off.');buildTools(false);return;}
       if(t.id==='watch'){setWatch(!watching);return;}
+      if(t.id==='topo'){S.topo=S.topo==='map'?'off':'map';saveSettings();toast(S.topo==='map'?'Topographic map. Contour lines every 5 steps of height; peaks show their height.':'Back to the living world.');buildTools(false);return;}
+      if(t.id==='flow'){const r=letWaterFlow();chron('Rain gathers in the hollows: '+r.lakes+(r.lakes===1?' lake fills':' lakes fill')+' and rivers find their way to the sea','disaster');snd('water');return;}
       if(t.mode==='action'){if(sheetMode===t.id)closeSheet();else openSheet(t.id);return;}
       tool=t;buildTools(false);
     });
@@ -297,6 +308,9 @@ function buildTools(reset){
   }
   el.scrollLeft=reset?0:keep;
   $('brushRow').hidden=!(tool.mode==='brush'||tool.mode==='spawn');
+  $('strRow').hidden=!tool.sculpt;
+  $('seaRow').hidden=tool.mode!=='slider';
+  if(tool.mode==='slider'){$('seaIn').value=seaGoal-100;$('seaVal').textContent=fmtM((seaGoal-100)*60);}
 }
 
 /* ---------- input ---------- */
@@ -317,7 +331,7 @@ function paintAt(p,first){
     spawnBrush(t.x,t.y,tool.type);stroke.spx=t.x;stroke.spy=t.y;
   }
 }
-const AGAIN={rain:1,fire:1,bless:1,raise:1,lower:1,flatten:1,warm:1,cool:1,wet:1,dry:1,plant:1};
+const AGAIN={rain:1,fire:1,bless:1,raise:1,lower:1,flatten:1,warm:1,cool:1,wet:1,dry:1,plant:1,smooth:1,ridge:1,valley:1,terrace:1,roughen:1,erode:1};
 /* holding a shaping brush still keeps working the ground */
 function holdBrush(){
   if(!stroke||!stroke.paint||stroke.multi||tool.mode!=='brush'||!AGAIN[tool.id]||stroke.ltx===null)return;
@@ -350,7 +364,7 @@ ovc.addEventListener('pointerdown',e=>{
   if(ptrs.size===1){
     const painting=(tool.mode==='brush'||tool.mode==='spawn')&&e.button===0;
     stroke={lx:p.x,ly:p.y,moved:0,ltx:null,lty:null,spx:-99,spy:-99,multi:false,paint:painting};
-    if(painting)paintAt(p,true);
+    if(painting){sculptStart();paintAt(p,true);}
   }else if(ptrs.size===2){
     if(stroke)stroke.multi=true;
     const a=[...ptrs.values()];
@@ -406,12 +420,15 @@ function setSpeed(s){
 }
 $('speed').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setSpeed(+b.dataset.s);});
 $('brush').addEventListener('input',e=>{brush=+e.target.value;$('brushVal').textContent=brush;});
+$('strength').addEventListener('input',e=>{sculptStr=+e.target.value;$('strVal').textContent=sculptStr;});
+$('seaIn').addEventListener('input',e=>{seaGoal=100+(+e.target.value);$('seaVal').textContent=fmtM((+e.target.value)*60);});
 window.addEventListener('keydown',e=>{
   const tg=e.target&&e.target.tagName;if(tg==='TEXTAREA'||tg==='INPUT')return;
   if(e.key===' '){e.preventDefault();setSpeed(speed?0:1);}
   else if(e.key==='1')setSpeed(1);else if(e.key==='2')setSpeed(3);else if(e.key==='3')setSpeed(8);
   else if(e.key==='4')setSpeed(20);
   else if(e.key==='w'||e.key==='W')setWatch(!watching);
+  else if(e.key==='t'||e.key==='T'){S.topo=S.topo==='map'?'off':'map';saveSettings();buildTools(false);}
   else if(e.key==='Escape'){closeSheet();if(watching)setWatch(false);}
 });
 window.addEventListener('resize',resize);

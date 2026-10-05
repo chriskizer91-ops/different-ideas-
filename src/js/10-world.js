@@ -200,6 +200,7 @@ function genWorld(seed,opt){
     else e=100+Math.max(0,Math.min(1,m/(qh+1e-6)))*57;
     elev[i]=Math.round(e);
   }
+  if(opt.land==='flat'||opt.land==='ocean'){blankWorld(opt.land,rnd);computeRegions();recolorAll();seedLife(rnd,opt);return;}
   /* rivers run downhill from the highlands to the sea */
   const srcs=[];
   for(let i=0;i<N;i++)if(tile[i]===HILL||tile[i]===MOUNT)srcs.push(i);

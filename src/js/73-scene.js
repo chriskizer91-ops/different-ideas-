@@ -288,7 +288,7 @@ function sceneEffects(x0,y0,x1,y1,night){
 
 function sceneCollect(R,cx,cy,z,lerp,tsec){
   for(const k in SPR)SPR[k].n=0;
-  if(R.noSprites)return;
+  if(R.noSprites||topoMap)return;
   const zc=cam.z,x0=Math.floor(cx)-2,y0=Math.floor(cy)-2,x1=Math.ceil(cx+cv.width/z)+2,y1=Math.ceil(cy+cv.height/z)+4;
   const night=nightF>.02;
   sceneNature(x0,y0,x1,y1,zc,night);
@@ -313,8 +313,10 @@ function sceneCollect(R,cx,cy,z,lerp,tsec){
 /* ---------- the frame ---------- */
 const FW_COL=['#ff6b6b','#ffd93d','#6bcBff','#c38bff','#7dffb0','#ffffff','#ff9f43'];
 const PLAIN_U=[rgbU(210,201,180),rgbU(159,198,154),rgbU(163,154,140),rgbU(93,74,54)];
+let topoMap=false;
 function glFrame(R,dt,running,lerp){
   const gl=R.gl;frameNo++;
+  topoMap=S.topo==='map';
   if(R.lost)return;
   if(!R.dT||R.W!==W)R.setWorld();
   R.flush();
@@ -342,7 +344,7 @@ function glFrame(R,dt,running,lerp){
   bindT(0,R.tTerr,uT.uTerr);bindT(1,R.tSm,uT.uSm);bindT(2,R.tOwn,uT.uOwn);bindT(3,R.tKPal,uT.uKPal);bindT(4,R.tBio,uT.uBio);bindT(5,R.tNz,uT.uNz);
   gl.uniform2f(uT.uRes,cw,ch);gl.uniform2f(uT.uCam,cx,cy);gl.uniform2f(uT.uWorld,W,H);gl.uniform2f(uT.uSun,sunX,sunY);gl.uniform2f(uT.uWind,wind[0],wind[1]);
   gl.uniform1f(uT.uZoom,z);gl.uniform1f(uT.uTime,tsec%3600);gl.uniform1f(uT.uSeas,seasonP);gl.uniform1f(uT.uSAmp,seasonAmp);
-  gl.uniform1f(uT.uBord,S.borders?1:0);gl.uniform1f(uT.uCloud,S.clouds?1:0);gl.uniform1f(uT.uDay,dayLight);gl.uniform1f(uT.uDet,S.detail?1:.35);gl.uniform1f(uT.uSL,SL);gl.uniform1f(uT.uTreeA,Math.max(0,Math.min(1,(cam.z-2.6)/1.6)));
+  gl.uniform1f(uT.uBord,S.borders?1:0);gl.uniform1f(uT.uCloud,S.clouds?1:0);gl.uniform1f(uT.uDay,dayLight);gl.uniform1f(uT.uDet,S.detail?1:.35);gl.uniform1f(uT.uSL,SL);gl.uniform1f(uT.uTreeA,topoMap?1:Math.max(0,Math.min(1,(cam.z-2.6)/1.6)));gl.uniform1f(uT.uTopo,topoMap?2:S.contours?1:0);
   setSt(uT);
   gl.bindVertexArray(R.vaoFull);gl.drawArrays(gl.TRIANGLES,0,3);
 
@@ -363,7 +365,7 @@ function glFrame(R,dt,running,lerp){
   draw(SPR.mn,R.vMain,0);
 
   /* night: light map, then darken everything except what is lit */
-  if(nightF>.01){
+  if(nightF>.01&&!topoMap){
     const lw=Math.max(1,cw>>1),lh=Math.max(1,ch>>1);
     R.ensureLight(lw,lh);
     gl.bindFramebuffer(gl.FRAMEBUFFER,R.fbo);gl.viewport(0,0,lw,lh);
@@ -393,7 +395,7 @@ function glFrame(R,dt,running,lerp){
   draw(SPR.po,R.vPost,2);
   gl.disable(gl.DEPTH_TEST);gl.depthMask(true);
   /* clouds high above */
-  if(S.clouds||nst){
+  if((S.clouds||nst)&&!topoMap){
     const fade=Math.max(0,Math.min(1,1-(cam.z-3)/5));
     if(fade>0||nst){
       const pC=R.pC,uC=pC.u;gl.useProgram(pC.p);
@@ -444,8 +446,10 @@ function glOverlay(cx,cy){
       ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(mx,my,Math.max(1.5,z*.5),0,6.283);ctx.fill();
     }
   }
+  if(topoMap)drawSpotHeights(ox,oy,z,x0,y0,x1,y1);
   drawNames(ox,oy,z,x0,y0,x1,y1);
   drawCursor(ox,oy,z);
+  if(topoMap||S.contours)drawReadout(ox,oy,z);
   if(S.minimap&&frameNo%30===0)drawMiniGL();
 }
 function drawMiniGL(){

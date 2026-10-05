@@ -20,12 +20,12 @@ function kingdomAt(tx,ty){
 }
 let lastBrushSnd=0;
 function applyBrush(tx,ty,tool){
-  if(now()-lastBrushSnd>180){lastBrushSnd=now();const id=tool.id;snd(id==='raise'||id==='lower'||id==='flatten'?'rumble':id==='fire'?'fire':id==='rain'?'water':id==='smite'?'boom':'paint',tx,ty,.5);}
+  if(now()-lastBrushSnd>180){lastBrushSnd=now();const id=tool.id;snd(tool.sculpt?'rumble':id==='fire'?'fire':id==='rain'?'water':id==='smite'?'boom':'paint',tx,ty,.5);}
   if(tool.tile!==undefined){forBrush(tx,ty,i=>setTile(i,tool.tile,true));return;}
   switch(tool.id){
     case'raise':raiseLand(tx,ty,1);break;
     case'lower':raiseLand(tx,ty,-1);break;
-    case'flatten':flattenLand(tx,ty);break;
+    case'flatten':case'smooth':case'ridge':case'valley':case'terrace':case'roughen':case'erode':sculpt(tool.id,tx,ty);break;
     case'warm':climateBrush(tx,ty,9,0);break;
     case'cool':climateBrush(tx,ty,-9,0);break;
     case'wet':climateBrush(tx,ty,0,12);break;
@@ -134,5 +134,6 @@ function inspect(tx,ty){
       (b?'<small>This is its '+bldName(b)+(b.prog<1?', still being built':'')+'</small>':'')+
       (k.wars.size?'<small>At war with '+[...k.wars].map(o=>esc(o.name)).join(', ')+'</small>':'');
   }else html='<b>'+TD[tile[i]].n+'</b>';
+  {const m=metres(elev[i]);html+='<small>'+(m<0?'Depth '+fmtM(-m):'Height '+fmtM(m)+' above the sea')+'</small>';}
   showInfo(html);
 }

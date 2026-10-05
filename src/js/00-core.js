@@ -132,7 +132,7 @@ const BUILD_T={house:.34,farm:.5,wall:.5,hall:1,mine:.25,dock:.3,tower:.2,market
 const SIZES={cozy:[224,144],grand:[416,240],colossal:[640,352]};
 const DEF={size:'grand',land:'continents',climate:'temperate',peoples:'few',history:'0',wild:true,
   night:true,clouds:true,labels:true,borders:true,minimap:true,detail:true,disasters:'rare',mood:'normal',popcap:'normal',
-  gfx:'hd',quality:'balanced',seasons:true,weather:true,sound:false,music:true,autosave:true};
+  gfx:'hd',quality:'balanced',seasons:true,weather:true,sound:false,music:true,autosave:true,topo:'off',contours:false};
 const S=Object.assign({},DEF);
 try{const j=JSON.parse(localStorage.getItem('tinydominion.settings')||'null');if(j&&typeof j==='object')for(const k in DEF)if(typeof j[k]===typeof DEF[k])S[k]=j[k];}catch(e){}
 function saveSettings(){try{localStorage.setItem('tinydominion.settings',JSON.stringify(S));}catch(e){}}
