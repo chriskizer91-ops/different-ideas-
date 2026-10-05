@@ -1,0 +1,36 @@
+<canvas id="c" aria-label="World map. Pick a tool below and touch the map to use it."></canvas>
+<canvas id="mini" aria-label="Minimap. Touch to jump to that part of the world."></canvas>
+
+<div id="hud">
+  <div id="stamp" class="plate"><span>Tiny Dominion</span><b id="year">Year 1</b></div>
+  <button id="realmBtn" class="plate" aria-expanded="false" aria-controls="sheet">
+    <b id="pop">0 people</b><span id="realmCount">No realms yet</span>
+  </button>
+  <div id="speed" role="group" aria-label="Game speed">
+    <button data-s="0" aria-pressed="false" aria-label="Pause">II</button>
+    <button data-s="1" aria-pressed="true">1x</button>
+    <button data-s="3" aria-pressed="false">3x</button>
+    <button data-s="8" aria-pressed="false">8x</button>
+  </div>
+</div>
+
+<section id="sheet" class="plate" hidden>
+  <header><button id="sheetBack" hidden>Back</button><h2 id="sheetTitle">Realms</h2><button id="sheetClose">Close</button></header>
+  <div id="sheetBody"></div>
+</section>
+
+<div id="veil"><div class="plate"><b id="veilTitle">Shaping the world</b><span id="veilText"></span></div></div>
+
+<div id="bottom">
+  <div id="log" aria-live="polite"></div>
+  <div id="info" class="plate" hidden></div>
+  <div id="dock">
+    <div id="brushRow" hidden>
+      <label for="brush">Brush size</label>
+      <input id="brush" type="range" min="1" max="8" value="2">
+      <output id="brushVal" for="brush">2</output>
+    </div>
+    <div id="tools" role="toolbar" aria-label="Tools"></div>
+    <div id="tabs" role="tablist" aria-label="Tool groups"></div>
+  </div>
+</div>
