@@ -125,6 +125,7 @@ function restore(d){
   for(const k of kingdoms)if(k.alive)k.pop=kPop(k);
   regionsDirty=true;computeRegions();recolorAll();dirtyAll=true;sweepY=0;
   startSpot=null;
+  worldAge=-1;for(const k of kingdoms)if(k.alive&&k.age>worldAge)worldAge=k.age;colonyEver=kingdoms.some(k=>k.colony);
 }
 /* ---------- the menu ---------- */
 let saveOK=true,autoTimer=0;

@@ -70,7 +70,7 @@ function bootStart(){
     });
   }).catch(()=>go(startWorld));
 }
-toast('Pick a tool below, then touch the world. Pinch to zoom, or drag the little map.');
+toast('Shape the land, settle a people, and watch them rise from huts to starships. Pinch or scroll to zoom.');
 window.__td={step,S,get busy(){return busy;},cam,centerOn,openSheet,closeSheet,erupt,blast,spawn,
   get s(){return{W,H,units,vById,kingdoms,wars,boats,counts,chronicle,tick,twisters,wonderOf,planes,history,effects};},
   fakeClaude(fn){sampleFn=fn;setClaude(true);},setDay(v){dayClock=v;},get G(){return G;},
@@ -78,5 +78,5 @@ window.__td={step,S,get busy(){return busy;},cam,centerOn,openSheet,closeSheet,e
   use(id,x,y){let t=null;for(const c of CATS)for(const o of c.tools)if(o.id===id)t=o;if(!t)return false;
     if(t.mode==='brush')applyBrush(x,y,t);else if(t.mode==='spawn')spawnBrush(x,y,t.type);
     else{const keep=tool;tool=t;tapAt({x:(x+.5-cam.x)*cam.z,y:(y+.5-cam.y)*cam.z});tool=keep;}return true;},
-  setBrush(n){brush=n;}};
+  setBrush(n){brush=n;},save:saveWorld,load:loadWorld,switchGfx,setWatch};
 requestAnimationFrame(frame);

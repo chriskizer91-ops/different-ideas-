@@ -327,7 +327,9 @@ function glFrame(R,dt,running,lerp){
   seasonAmp+=(sTarget-seasonAmp)*Math.min(1,dt/900);
   wintF=Math.max(0,Math.min(1,Math.cos((seasonP-.875)*6.2832)*1.5-.3))*seasonAmp;
   FOL_U=folTint('bush',2);
+  const tc0=now();
   sceneCollect(R,cx,cy,z,Math.max(0,Math.min(1,lerp)),tsec);
+  R.tScene=R.tScene*.9+(now()-tc0)*.1;R.nSpr=SPR.mn.n+SPR.sh.n+SPR.po.n;
 
   const wind=[tsec*.0035,tsec*.0011];
   const stv=new Float32Array(24);let nst=0;

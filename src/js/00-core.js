@@ -103,7 +103,7 @@ const TRAITS=[
 /* nine ages, from the first fires to the stars */
 const AGES=['Stone','Bronze','Iron','Classical','Medieval','Renaissance','Industrial','Modern','Space'];
 const AGE_NAME=['Stone Age','Bronze Age','Iron Age','Classical Era','Medieval Era','Renaissance','Industrial Age','Modern Age','Space Age'];
-const AGE_T=[70,240,620,1300,2500,4500,7600,12000],STAR_LORE=15500;
+const AGE_T=[70,240,640,1350,2800,5400,9600,15500],STAR_LORE=20500;
 const TECHS=[
   ['Fire','Hunting','Agriculture'],['Bronze Working','Sailing','Writing'],['Iron Working','Currency','Masonry'],
   ['Philosophy','Mathematics','Engineering'],['Feudalism','Castles','Guilds'],['Printing','Astronomy','Gunpowder'],

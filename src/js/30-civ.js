@@ -466,6 +466,7 @@ function raiseStep(){
         const wd=WMAP[b.wid];
         chron(v.k.name+' completes '+wd.n+' in '+v.name+'. It will be remembered for a thousand years','age',v);
         bubble(v.k,'Behold '+wd.n+'!');
+        banner('A wonder of the world',cap1(wd.n),'Completed by '+v.k.name+' in '+v.name);
         fx({k:'ring',x:b.x+1,y:b.y+1,r:7,t:40,T:40});fx({k:'fireworks',x:b.x+1,y:b.y,t:150,T:150});
       }else if(b.kind==='launchpad')fx({k:'ring',x:b.x+1,y:b.y+1,r:5,t:30,T:30});
       continue;

@@ -335,7 +335,7 @@ void main(){float d=dot(vP,vP);if(d>1.)discard;float f=1.-d;o=vec4(vC*f*f,1.);}`
 function glCreate(canvas){
   const gl=canvas.getContext('webgl2',{alpha:false,antialias:false,depth:true,stencil:false,premultipliedAlpha:false,powerPreference:'high-performance'});
   if(!gl)return null;
-  const R={gl};
+  const R={gl,tScene:0,nSpr:0};
   function shader(type,src){
     const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);
     if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));

@@ -192,7 +192,8 @@ function rulersStep(){
     if(k.age<AGES.length-1&&k.lore>=AGE_T[k.age]){
       const t0=TIER[k.age];
       k.age++;updPow(k);
-      chron(k.name+' enters the '+AGE_NAME[k.age],'age',k);bubble(k,AGE_SAY[k.age]||'A new age dawns for '+k.name+'.');
+      chron(k.name+' enters the '+AGE_NAME[k.age],'age',k);
+      if(k.age>worldAge){worldAge=k.age;if(k.age>0)banner('A new age dawns','The '+AGE_NAME[k.age],k.name+' leads the world into it');}bubble(k,AGE_SAY[k.age]||'A new age dawns for '+k.name+'.');
       for(const v of k.villages){const h=v.blds[0];if(h&&h.kind==='hall')h.hp=hallHp(v);}
       if(TIER[k.age]!==t0)upgradeRoads(k);else dirtyAll=true;
     }
@@ -215,6 +216,7 @@ function rulersStep(){
   migrate();disasters();
   recordHistory();
 }
+let colonyEver=false;
 const TECH_LORE=[];
 for(let a=0;a<TECHS.length;a++){const t0=a?AGE_T[a-1]:0,t1=a<AGE_T.length?AGE_T[a]:STAR_LORE;for(let i=0;i<3;i++)TECH_LORE.push(t0+(t1-t0)*(i+1)/3);}
 const AGE_SAY=['','Bronze tools for a bronze age!','Iron makes us strong.','Let us build in marble and think great thoughts.','Raise the castle walls!',
@@ -230,6 +232,7 @@ function spaceProgram(k){
   if(colony){
     k.colony=true;
     chron(k.name+' launches a colony ship to the stars. A new chapter of history begins beyond the sky','age',pad.v);
+    if(!colonyEver){colonyEver=true;banner('Beyond the sky','A colony ship departs',k.name+' carries its people to the stars');}
     bubble(k,'Farewell, little world. We go to the stars.');
   }else if(k.launches===1)chron(k.name+' launches the first rocket into the heavens','age',pad.v);
 }

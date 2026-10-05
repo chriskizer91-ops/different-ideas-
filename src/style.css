@@ -150,6 +150,19 @@ table.lead td.n{text-align:right;font-variant-numeric:tabular-nums}
 body.watching #dock,body.watching #info{display:none}
 body.watching #stopWatch{display:block}
 #info .act{min-height:36px;margin-top:6px;padding:0 10px;font-size:13px}
+#banner{position:fixed;z-index:4;left:50%;top:calc(76px + env(safe-area-inset-top,0px));transform:translateX(-50%);text-align:center;pointer-events:none;
+  background:rgba(11,24,40,.82);color:#fff6d6;border:2px solid var(--sun);box-shadow:0 3px 0 var(--shadow);padding:10px 22px 12px;max-width:calc(100% - 24px);transition:opacity .8s}
+#banner[hidden]{display:block;opacity:0}
+#banner small{display:block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--sun)}
+#banner b{display:block;font-size:30px;line-height:1.1;margin:2px 0}
+#banner span{display:block;font-size:14px;color:#cfe3dc}
+@media (max-width:440px){#banner b{font-size:22px}}
+@media (max-width:440px){
+  #hud{gap:4px;padding-left:6px;padding-right:6px}
+  #stamp{padding:3px 6px}#stamp b{font-size:13px}#stamp span{font-size:10px}
+  #realmBtn{padding:3px 6px;flex:1 1 auto}#realmBtn b{font-size:13px}#realmBtn span{font-size:11px}
+  #speed button{min-width:27px;font-size:12px;padding:0 2px}
+}
 @media (min-width:700px){
   #dock{margin:0 auto 10px;border:2px solid var(--ink);box-shadow:0 3px 0 var(--shadow);width:660px;max-width:calc(100% - 20px)}
   #log,#info{margin-left:calc(50% - 330px)}

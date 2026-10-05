@@ -160,6 +160,19 @@ table.lead td.n{text-align:right;font-variant-numeric:tabular-nums}
 body.watching #dock,body.watching #info{display:none}
 body.watching #stopWatch{display:block}
 #info .act{min-height:36px;margin-top:6px;padding:0 10px;font-size:13px}
+#banner{position:fixed;z-index:4;left:50%;top:calc(76px + env(safe-area-inset-top,0px));transform:translateX(-50%);text-align:center;pointer-events:none;
+  background:rgba(11,24,40,.82);color:#fff6d6;border:2px solid var(--sun);box-shadow:0 3px 0 var(--shadow);padding:10px 22px 12px;max-width:calc(100% - 24px);transition:opacity .8s}
+#banner[hidden]{display:block;opacity:0}
+#banner small{display:block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--sun)}
+#banner b{display:block;font-size:30px;line-height:1.1;margin:2px 0}
+#banner span{display:block;font-size:14px;color:#cfe3dc}
+@media (max-width:440px){#banner b{font-size:22px}}
+@media (max-width:440px){
+  #hud{gap:4px;padding-left:6px;padding-right:6px}
+  #stamp{padding:3px 6px}#stamp b{font-size:13px}#stamp span{font-size:10px}
+  #realmBtn{padding:3px 6px;flex:1 1 auto}#realmBtn b{font-size:13px}#realmBtn span{font-size:11px}
+  #speed button{min-width:27px;font-size:12px;padding:0 2px}
+}
 @media (min-width:700px){
   #dock{margin:0 auto 10px;border:2px solid var(--ink);box-shadow:0 3px 0 var(--shadow);width:660px;max-width:calc(100% - 20px)}
   #log,#info{margin-left:calc(50% - 330px)}
@@ -191,6 +204,7 @@ body.watching #stopWatch{display:block}
   <div id="sheetBody"></div>
 </section>
 
+<div id="banner" aria-live="polite" hidden><small id="bannerKicker"></small><b id="bannerTitle"></b><span id="bannerSub"></span></div>
 <button id="stopWatch" class="act" hidden>Stop watching</button>
 <div id="veil"><div class="plate"><b id="veilTitle">Shaping the world</b><span id="veilText"></span>
   <div id="veilBtns" class="btnrow" hidden><button id="vCont" class="act">Continue</button> <button id="vNew" class="act">New world</button></div></div></div>
@@ -318,7 +332,7 @@ const TRAITS=[
 /* nine ages, from the first fires to the stars */
 const AGES=['Stone','Bronze','Iron','Classical','Medieval','Renaissance','Industrial','Modern','Space'];
 const AGE_NAME=['Stone Age','Bronze Age','Iron Age','Classical Era','Medieval Era','Renaissance','Industrial Age','Modern Age','Space Age'];
-const AGE_T=[70,240,620,1300,2500,4500,7600,12000],STAR_LORE=15500;
+const AGE_T=[70,240,640,1350,2800,5400,9600,15500],STAR_LORE=20500;
 const TECHS=[
   ['Fire','Hunting','Agriculture'],['Bronze Working','Sailing','Writing'],['Iron Working','Currency','Masonry'],
   ['Philosophy','Mathematics','Engineering'],['Feudalism','Castles','Guilds'],['Printing','Astronomy','Gunpowder'],
@@ -542,7 +556,7 @@ function genWorld(seed,opt){
   capMul=opt.size==='cozy'?.7:opt.size==='colossal'?1.3:1;
   units=[];vById=[null];kingdoms=[];wars=[];boats=[];twisters=[];towers=[];fireList=[];effects=[];sched=[];chronicle=[];bubbles=[];risen=[];
   relM.clear();truM.clear();counts.fill(0);dirtyWalk=[];dirtyOver=true;
-  planes=[];raising=[];history=[];wonderOf={};firstTech={};launches=0;lastEvent=null;SL=100;seaGoal=100;storms=[];
+  planes=[];raising=[];history=[];wonderOf={};firstTech={};launches=0;lastEvent=null;SL=100;seaGoal=100;storms=[];worldAge=-1;colonyEver=false;
   tick=0;uid=1;sweepY=0;chronDirty=true;
   const rnd=mulberry(seed);
   kc=(rnd()*COLORS.length)|0;
@@ -1632,6 +1646,7 @@ function raiseStep(){
         const wd=WMAP[b.wid];
         chron(v.k.name+' completes '+wd.n+' in '+v.name+'. It will be remembered for a thousand years','age',v);
         bubble(v.k,'Behold '+wd.n+'!');
+        banner('A wonder of the world',cap1(wd.n),'Completed by '+v.k.name+' in '+v.name);
         fx({k:'ring',x:b.x+1,y:b.y+1,r:7,t:40,T:40});fx({k:'fireworks',x:b.x+1,y:b.y,t:150,T:150});
       }else if(b.kind==='launchpad')fx({k:'ring',x:b.x+1,y:b.y+1,r:5,t:30,T:30});
       continue;
@@ -1904,7 +1919,8 @@ function rulersStep(){
     if(k.age<AGES.length-1&&k.lore>=AGE_T[k.age]){
       const t0=TIER[k.age];
       k.age++;updPow(k);
-      chron(k.name+' enters the '+AGE_NAME[k.age],'age',k);bubble(k,AGE_SAY[k.age]||'A new age dawns for '+k.name+'.');
+      chron(k.name+' enters the '+AGE_NAME[k.age],'age',k);
+      if(k.age>worldAge){worldAge=k.age;if(k.age>0)banner('A new age dawns','The '+AGE_NAME[k.age],k.name+' leads the world into it');}bubble(k,AGE_SAY[k.age]||'A new age dawns for '+k.name+'.');
       for(const v of k.villages){const h=v.blds[0];if(h&&h.kind==='hall')h.hp=hallHp(v);}
       if(TIER[k.age]!==t0)upgradeRoads(k);else dirtyAll=true;
     }
@@ -1927,6 +1943,7 @@ function rulersStep(){
   migrate();disasters();
   recordHistory();
 }
+let colonyEver=false;
 const TECH_LORE=[];
 for(let a=0;a<TECHS.length;a++){const t0=a?AGE_T[a-1]:0,t1=a<AGE_T.length?AGE_T[a]:STAR_LORE;for(let i=0;i<3;i++)TECH_LORE.push(t0+(t1-t0)*(i+1)/3);}
 const AGE_SAY=['','Bronze tools for a bronze age!','Iron makes us strong.','Let us build in marble and think great thoughts.','Raise the castle walls!',
@@ -1942,6 +1959,7 @@ function spaceProgram(k){
   if(colony){
     k.colony=true;
     chron(k.name+' launches a colony ship to the stars. A new chapter of history begins beyond the sky','age',pad.v);
+    if(!colonyEver){colonyEver=true;banner('Beyond the sky','A colony ship departs',k.name+' carries its people to the stars');}
     bubble(k,'Farewell, little world. We go to the stars.');
   }else if(k.launches===1)chron(k.name+' launches the first rocket into the heavens','age',pad.v);
 }
@@ -3113,7 +3131,14 @@ function drawNames(ox,oy,z,x0,y0,x1,y1){
         if(n>0&&cam.z<6)continue;
         if(n===0&&cam.z<1.5&&k.villages.length<3)continue;
         const px=ox+(v.x+.5)*z,py=oy+(v.y-2.4)*z;
-        if(n===0)label(k.name+(k.wars.size?' \u2694':''),px,py,cam.z<4?11:13,true,k.wars.size?'#ffd9d0':'#fff');
+        if(n===0){
+          const txt=k.name+(k.wars.size?' \u2694':''),fs=cam.z<4?11:13;
+          ctx.font='700 '+Math.round(fs*dpr)+'px '+FONT;
+          const tw=ctx.measureText(txt).width,s=Math.round(fs*.72*dpr),cx2=Math.round(px-tw/2-s/2-3*dpr),cy2=Math.round(py-fs*dpr*.82);
+          label(txt,px+s/2+2*dpr,py,fs,true,k.wars.size?'#ffd9d0':'#fff');
+          ctx.fillStyle='rgba(11,24,40,.9)';ctx.fillRect(cx2-s/2-dpr,cy2-dpr,s+2*dpr,s+2*dpr);
+          ctx.fillStyle=k.color;ctx.fillRect(cx2-s/2,cy2,s,s);
+        }
         else label(v.name,px,py,11,false);
       }
     }
@@ -5372,7 +5397,7 @@ void main(){float d=dot(vP,vP);if(d>1.)discard;float f=1.-d;o=vec4(vC*f*f,1.);}`
 function glCreate(canvas){
   const gl=canvas.getContext('webgl2',{alpha:false,antialias:false,depth:true,stencil:false,premultipliedAlpha:false,powerPreference:'high-performance'});
   if(!gl)return null;
-  const R={gl};
+  const R={gl,tScene:0,nSpr:0};
   function shader(type,src){
     const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);
     if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));
@@ -5846,7 +5871,9 @@ function glFrame(R,dt,running,lerp){
   seasonAmp+=(sTarget-seasonAmp)*Math.min(1,dt/900);
   wintF=Math.max(0,Math.min(1,Math.cos((seasonP-.875)*6.2832)*1.5-.3))*seasonAmp;
   FOL_U=folTint('bush',2);
+  const tc0=now();
   sceneCollect(R,cx,cy,z,Math.max(0,Math.min(1,lerp)),tsec);
+  R.tScene=R.tScene*.9+(now()-tc0)*.1;R.nSpr=SPR.mn.n+SPR.sh.n+SPR.po.n;
 
   const wind=[tsec*.0035,tsec*.0011];
   const stv=new Float32Array(24);let nst=0;
@@ -6089,6 +6116,13 @@ function toast(msg,type){
   setTimeout(()=>{d.classList.add('out');},5200);
   setTimeout(()=>{if(d.parentNode)d.parentNode.removeChild(d);},5900);
 }
+/* a title card for the great moments of world history */
+let bannerTimer=0,worldAge=-1;
+function banner(kicker,title,sub){
+  if(quiet)return;
+  $('bannerKicker').textContent=kicker;$('bannerTitle').textContent=title;$('bannerSub').textContent=sub||'';
+  const el=$('banner');el.hidden=false;clearTimeout(bannerTimer);bannerTimer=setTimeout(()=>{el.hidden=true;},5200);
+}
 let infoTimer=0;
 function showInfo(html){const el=$('info');el.innerHTML=html;el.hidden=false;clearTimeout(infoTimer);infoTimer=setTimeout(hideInfo,6500);}
 function hideInfo(){$('info').hidden=true;}
@@ -6099,7 +6133,7 @@ function hud(){
   let best=-1;for(const k of kingdoms)if(k.alive&&k.age>best)best=k.age;
   $('era').textContent=best<0?'Tiny Dominion':AGE_NAME[best];
   let cz=0;for(const k of kingdoms)if(k.alive)cz+=kCitizens(k);
-  $('pop').textContent=fmtPop(cz+Math.max(0,civCount()-kingdoms.reduce((a,k)=>a+(k.alive?kPop(k):0),0))*6)+' people';
+  $('pop').textContent=fmtPop(cz+Math.max(0,civCount()-kingdoms.reduce((a,k)=>a+(k.alive?kPop(k):0),0))*6)+(vw<440?'':' people');
   let n=0;for(const k of kingdoms)if(k.alive)n++;
   $('realmCount').textContent=n===0?'No realms yet':n===1?'1 realm':n+' realms';
 }
@@ -6169,6 +6203,7 @@ function buildSheet(){
       optRow('Disasters','disasters',[['off','Off'],['rare','Rare'],['wild','Wild']])+
       optRow('Temper of rulers','mood',[['gentle','Gentle'],['normal','Normal'],['bloodthirsty','Bloodthirsty']])+
       optRow('Population limit','popcap',[['small','Small'],['normal','Normal'],['large','Large']])+
+      '<h3>How to play</h3><p class="note">Raise land and paint the world with the Shape and Paint tools. Drop a few people from the Life tab on good land and they will found a realm. Speed time up and watch it grow through nine ages, from huts to cities and rockets. Tap Watch to let the camera follow the action.</p>'+
       '<h3>Sound</h3>'+optRow('Sound','sound',ONOFF)+optRow('Music','music',ONOFF)+
       '<h3>Saved worlds</h3><p class="fine">Worlds are kept in this browser only.</p>'+optRow('Autosave','autosave',ONOFF)+'<div id="saves"><p class="fine">Looking for saved worlds</p></div>'+
       '<h3>New world</h3>'+
@@ -6176,7 +6211,7 @@ function buildSheet(){
       optRow('Land','land',[['islands','Islands'],['continents','Continents'],['pangea','One landmass']])+
       optRow('Climate','climate',[['cold','Cold'],['temperate','Temperate'],['hot','Hot']])+
       optRow('Peoples','peoples',[['none','None'],['few','A few'],['many','Many']])+
-      optRow('Head start','history',[['0','None'],['60','60 years'],['150','150 years']])+
+      optRow('Head start','history',[['0','None'],['60','60 yrs'],['150','150 yrs'],['300','300 yrs']])+
       optRow('Wildlife','wild',ONOFF)+
       '<div class="row"><label for="seedIn">Seed word</label><input id="seedIn" type="text" maxlength="24" placeholder="Leave empty for random" autocomplete="off"></div>'+
       '<div class="btnrow"><button id="newBtn" class="act">Create new world</button></div>'+
@@ -6797,6 +6832,7 @@ function restore(d){
   for(const k of kingdoms)if(k.alive)k.pop=kPop(k);
   regionsDirty=true;computeRegions();recolorAll();dirtyAll=true;sweepY=0;
   startSpot=null;
+  worldAge=-1;for(const k of kingdoms)if(k.alive&&k.age>worldAge)worldAge=k.age;colonyEver=kingdoms.some(k=>k.colony);
 }
 /* ---------- the menu ---------- */
 let saveOK=true,autoTimer=0;
@@ -6910,7 +6946,7 @@ function bootStart(){
     });
   }).catch(()=>go(startWorld));
 }
-toast('Pick a tool below, then touch the world. Pinch to zoom, or drag the little map.');
+toast('Shape the land, settle a people, and watch them rise from huts to starships. Pinch or scroll to zoom.');
 window.__td={step,S,get busy(){return busy;},cam,centerOn,openSheet,closeSheet,erupt,blast,spawn,
   get s(){return{W,H,units,vById,kingdoms,wars,boats,counts,chronicle,tick,twisters,wonderOf,planes,history,effects};},
   fakeClaude(fn){sampleFn=fn;setClaude(true);},setDay(v){dayClock=v;},get G(){return G;},
@@ -6918,7 +6954,7 @@ window.__td={step,S,get busy(){return busy;},cam,centerOn,openSheet,closeSheet,e
   use(id,x,y){let t=null;for(const c of CATS)for(const o of c.tools)if(o.id===id)t=o;if(!t)return false;
     if(t.mode==='brush')applyBrush(x,y,t);else if(t.mode==='spawn')spawnBrush(x,y,t.type);
     else{const keep=tool;tool=t;tapAt({x:(x+.5-cam.x)*cam.z,y:(y+.5-cam.y)*cam.z});tool=keep;}return true;},
-  setBrush(n){brush=n;}};
+  setBrush(n){brush=n;},save:saveWorld,load:loadWorld,switchGfx,setWatch};
 requestAnimationFrame(frame);
 })();
 </script>

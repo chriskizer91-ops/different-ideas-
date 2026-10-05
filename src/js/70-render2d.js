@@ -449,7 +449,14 @@ function drawNames(ox,oy,z,x0,y0,x1,y1){
         if(n>0&&cam.z<6)continue;
         if(n===0&&cam.z<1.5&&k.villages.length<3)continue;
         const px=ox+(v.x+.5)*z,py=oy+(v.y-2.4)*z;
-        if(n===0)label(k.name+(k.wars.size?' \u2694':''),px,py,cam.z<4?11:13,true,k.wars.size?'#ffd9d0':'#fff');
+        if(n===0){
+          const txt=k.name+(k.wars.size?' \u2694':''),fs=cam.z<4?11:13;
+          ctx.font='700 '+Math.round(fs*dpr)+'px '+FONT;
+          const tw=ctx.measureText(txt).width,s=Math.round(fs*.72*dpr),cx2=Math.round(px-tw/2-s/2-3*dpr),cy2=Math.round(py-fs*dpr*.82);
+          label(txt,px+s/2+2*dpr,py,fs,true,k.wars.size?'#ffd9d0':'#fff');
+          ctx.fillStyle='rgba(11,24,40,.9)';ctx.fillRect(cx2-s/2-dpr,cy2-dpr,s+2*dpr,s+2*dpr);
+          ctx.fillStyle=k.color;ctx.fillRect(cx2-s/2,cy2,s,s);
+        }
         else label(v.name,px,py,11,false);
       }
     }

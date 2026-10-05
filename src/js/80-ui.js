@@ -7,6 +7,13 @@ function toast(msg,type){
   setTimeout(()=>{d.classList.add('out');},5200);
   setTimeout(()=>{if(d.parentNode)d.parentNode.removeChild(d);},5900);
 }
+/* a title card for the great moments of world history */
+let bannerTimer=0,worldAge=-1;
+function banner(kicker,title,sub){
+  if(quiet)return;
+  $('bannerKicker').textContent=kicker;$('bannerTitle').textContent=title;$('bannerSub').textContent=sub||'';
+  const el=$('banner');el.hidden=false;clearTimeout(bannerTimer);bannerTimer=setTimeout(()=>{el.hidden=true;},5200);
+}
 let infoTimer=0;
 function showInfo(html){const el=$('info');el.innerHTML=html;el.hidden=false;clearTimeout(infoTimer);infoTimer=setTimeout(hideInfo,6500);}
 function hideInfo(){$('info').hidden=true;}
@@ -17,7 +24,7 @@ function hud(){
   let best=-1;for(const k of kingdoms)if(k.alive&&k.age>best)best=k.age;
   $('era').textContent=best<0?'Tiny Dominion':AGE_NAME[best];
   let cz=0;for(const k of kingdoms)if(k.alive)cz+=kCitizens(k);
-  $('pop').textContent=fmtPop(cz+Math.max(0,civCount()-kingdoms.reduce((a,k)=>a+(k.alive?kPop(k):0),0))*6)+' people';
+  $('pop').textContent=fmtPop(cz+Math.max(0,civCount()-kingdoms.reduce((a,k)=>a+(k.alive?kPop(k):0),0))*6)+(vw<440?'':' people');
   let n=0;for(const k of kingdoms)if(k.alive)n++;
   $('realmCount').textContent=n===0?'No realms yet':n===1?'1 realm':n+' realms';
 }
@@ -87,6 +94,7 @@ function buildSheet(){
       optRow('Disasters','disasters',[['off','Off'],['rare','Rare'],['wild','Wild']])+
       optRow('Temper of rulers','mood',[['gentle','Gentle'],['normal','Normal'],['bloodthirsty','Bloodthirsty']])+
       optRow('Population limit','popcap',[['small','Small'],['normal','Normal'],['large','Large']])+
+      '<h3>How to play</h3><p class="note">Raise land and paint the world with the Shape and Paint tools. Drop a few people from the Life tab on good land and they will found a realm. Speed time up and watch it grow through nine ages, from huts to cities and rockets. Tap Watch to let the camera follow the action.</p>'+
       '<h3>Sound</h3>'+optRow('Sound','sound',ONOFF)+optRow('Music','music',ONOFF)+
       '<h3>Saved worlds</h3><p class="fine">Worlds are kept in this browser only.</p>'+optRow('Autosave','autosave',ONOFF)+'<div id="saves"><p class="fine">Looking for saved worlds</p></div>'+
       '<h3>New world</h3>'+
@@ -94,7 +102,7 @@ function buildSheet(){
       optRow('Land','land',[['islands','Islands'],['continents','Continents'],['pangea','One landmass']])+
       optRow('Climate','climate',[['cold','Cold'],['temperate','Temperate'],['hot','Hot']])+
       optRow('Peoples','peoples',[['none','None'],['few','A few'],['many','Many']])+
-      optRow('Head start','history',[['0','None'],['60','60 years'],['150','150 years']])+
+      optRow('Head start','history',[['0','None'],['60','60 yrs'],['150','150 yrs'],['300','300 yrs']])+
       optRow('Wildlife','wild',ONOFF)+
       '<div class="row"><label for="seedIn">Seed word</label><input id="seedIn" type="text" maxlength="24" placeholder="Leave empty for random" autocomplete="off"></div>'+
       '<div class="btnrow"><button id="newBtn" class="act">Create new world</button></div>'+

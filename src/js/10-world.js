@@ -135,7 +135,7 @@ function genWorld(seed,opt){
   capMul=opt.size==='cozy'?.7:opt.size==='colossal'?1.3:1;
   units=[];vById=[null];kingdoms=[];wars=[];boats=[];twisters=[];towers=[];fireList=[];effects=[];sched=[];chronicle=[];bubbles=[];risen=[];
   relM.clear();truM.clear();counts.fill(0);dirtyWalk=[];dirtyOver=true;
-  planes=[];raising=[];history=[];wonderOf={};firstTech={};launches=0;lastEvent=null;SL=100;seaGoal=100;storms=[];
+  planes=[];raising=[];history=[];wonderOf={};firstTech={};launches=0;lastEvent=null;SL=100;seaGoal=100;storms=[];worldAge=-1;colonyEver=false;
   tick=0;uid=1;sweepY=0;chronDirty=true;
   const rnd=mulberry(seed);
   kc=(rnd()*COLORS.length)|0;
