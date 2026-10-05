@@ -43,16 +43,40 @@ function frame(t){
       while(acc>=TICKMS&&n<10){step();acc-=TICKMS;n++;}
       if(n===10)acc=0;
     }
+    holdBrush();
+    updCamera(dt,acc/TICKMS);
     updDay(dt,speed>0);
+    if(typeof AU!=='undefined'&&S.sound)AU.update(dt);
     if(G)G.frame(dt,speed>0,acc/TICKMS);else render(dt,speed>0);
     tickEffects();
     if(frameNo%15===0)hud();
   }
   requestAnimationFrame(frame);
 }
-initGfx();resize();buildTabs();buildTools(true);initClaude();startWorld();
+initGfx();resize();buildTabs();buildTools(true);initClaude();bootStart();
+/* offer to continue the last world if this browser kept one */
+function bootStart(){
+  let done=false;const go=f=>{if(!done){done=true;f();}};
+  setTimeout(()=>go(startWorld),1800);
+  if(!S.autosave){go(startWorld);return;}
+  saveGet('auto').then(rec=>{
+    if(!rec||!rec.meta||!rec.data||rec.data.v!==SAVE_V){go(startWorld);return;}
+    go(()=>{
+      veil(true,'Tiny Dominion','Your world is waiting: year '+rec.meta.year+(rec.meta.era?', '+rec.meta.era:'')+', '+fmtPop(rec.meta.pop)+' people.');
+      $('veilBtns').hidden=false;
+      $('vCont').onclick=()=>{$('veilBtns').hidden=true;loadWorld('auto');};
+      $('vNew').onclick=()=>{$('veilBtns').hidden=true;startWorld();};
+      $('vCont').focus();
+    });
+  }).catch(()=>go(startWorld));
+}
 toast('Pick a tool below, then touch the world. Pinch to zoom, or drag the little map.');
 window.__td={step,S,get busy(){return busy;},cam,centerOn,openSheet,closeSheet,erupt,blast,spawn,
-  get s(){return{W,H,units,vById,kingdoms,wars,boats,counts,chronicle,tick,twisters};},
-  fakeClaude(fn){sampleFn=fn;setClaude(true);},setDay(v){dayClock=v;},get G(){return G;}};
+  get s(){return{W,H,units,vById,kingdoms,wars,boats,counts,chronicle,tick,twisters,wonderOf,planes,history,effects};},
+  fakeClaude(fn){sampleFn=fn;setClaude(true);},setDay(v){dayClock=v;},get G(){return G;},
+  /* test hook: use any tool at a tile, as a tap or one brush stamp */
+  use(id,x,y){let t=null;for(const c of CATS)for(const o of c.tools)if(o.id===id)t=o;if(!t)return false;
+    if(t.mode==='brush')applyBrush(x,y,t);else if(t.mode==='spawn')spawnBrush(x,y,t.type);
+    else{const keep=tool;tool=t;tapAt({x:(x+.5-cam.x)*cam.z,y:(y+.5-cam.y)*cam.z});tool=keep;}return true;},
+  setBrush(n){brush=n;}};
 requestAnimationFrame(frame);

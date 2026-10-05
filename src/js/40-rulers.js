@@ -27,8 +27,11 @@ function bubble(k,text){
   bubbles.push({k,text:String(text).slice(0,90),until:now()+9000});
   if(bubbles.length>8)bubbles.shift();
 }
-function chron(text,type){
-  chronicle.push({y:yearNow(),text,type:type||''});
+function chron(text,type,at){
+  const e={y:yearNow(),text,type:type||''};
+  if(at){if(at.villages)at=at.villages[0];if(at&&at.x!==undefined){e.x=at.x;e.y2=at.y;}}
+  chronicle.push(e);
+  if(e.x!==undefined)lastEvent={x:e.x,y:e.y2,t:now(),type:e.type};
   if(chronicle.length>300)chronicle.shift();
   chronDirty=true;
   if(!quiet&&(type!=='found'||tick<25*YEAR))toast(text,type);
@@ -63,7 +66,7 @@ function declareWar(a,b,why){
   if(a.allies.has(b)){a.allies.delete(b);b.allies.delete(a);chron(a.name+' betrays its alliance with '+b.name,'war');}
   a.wars.add(b);b.wars.add(a);wars.push({a,b,start:tick,sa:0,sb:0});
   truM.delete(pk(a,b));setRel(a,b,Math.min(rel(a,b),-60));
-  chron(why||(rulerName(a)+' of '+a.name+' declares war on '+b.name),'war');
+  chron(why||(rulerName(a)+' of '+a.name+' declares war on '+b.name),'war',nearestVillageOf(b,a.villages[0]?a.villages[0].x:0,a.villages[0]?a.villages[0].y:0)||b);
   if(!why){const tid=a.ruler.trait.id;bubble(a,tid==='conqueror'?'Their lands will be ours.':tid==='zealot'?'Drive the outsiders from our borders!':tid==='schemer'?'They will never see it coming.':'To arms! We march on '+b.name+'.');}
   a.focus='army';b.focus='army';
   pickTarget(a);pickTarget(b);
@@ -138,8 +141,9 @@ function think(k){
     }
     if(!k.wars.has(o)&&r>34&&k.allies.size<2&&o.allies.size<2&&Math.random()<.12)makeAlliance(k,o);
   }
-  if(!k.wars.size&&k.gold>320&&Math.random()<.08){
-    k.gold-=160;for(const v of k.villages)v.res+=12;
+  if(!k.wars.size&&k.gold>320&&Math.random()<.08+Math.min(.3,k.gold/30000)){
+    k.gold-=160+k.gold*.12;for(const v of k.villages)v.res+=12;
+    if(k.villages[0])fx({k:'fireworks',x:k.villages[0].x,y:k.villages[0].y,t:120,T:120});
     for(const n of k.nb)if(n.k.alive&&!k.wars.has(n.k))setRel(k,n.k,rel(k,n.k)+5);
     chron(k.name+' holds a grand festival','peace');
   }
@@ -180,11 +184,21 @@ function rulersStep(){
   for(const k of alive){
     if(!k.alive)continue;
     k.nb.sort((p,q)=>p.d-q.d);
-    if(k.age<4&&k.lore>=AGE_T[k.age]){
-      k.age++;updPow(k);
-      chron(k.name+' enters the '+AGES[k.age]+' Age','age');bubble(k,'A new age dawns for '+k.name+'.');
-      for(const v of k.villages){const h=v.blds[0];if(h&&h.kind==='hall')h.hp=hallHp(v);}
+    while(k.tech<TECH_LORE.length&&k.lore>=TECH_LORE[k.tech]){
+      const nm=TECHS[(k.tech/3)|0][k.tech%3];
+      if(!firstTech[nm]){firstTech[nm]=k;chron(k.name+' is the first realm to discover '+nm,'tech',k);}
+      k.tech++;
     }
+    if(k.age<AGES.length-1&&k.lore>=AGE_T[k.age]){
+      const t0=TIER[k.age];
+      k.age++;updPow(k);
+      chron(k.name+' enters the '+AGE_NAME[k.age],'age',k);bubble(k,AGE_SAY[k.age]||'A new age dawns for '+k.name+'.');
+      for(const v of k.villages){const h=v.blds[0];if(h&&h.kind==='hall')h.hp=hallHp(v);}
+      if(TIER[k.age]!==t0)upgradeRoads(k);else dirtyAll=true;
+    }
+    spaceProgram(k);
+    if(k.wars.size&&k.age>=7&&k.target&&k.target.alive&&k.gold>60&&Math.random()<.45)airRaid(k);
+    if(!k.wars.size&&k.age>=2&&Math.random()<.18)tradeFleet(k);
     if(tick>k.ruler.until)succession(k);
     if(k.alive)think(k);
   }
@@ -199,6 +213,73 @@ function rulersStep(){
     if(!t||!t.alive||t.k===k||!k.wars.has(t.k)||(k.landing&&!k.port.alive))pickTarget(k);
   }
   migrate();disasters();
+  recordHistory();
+}
+const TECH_LORE=[];
+for(let a=0;a<TECHS.length;a++){const t0=a?AGE_T[a-1]:0,t1=a<AGE_T.length?AGE_T[a]:STAR_LORE;for(let i=0;i<3;i++)TECH_LORE.push(t0+(t1-t0)*(i+1)/3);}
+const AGE_SAY=['','Bronze tools for a bronze age!','Iron makes us strong.','Let us build in marble and think great thoughts.','Raise the castle walls!',
+  'A rebirth of art and learning.','Steam and steel will change everything.','The modern world is ours.','Now we reach for the stars.'];
+/* ---------- the space age: rockets, then a colony ship ---------- */
+function spaceProgram(k){
+  const pad=k.pad;
+  if(!pad||pad.prog<1||bmap[pad.i]!==pad||pad.v.k!==k)return;
+  if(Math.random()>.22)return;
+  const colony=k.tech>=TECH_LORE.length&&!k.colony;
+  k.launches++;launches++;
+  effects.push({k:'rocket',x:pad.x+1,y:pad.y+1,t:420,T:420,team:k,colony});
+  if(colony){
+    k.colony=true;
+    chron(k.name+' launches a colony ship to the stars. A new chapter of history begins beyond the sky','age',pad.v);
+    bubble(k,'Farewell, little world. We go to the stars.');
+  }else if(k.launches===1)chron(k.name+' launches the first rocket into the heavens','age',pad.v);
+}
+/* ---------- the modern age: bombers fly against the enemy ---------- */
+function airRaid(k){
+  const c=k.villages[0],t=k.target;if(!c)return;
+  k.gold-=40;
+  planes.push({k,x:c.x,y:c.y,tx:t.x,ty:t.y,hx:c.x,hy:c.y,state:0,bombs:4,dir:t.x>=c.x?1:-1,px:c.x,py:c.y});
+}
+function updPlanes(){
+  let w=0;
+  for(let n=0;n<planes.length;n++){
+    const p=planes[n];p.px=p.x;p.py=p.y;
+    const tx=p.state?p.hx:p.tx,ty=p.state?p.hy:p.ty,dx=tx-p.x,dy=ty-p.y,d=Math.hypot(dx,dy);
+    if(d<1.2){
+      if(!p.state){
+        for(let m=0;m<p.bombs;m++)sched.push({t:tick+m*2+1,f:'bomb',x:Math.round(p.x+(Math.random()-.5)*5),y:Math.round(p.y+(Math.random()-.5)*5),k:p.k});
+        p.state=1;p.dir=-p.dir;
+      }else continue;
+    }else{p.x+=dx/d*.8;p.y+=dy/d*.8;if(Math.abs(dx)>.3)p.dir=dx>0?1:-1;}
+    if(p.k.alive)planes[w++]=p;
+  }
+  planes.length=w;
+}
+/* ---------- merchant fleets between friendly harbours ---------- */
+function tradeFleet(k){
+  let port=null;for(const v of k.villages)if(v.dock&&v.market){port=v;break;}
+  if(!port)return;
+  const wr=wreg[port.dock.wi];
+  const cands=[];
+  for(const n of k.nb){const o=n.k;if(!o.alive||k.wars.has(o)||(!k.allies.has(o)&&rel(k,o)<5))continue;for(const v of o.villages)if(v.dock&&wreg[v.dock.wi]===wr)cands.push(v);}
+  for(const v of k.villages)if(v!==port&&v.dock&&wreg[v.dock.wi]===wr&&d2(v,port)>400)cands.push(v);
+  if(!cands.length)return;
+  const dest=pick(cands);
+  const path=seaPath(port.dock.wi,dest.dock.wi);if(!path||path.length<12)return;
+  launchBoat(k,path,[],'trade',{x:dest.dock.x,y:dest.dock.y});
+  const b=boats[boats.length-1];b.to=dest.k;b.cargoGold=(8+path.length*.06)*(1+(TIER[k.age]||0)*.4)*(dest.k!==k?1.4:1);
+}
+/* ---------- a yearly record for the history chart ---------- */
+function recordHistory(){
+  const yr=yearNow();
+  for(const k of kingdoms){
+    if(!k.alive&&!k.hist.length)continue;
+    const c=k.alive?kCitizens(k):0;
+    if(c>k.peak)k.peak=c;
+    if(k.alive||k.hist.length&&k.hist[k.hist.length-1][1]>0)k.hist.push([yr,c]);
+    if(k.hist.length>1200)k.hist.splice(0,k.hist.length-1200);
+  }
+  let tot=0,best=0;for(const k of kingdoms)if(k.alive){tot+=kCitizens(k);if(k.age>best)best=k.age;}
+  history.push([yr,tot,best]);if(history.length>3000)history.shift();
 }
 
 /* ---------- Claude as the rulers ---------- */
@@ -206,7 +287,7 @@ let sampleFn=null,councilBusy=false,lastCouncil=-1;
 const POLICY='{"focus": "grow" | "army" | "wealth" | "lore", "war": id of one neighbour to attack or null, "peace": id of one realm it is fighting to make peace with or null, "ally": id of one neighbour to offer an alliance or null';
 function realmBrief(k){
   return{id:k.id,name:k.name,people:SPEC[k.race].pl,ruler:rulerName(k)+' '+k.ruler.trait.adj,nature:k.ruler.trait.word,
-    age:AGES[k.age],population:k.pop|0,villages:k.villages.length,gold:k.gold|0,focus:k.focus,
+    age:AGE_NAME[k.age],population:kCitizens(k),villages:k.villages.length,gold:k.gold|0,focus:k.focus,
     atWarWith:[...k.wars].map(o=>o.id),allies:[...k.allies].map(o=>o.id),
     neighbours:k.nb.filter(n=>n.k.alive).slice(0,6).map(n=>({id:n.k.id,name:n.k.name,people:SPEC[n.k.race].pl,population:n.k.pop|0,
       feeling:relWord(rel(k,n.k)),distance:n.d<40?'bordering':n.d<90?'near':'far',reachableByLand:sameLand(k,n.k),truce:inTruce(k,n.k)}))};

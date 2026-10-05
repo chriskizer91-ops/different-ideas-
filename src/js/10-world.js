@@ -55,7 +55,7 @@ function setTile(i,t,paint){
     else if(t===PINE){if(soil[i]!==TUNDRA&&soil[i]!==GRASS)soil[i]=GRASS;}
     else if(t===HILL||t===MOUNT||t===SNOW)soil[i]=HILL;
     else if(t<=WATER)soil[i]=SAND;
-    elev[i]=ELEV0[t];
+    elev[i]=Math.max(0,Math.min(255,ELEV0[t]+SL-100));
     road[i]=0;
   }
   const b=bmap[i];
@@ -135,6 +135,7 @@ function genWorld(seed,opt){
   capMul=opt.size==='cozy'?.7:opt.size==='colossal'?1.3:1;
   units=[];vById=[null];kingdoms=[];wars=[];boats=[];twisters=[];towers=[];fireList=[];effects=[];sched=[];chronicle=[];bubbles=[];risen=[];
   relM.clear();truM.clear();counts.fill(0);dirtyWalk=[];dirtyOver=true;
+  planes=[];raising=[];history=[];wonderOf={};firstTech={};launches=0;lastEvent=null;SL=100;seaGoal=100;storms=[];
   tick=0;uid=1;sweepY=0;chronDirty=true;
   const rnd=mulberry(seed);
   kc=(rnd()*COLORS.length)|0;
@@ -191,7 +192,13 @@ function genWorld(seed,opt){
     else if(M<.54){t=SAVANNA;so=SAVANNA;}
     else{t=JUNGLE;so=GRASS;}
     tile[i]=t;soil[i]=so;
-    elev[i]=Math.max(100,Math.min(255,102+el*70+m*95));
+    /* heights fall into bands - lowland, hills, mountains, peaks - so terraforming can read them back */
+    let e;
+    if(t===SNOW&&m>qn)e=218+Math.min(1,(m-qn)/(qn*.25+1e-6))*36;
+    else if(t===MOUNT||t===SNOW)e=188+Math.min(1,(m-qm)/(qn-qm+1e-6))*29;
+    else if(t===HILL)e=158+Math.min(1,(m-qh)/(qm-qh+1e-6))*29;
+    else e=100+Math.max(0,Math.min(1,m/(qh+1e-6)))*57;
+    elev[i]=Math.round(e);
   }
   /* rivers run downhill from the highlands to the sea */
   const srcs=[];

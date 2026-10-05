@@ -46,11 +46,11 @@ MINI_COL[FOREST]=[58,112,50];MINI_COL[PINE]=[52,96,72];MINI_COL[JUNGLE]=[36,110,
 const DECO=new Uint8Array(NT);[FOREST,PINE,JUNGLE,SAVANNA,DESERT,GRASS,HILL,TUNDRA,SWAMP,ASH,MOUNT,SNOW].forEach(t=>DECO[t]=1);
 /* visual building tier for each age */
 const TIER=[0,0,1,1,2,2,3,4,4];
-const ELEV0=[40,84,102,108,110,150,205,240,150,108,108,108,110,110,112,102,100];
+const ELEV0=[40,84,101,108,110,172,202,236,170,108,108,108,110,110,112,102,100];
 const DIRS=[[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]];
 
 /* ---------- creatures ---------- */
-const HUMAN=0,ELF=1,DWARF=2,ORC=3,SHEEP=4,WOLF=5,BEAR=6,DRAGON=7,ZOMBIE=8,NU=9;
+const HUMAN=0,ELF=1,DWARF=2,ORC=3,SHEEP=4,WOLF=5,BEAR=6,DRAGON=7,ZOMBIE=8,SIEGE=9,CARAVAN=10,NU=11;
 const YEAR=60,TICKMS=125,MINVD=16;
 const SPEC=[
   {name:'Human', pl:'Humans', hp:30, atk:5, move:.45,adult:8*YEAR, life:[55,75],  birth:1,   range:0,aggr:1},
@@ -61,7 +61,9 @@ const SPEC=[
   {name:'Wolf',  pl:'Wolves', hp:26, atk:8, move:.7, adult:2*YEAR, life:[16,24]},
   {name:'Bear',  pl:'Bears',  hp:70, atk:12,move:.5, adult:3*YEAR, life:[22,30]},
   {name:'Dragon',pl:'Dragons',hp:400,atk:30,move:1,  adult:0,      life:[25,40]},
-  {name:'Zombie',pl:'Zombies',hp:24, atk:6, move:.3, adult:0,      life:[5,8]}
+  {name:'Zombie',pl:'Zombies',hp:24, atk:6, move:.3, adult:0,      life:[5,8]},
+  {name:'Siege engine',pl:'Siege engines',hp:90,atk:22,move:.3,adult:0,life:[30,45]},
+  {name:'Caravan',pl:'Caravans',hp:22,atk:0,move:.5,adult:0,life:[14,20]}
 ];
 function prefs(base,o){const a=new Float32Array(NT);for(let t=0;t<NT;t++)if(BUILD[t])a[t]=base;for(const k in o)a[k]=o[k];return a;}
 const PREF=[
@@ -98,16 +100,39 @@ const TRAITS=[
   {id:'zealot',   adj:'the Devout', word:'a zealot who distrusts outsiders', aggr:1.4,focus:'grow'},
   {id:'schemer',  adj:'the Sly',    word:'a schemer who preys on the weak',  aggr:1.2,focus:'wealth'}
 ];
-const AGES=['Tribal','Bronze','Iron','Castle','Golden'],AGE_T=[100,500,1600,4000];
+/* nine ages, from the first fires to the stars */
+const AGES=['Stone','Bronze','Iron','Classical','Medieval','Renaissance','Industrial','Modern','Space'];
+const AGE_NAME=['Stone Age','Bronze Age','Iron Age','Classical Era','Medieval Era','Renaissance','Industrial Age','Modern Age','Space Age'];
+const AGE_T=[70,240,620,1300,2500,4500,7600,12000],STAR_LORE=15500;
+const TECHS=[
+  ['Fire','Hunting','Agriculture'],['Bronze Working','Sailing','Writing'],['Iron Working','Currency','Masonry'],
+  ['Philosophy','Mathematics','Engineering'],['Feudalism','Castles','Guilds'],['Printing','Astronomy','Gunpowder'],
+  ['Steam Power','Railways','Electricity'],['Flight','Computers','Medicine'],['Rocketry','Satellites','Starships']];
+/* each figure on the map stands for more people as an age advances */
+const PPL=[6,10,16,28,50,90,200,480,1000];
+/* world wonders: one of each may stand in the world */
+const WONDERS=[
+  {id:'stones',n:'the Standing Stones',age:0,cost:60,yrs:8,lore:.25},
+  {id:'pyramid',n:'the Great Pyramid',age:1,cost:150,yrs:14,res:1.2},
+  {id:'colossus',n:'the Colossus',age:2,cost:240,yrs:12,gold:.5,coast:true},
+  {id:'library',n:'the Great Library',age:3,cost:380,yrs:14,lore:.9},
+  {id:'cathedral',n:'the Grand Cathedral',age:4,cost:560,yrs:18,calm:true,lore:.3},
+  {id:'observatory',n:'the Star Observatory',age:5,cost:800,yrs:14,lore:1.6},
+  {id:'irontower',n:'the Iron Tower',age:6,cost:1100,yrs:10,gold:1.6},
+  {id:'skyspire',n:'the Sky Spire',age:7,cost:1500,yrs:12,gold:1.2,lore:1.5,res:1.5},
+  {id:'stargate',n:'the Star Gate',age:8,cost:2200,yrs:16,lore:3}];
 const FOCUS_WORD={grow:'Growing the realm',army:'Building its army',wealth:'Filling the treasury',lore:'Seeking knowledge'};
-const GCOST={dock:10,market:10,mine:10,tower:15,temple:20,barracks:25,academy:40};
-const BHP={hall:160,house:40,farm:15,tower:80,barracks:70,market:40,temple:50,academy:50,mine:40,dock:30};
+const GCOST={dock:10,market:10,mine:10,tower:15,temple:20,barracks:25,academy:40,windmill:15,lighthouse:30,factory:60,arena:120,launchpad:400};
+const BHP={hall:160,house:40,farm:15,tower:80,barracks:70,market:40,temple:50,academy:50,mine:40,dock:30,wall:130,windmill:40,lighthouse:60,factory:90,arena:220,launchpad:300,wonder:700};
+/* buildings that take a 2x2 footprint, and how many seasons each takes to raise */
+const BIG={arena:1,launchpad:1,wonder:1};
+const BUILD_T={house:.34,farm:.5,wall:.5,hall:1,mine:.25,dock:.3,tower:.2,market:.25,temple:.15,barracks:.2,academy:.12,windmill:.25,lighthouse:.15,factory:.1,arena:.05,launchpad:.06};
 
 /* ---------- settings ---------- */
 const SIZES={cozy:[224,144],grand:[416,240],colossal:[640,352]};
 const DEF={size:'grand',land:'continents',climate:'temperate',peoples:'few',history:'0',wild:true,
   night:true,clouds:true,labels:true,borders:true,minimap:true,detail:true,disasters:'rare',mood:'normal',popcap:'normal',
-  gfx:'hd',quality:'balanced',seasons:true};
+  gfx:'hd',quality:'balanced',seasons:true,weather:true,sound:false,music:true,autosave:true};
 const S=Object.assign({},DEF);
 try{const j=JSON.parse(localStorage.getItem('tinydominion.settings')||'null');if(j&&typeof j==='object')for(const k in DEF)if(typeof j[k]===typeof DEF[k])S[k]=j[k];}catch(e){}
 function saveSettings(){try{localStorage.setItem('tinydominion.settings',JSON.stringify(S));}catch(e){}}
@@ -117,8 +142,9 @@ const POPCAP={small:1200,normal:2200,large:3600},MOOD={gentle:.35,normal:1,blood
 let W=0,H=0,N=0,GW=0,GH=0;
 let tile,soil,elev,fire,road,vown,region,wreg,wsize,shade,base,bmap,bfsQ,prevA,grid,temp,moist;
 let units=[],vById=[null],kingdoms=[],wars=[],boats=[],twisters=[],towers=[],fireList=[],effects=[],sched=[],chronicle=[],bubbles=[],risen=[];
+let planes=[],raising=[],history=[],wonderOf={},firstTech={},launches=0;
 let dirtyWalk=[],dirtyOver=false,capMul=1;
-let tick=0,uid=1,kc=0,dirtyAll=true,regionsDirty=true,regionStamp=0,shake=0,quiet=false,chronDirty=true,startSpot=null,animCap=300;
+let SL=100,seaGoal=100,storms=[],lastEvent=null,tick=0,uid=1,kc=0,dirtyAll=true,regionsDirty=true,regionStamp=0,shake=0,quiet=false,chronDirty=true,startSpot=null,animCap=300;
 const counts=new Int32Array(NU);
 const relM=new Map(),truM=new Map();
 const civCount=()=>counts[0]+counts[1]+counts[2]+counts[3];

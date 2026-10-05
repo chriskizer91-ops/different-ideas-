@@ -36,7 +36,7 @@ body.has-claude .no-claude{display:none}
 #realmBtn b{font-size:15px;font-weight:600;white-space:nowrap}
 #realmBtn span{font-size:12px;color:var(--muted);white-space:nowrap}
 #speed{margin-left:auto;display:flex}
-#speed button{min-width:32px;min-height:44px;padding:0 4px;background:var(--panel);border:2px solid var(--ink);border-left-width:0;box-shadow:0 3px 0 var(--shadow);font-weight:600}
+#speed button{min-width:30px;min-height:44px;padding:0 4px;background:var(--panel);border:2px solid var(--ink);border-left-width:0;box-shadow:0 3px 0 var(--shadow);font-weight:600}
 #speed button:first-child{border-left-width:2px}
 #speed button[aria-pressed="true"]{background:var(--sun);color:var(--sun-ink)}
 
@@ -88,20 +88,25 @@ textarea{width:100%;resize:vertical;display:block;margin-bottom:8px}
 .ev span{font-size:12px;color:var(--muted);padding-top:1px}
 .ev p{margin:0;font-size:14px}
 .ev.t-war{border-left-color:#e5484d}.ev.t-peace{border-left-color:#3aa76d}.ev.t-claude{border-left-color:var(--sun)}
-.ev.t-disaster{border-left-color:#ff7a2e}.ev.t-age{border-left-color:#3e7bfa}.ev.t-ruler{border-left-color:#a05cf0}.ev.t-ruin{border-left-color:#6b625a}
+.ev.t-disaster{border-left-color:#ff7a2e}.ev.t-tech{border-left-color:#17c3b2}
+.ev.go{cursor:pointer}.ev.go:hover p{text-decoration:underline}
+.ev .go-ico{font-size:11px;color:var(--muted)}.ev.t-age{border-left-color:#3e7bfa}.ev.t-ruler{border-left-color:#a05cf0}.ev.t-ruin{border-left-color:#6b625a}
 
 #veil{position:fixed;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;background:var(--sea)}
 #veil[hidden]{display:none}
 #veil .plate{padding:14px 18px;text-align:center;min-width:220px}
 #veil b{display:block;font-size:18px}
 #veil span{display:block;font-size:13px;color:var(--muted);margin-top:4px;min-height:1.2em}
+#veilBtns[hidden]{display:none}
+#veilBtns{display:flex;gap:8px;justify-content:center;margin-top:12px}
+#info{pointer-events:auto}
 
 #bottom{position:fixed;left:0;right:0;bottom:0;z-index:3;display:flex;flex-direction:column;pointer-events:none}
 #log{padding:0 8px 6px;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
 #log div{background:var(--shadow);color:#e8f4ef;padding:3px 8px;font-size:13px;max-width:100%;border-left:4px solid #6b8296;transition:opacity .6s}
 #log div.out{opacity:0}
 #log .t-war{border-left-color:#ff6b5e}#log .t-peace{border-left-color:#6fdc9a}#log .t-claude{border-left-color:var(--sun)}
-#log .t-disaster{border-left-color:#ffa04a}#log .t-age{border-left-color:#7fb0ff}#log .t-ruler{border-left-color:#c79bff}
+#log .t-disaster{border-left-color:#ffa04a}#log .t-tech{border-left-color:#5fe0d2}#log .t-age{border-left-color:#7fb0ff}#log .t-ruler{border-left-color:#c79bff}
 #info{margin:0 8px 8px;padding:6px 10px;font-size:14px;align-self:flex-start;max-width:calc(100% - 16px)}
 #info b{font-weight:700}
 #info small{display:block;color:var(--muted);font-size:12px}
@@ -116,10 +121,35 @@ textarea{width:100%;resize:vertical;display:block;margin-bottom:8px}
 .tool .ico{font-size:21px;line-height:1;font-family:system-ui,"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
 .tool .sw{width:24px;height:20px;border:2px solid var(--ink)}
 .tool[aria-pressed="true"]{background:var(--sun);color:var(--sun-ink);box-shadow:none;transform:translateY(3px)}
-#tabs{display:grid;grid-template-columns:repeat(4,1fr);border-top:2px solid var(--ink)}
-#tabs button{min-height:44px;background:transparent;border:0;border-left:2px solid var(--ink);font-weight:600;font-size:15px}
+#tabs{display:grid;grid-template-columns:repeat(5,1fr);border-top:2px solid var(--ink)}
+#tabs button{min-height:44px;background:transparent;border:0;border-left:2px solid var(--ink);font-weight:600;font-size:15px;padding:0 2px}
 #tabs button:first-child{border-left:0}
 #tabs button[aria-selected="true"]{background:var(--ink);color:var(--panel)}
+.meter{height:10px;background:var(--panel-2);border:2px solid var(--ink);margin:4px 0 2px}
+.meter i{display:block;height:100%;background:var(--sun)}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0}
+.chips span{font-size:12px;padding:1px 6px;border:2px solid var(--ink);background:var(--panel-2)}
+.chips span.new{background:var(--sun);color:var(--sun-ink)}
+.town{display:grid;grid-template-columns:1fr auto;width:100%;text-align:left;background:var(--panel-2);border:2px solid var(--ink);padding:4px 8px;margin-top:4px;min-height:40px;align-items:center}
+.town b{font-size:14px}.town small{font-size:12px;color:var(--muted);text-align:right}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:4px 0 10px}
+.tiles div{background:var(--panel-2);border:2px solid var(--ink);padding:6px 8px}
+.tiles dt{font-size:12px;color:var(--muted)}.tiles dd{margin:0;font-size:22px;font-weight:700}
+.chart{position:relative;margin:4px 0 6px}
+.chart canvas{display:block;width:100%;height:230px;touch-action:pan-y}
+.tip{position:absolute;pointer-events:none;background:var(--shadow);color:#e8f4ef;font-size:12px;padding:4px 6px;white-space:nowrap;z-index:2}
+.tip i{display:inline-block;width:8px;height:8px;margin-right:4px;border:1px solid #e8f4ef}
+.legend{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;margin:2px 0 6px}
+.legend span{display:inline-flex;align-items:center;gap:4px}
+.legend i{width:12px;height:4px;display:inline-block;outline:1px solid var(--ink)}
+table.lead{width:100%;border-collapse:collapse;font-size:13px}
+table.lead th{text-align:left;font-weight:600;color:var(--muted);font-size:12px;border-bottom:2px solid var(--ink);padding:3px 4px}
+table.lead td{padding:3px 4px;border-bottom:1px solid var(--panel-2)}
+table.lead td.n{text-align:right;font-variant-numeric:tabular-nums}
+#stopWatch{position:fixed;z-index:4;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+body.watching #dock,body.watching #info{display:none}
+body.watching #stopWatch{display:block}
+#info .act{min-height:36px;margin-top:6px;padding:0 10px;font-size:13px}
 @media (min-width:700px){
   #dock{margin:0 auto 10px;border:2px solid var(--ink);box-shadow:0 3px 0 var(--shadow);width:660px;max-width:calc(100% - 20px)}
   #log,#info{margin-left:calc(50% - 330px)}

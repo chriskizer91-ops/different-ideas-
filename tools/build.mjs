@@ -1,5 +1,7 @@
 // Builds the single-file game: inlines src/style.css and src/js/*.js into Tiny_Dominion.html
-import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, mkdtempSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -13,6 +15,12 @@ const js = jsFiles.map(f => `/* ===== ${f} ===== */\n` + read(join('js', f))).jo
 
 const html = read('head.html').trimEnd() + '\n<style>\n' + read('style.css').trimEnd() + '\n</style>\n</head>\n<body>\n' +
   read('body.html').trimEnd() + '\n\n<script>\n(function(){\n\'use strict\';\n' + js.trimEnd() + '\n})();\n</script>\n</body>\n</html>\n';
+
+// syntax check the combined script before writing anything
+const tmp = join(mkdtempSync(join(tmpdir(), 'tdb-')), 'game.js');
+writeFileSync(tmp, "(function(){'use strict';\n" + js + '\n})();\n');
+const chk = spawnSync(process.execPath, ['--check', tmp], { encoding: 'utf8' });
+if (chk.status !== 0) { console.error(chk.stderr); process.exit(1); }
 
 const out = process.env.OUT || join(root, 'Tiny_Dominion.html');
 writeFileSync(out, html);

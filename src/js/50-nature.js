@@ -73,33 +73,33 @@ function disasters(){
     const i=randomTile(j=>TREE[tile[j]]===1||tile[j]===GRASS,200);if(i<0)return;
     const x=i%W,y=(i/W)|0,n=4+((Math.random()*6)|0);
     for(let m=0;m<n;m++)sched.push({t:tick+((Math.random()*70)|0),f:'bolt',x:x+((Math.random()*21)|0)-10,y:y+((Math.random()*21)|0)-10});
-    chron('A thunderstorm breaks'+nearName(x,y),'disaster');
+    chron('A thunderstorm breaks'+nearName(x,y),'disaster',{x,y});
   }else if(r<.48){
     const i=randomTile(j=>tile[j]===MOUNT,400);if(i<0)return;
-    erupt(i%W,(i/W)|0);chron('A volcano erupts'+nearName(i%W,(i/W)|0),'disaster');
+    erupt(i%W,(i/W)|0);chron('A volcano erupts'+nearName(i%W,(i/W)|0),'disaster',{x:i%W,y:(i/W)|0});
   }else if(r<.64){
     const vs=[];for(let n=1;n<vById.length;n++)if(vById[n].alive&&vById[n].pop>20)vs.push(vById[n]);
     if(!vs.length)return;
     const v=pick(vs);let c=0;
     for(const u of units){if(u.v===v&&!u.sick&&!u.immune){u.sick=200;if(++c>=4)break;}}
-    if(c)chron('Plague breaks out in '+v.name,'disaster');
+    if(c)chron('Plague breaks out in '+v.name,'disaster',v);
   }else if(r<.8){
     const i=randomTile(j=>WALK[tile[j]]===1,100);if(i<0)return;
     twisters.push({x:i%W,y:(i/W)|0,dx:Math.random()<.5?1:-1,dy:0,t:170});
-    chron('A tornado touches down'+nearName(i%W,(i/W)|0),'disaster');
+    chron('A tornado touches down'+nearName(i%W,(i/W)|0),'disaster',{x:i%W,y:(i/W)|0});
   }else if(r<.9){
     const i=randomTile(j=>tile[j]>WATER,100);if(i<0)return;
     if(quiet)blast(i%W,(i/W)|0,6,true);else fx({k:'meteor',x:i%W,y:(i/W)|0,t:28});
-    chron('A falling star strikes'+nearName(i%W,(i/W)|0),'disaster');
+    chron('A falling star strikes'+nearName(i%W,(i/W)|0),'disaster',{x:i%W,y:(i/W)|0});
   }else if(r<.96){
     const i=randomTile(j=>tile[j]===MOUNT||tile[j]===SNOW,200);if(i<0)return;
-    if(spawn(DRAGON,i%W,(i/W)|0))chron('A dragon wakes in the mountains'+nearName(i%W,(i/W)|0),'disaster');
+    if(spawn(DRAGON,i%W,(i/W)|0))chron('A dragon wakes in the mountains'+nearName(i%W,(i/W)|0),'disaster',{x:i%W,y:(i/W)|0});
   }else{
     const vs=[];for(let n=1;n<vById.length;n++)if(vById[n].alive)vs.push(vById[n]);
     if(!vs.length)return;
     const v=pick(vs);let c=0;
     for(let m=0;m<8;m++){const x=v.x+((Math.random()*17)|0)-8,y=v.y+((Math.random()*17)|0)-8;if(walkable(x,y)&&spawn(ZOMBIE,x,y))c++;}
-    if(c)chron('The dead rise outside '+v.name,'disaster');
+    if(c)chron('The dead rise outside '+v.name,'disaster',v);
   }
 }
 function erupt(tx,ty){
@@ -159,6 +159,20 @@ function runSched(){
     const e=sched[n];
     if(e.t>tick){sched[w++]=e;continue;}
     if(e.f==='bolt')strike(e.x,e.y);
+    else if(e.f==='shell'||e.f==='bomb'){
+      if(inB(e.x,e.y)){
+        const i=e.y*W+e.x,b=bmap[i],bomb=e.f==='bomb';
+        if(b&&b.v.k!==e.k){
+          const d=bomb?55:e.d;
+          if(bomb&&b.kind==='hall')b.hp=Math.max(b.hp-d,hallHp(b.v)*.25);else damageBld(b,d,b.kind==='hall'?{k:e.k}:null);
+        }
+        if(bomb&&Math.random()<.4)ignite(i);
+        const rr=bomb?2.3:1.6;
+        for(const u of units)if(!u.dead&&u.k!==e.k&&(u.x-e.x)*(u.x-e.x)+(u.y-e.y)*(u.y-e.y)<=rr)hit(u,bomb?30:14,null);
+        fx({k:'boom',x:e.x,y:e.y,r:bomb?1.6:1.1,t:12,T:12});
+        if(bomb&&!reduceMotion)shake=Math.max(shake,3);
+      }
+    }
     else if(e.f==='lavabomb'){
       if(inB(e.x,e.y)){
         const i=e.y*W+e.x;
@@ -179,9 +193,12 @@ function step(){
   if(risen.length){for(let n=0;n<risen.length;n+=2)spawn(ZOMBIE,risen[n],risen[n+1]);risen.length=0;}
   sweepUnits();
   if(boats.length)updBoats();
+  if(planes.length)updPlanes();
   if(twisters.length)updTwisters();
   if(towers.length)updTowers();
   fireStep();tileTicks();
+  if(SL!==seaGoal&&tick%5===0)seaStep();
+  stormsStep();
   if(sched.length)runSched();
   if(tick%10===0)villagesStep();
   if(tick%YEAR===0)rulersStep();

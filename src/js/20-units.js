@@ -6,6 +6,8 @@ function spawn(t,x,y,k,v,age){
   else if(t===BEAR){if(counts[BEAR]>=animCap*.08)return null;}
   else if(t===ZOMBIE){if(counts[ZOMBIE]>=260)return null;}
   else if(t===DRAGON){if(counts[DRAGON]>=6)return null;}
+  else if(t===SIEGE){if(counts[SIEGE]>=120)return null;}
+  else if(t===CARAVAN){if(counts[CARAVAN]>=160)return null;}
   counts[t]++;
   const s=SPEC[t];
   const u={id:uid++,t,x,y,hp:s.hp,age:age===undefined?s.adult:age,
@@ -39,10 +41,12 @@ function nearest(u,r,pred){
   }
   return best;
 }
+/* solid buildings block everyone, except that a realm's own people pass through its city walls */
+function blocks(b,u){return b.solid&&!(b.kind==='wall'&&u.k&&b.v.k===u.k);}
 function tryMove(u,dx,dy){
   const nx=u.x+dx,ny=u.y+dy;if(!walkable(nx,ny))return false;
   const i=ny*W+nx,b=bmap[i];
-  if(b&&b.solid)return false;
+  if(b&&blocks(b,u))return false;
   if(fire[i]&&Math.random()<.9)return false;
   u.x=nx;u.y=ny;if(dx)u.dir=dx;return true;
 }
@@ -92,7 +96,7 @@ function stepFlow(u,v){
     const o=DIRS[(n+r)&7],d=f[(ly+o[1])*FD+lx+o[0]];
     if(d<bd){
       const x=u.x+o[0],y=u.y+o[1];if(x<0||y<0||x>=W||y>=H)continue;
-      const b=bmap[y*W+x];if(b&&b.solid)continue;
+      const b=bmap[y*W+x];if(b&&blocks(b,u))continue;
       bd=d;bx=o[0];by=o[1];
     }
   }
@@ -107,14 +111,17 @@ function hostile(u,o){
   const ot=o.t;
   if(ot===ZOMBIE)return true;
   if(ot===WOLF||ot===BEAR)return d2(u,o)<=16;
+  if(ot===SIEGE||ot===CARAVAN)return!!(u.k&&o.k&&u.k!==o.k&&u.k.wars.has(o.k));
   if(ot>ORC)return false;
   const a=u.k,b=o.k;
   if(a&&b)return a!==b&&a.wars.has(b);
   if(!a&&!b)return u.t!==ot&&(u.t===ORC||ot===ORC);
   return false;
 }
+/* from the Renaissance on, every army carries guns */
+function rangeOf(u,s){const k=u.k;return k&&k.age>=5?(k.age>=6?5:4):(s.range||0);}
 function strikeFoe(u,f,s){
-  const r=s.range||0,dd=d2(u,f);
+  const r=rangeOf(u,s),dd=d2(u,f);
   if(dd<=2||(r&&dd<=r*r)){
     if(u.cd<=0){
       const far=dd>2;u.cd=far?5:3;
@@ -122,7 +129,7 @@ function strikeFoe(u,f,s){
       if(u.k){dmg*=u.k.pow;const vid=vown[u.y*W+u.x];if(vid&&vById[vid].k===u.k)dmg*=1.25;}
       if(f.t===ELF&&!far&&TREE[tile[f.y*W+f.x]])dmg*=.65;
       hit(f,dmg,u);
-      if(far)fx({k:'arrow',x:u.x,y:u.y,x2:f.x,y2:f.y,t:5,T:5});
+      if(far){const gun=!!(u.k&&u.k.age>=5);fx({k:'arrow',x:u.x,y:u.y,x2:f.x,y2:f.y,t:gun?3:5,T:gun?3:5,gun});if(gun&&Math.random()<.5)fx({k:'spark',x:u.x,y:u.y,t:2});}
       else if(Math.random()<.25)fx({k:'spark',x:f.x,y:f.y,t:4});
     }
     return true;
@@ -150,6 +157,8 @@ function updUnit(u){
       return;
     case WOLF:case BEAR:updPredator(u,s);return;
     case ZOMBIE:updZombie(u,s);return;
+    case SIEGE:updSiege(u,s);return;
+    case CARAVAN:updCaravan(u,s);return;
     default:updCiv(u,s,i);
   }
 }
@@ -190,6 +199,55 @@ function updZombie(u,s){
   }
   u.foe=null;
   if(Math.random()<s.move*.6)wander(u);
+}
+/* catapults, cannons and later tanks follow the army and batter enemy buildings */
+function enemyBldNear(u,r){
+  const k=u.k;let best=null,bd=1e9;
+  for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){
+    const x=u.x+dx,y=u.y+dy;if(!inB(x,y))continue;
+    const b=bmap[y*W+x];if(!b||b.v.k===k||!k.wars.has(b.v.k))continue;
+    const d=dx*dx+dy*dy+(b.kind==='hall'?-6:b.kind==='wall'?-3:0);if(d<bd){bd=d;best=b;}
+  }
+  return best;
+}
+function updSiege(u,s){
+  const k=u.k;
+  if(!k||!k.alive){kill(u);return;}
+  const home=u.home&&u.home.alive&&u.home.k===k?u.home:k.villages[0];
+  if(!k.wars.size){if(Math.random()<.003||!home)kill(u);else if(Math.random()<s.move*.5)stepFlow(u,home);return;}
+  if(u.cd<=0){
+    const b=enemyBldNear(u,k.age>=7?6:5);
+    if(b){
+      u.cd=k.age>=7?7:k.age>=5?10:14;u.dir=b.x>=u.x?1:-1;
+      const tier=TIER[k.age]||0;
+      fx({k:'shot',x:u.x,y:u.y,x2:b.x,y2:b.y,t:8,T:8,s:tier>=3?'shell':'stone'});
+      sched.push({t:tick+3,f:'shell',x:b.x,y:b.y,k,d:s.atk*k.pow*(tier>=4?1.6:1)});
+      return;
+    }
+    if(k.age>=7){
+      const f=nearest(u,5,o=>hostile(u,o));
+      if(f){u.cd=6;u.dir=f.x>=u.x?1:-1;hit(f,s.atk*k.pow*.5,u);fx({k:'arrow',x:u.x,y:u.y,x2:f.x,y2:f.y,t:3,T:3,gun:true});fx({k:'spark',x:u.x,y:u.y,t:2});return;}
+    }
+  }
+  const tv=k.target;
+  if(tv&&tv.alive&&k.wars.has(tv.k)&&region[u.y*W+u.x]===region[tv.y*W+tv.x]){if(d2(u,tv)>16&&Math.random()<s.move)stepFlow(u,tv);}
+  else if(home&&d2(u,home)>25&&Math.random()<s.move*.5)stepFlow(u,home);
+}
+/* caravans carry goods between towns along the roads */
+function updCaravan(u,s){
+  const d=u.dest,k=u.k;
+  if(!d||!d.alive||!k||!k.alive||(d.k!==k&&k.wars.has(d.k))){kill(u);return;}
+  if(d2(u,d)<=8){
+    const g=u.cargo||4;k.gold+=g;
+    if(d.k!==k){d.k.gold+=g*.6;setRel(k,d.k,rel(k,d.k)+2);}
+    if(!u.back&&u.home&&u.home.alive&&u.home!==d){u.back=true;u.dest=u.home;u.cargo=g*.5;}else kill(u);
+    return;
+  }
+  if(Math.random()<s.move*(road[u.y*W+u.x]?1.7:1)){
+    const ox=u.x,oy=u.y;stepFlow(u,d);
+    if(u.x!==ox)u.dir=u.x>ox?1:-1;
+    if(u.x!==ox||u.y!==oy){(u.trail||(u.trail=[])).unshift({x:ox,y:oy});if(u.trail.length>2)u.trail.length=2;}
+  }
 }
 function updDragon(u){
   if(!u.tgt||(Math.abs(u.x-u.tgt.x)<2&&Math.abs(u.y-u.tgt.y)<2)||Math.random()<.008){
@@ -354,6 +412,11 @@ function launchBoat(k,path,cargo,mode,land){
 }
 function unloadBoat(b,lx,ly){
   b.dead=true;
+  if(b.mode==='trade'){
+    const k=b.k,o=b.to;
+    if(k.alive&&lx>=0){k.gold+=b.cargoGold;if(o&&o.alive&&o!==k){o.gold+=b.cargoGold*.6;setRel(k,o,rel(k,o)+3);}}
+    return;
+  }
   for(const u of b.cargo){
     u.stowed=false;
     if(lx<0){u.dead=true;continue;}

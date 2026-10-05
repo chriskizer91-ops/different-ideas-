@@ -21,6 +21,14 @@ function kingdomAt(tx,ty){
 function applyBrush(tx,ty,tool){
   if(tool.tile!==undefined){forBrush(tx,ty,i=>setTile(i,tool.tile,true));return;}
   switch(tool.id){
+    case'raise':raiseLand(tx,ty,1);break;
+    case'lower':raiseLand(tx,ty,-1);break;
+    case'flatten':flattenLand(tx,ty);break;
+    case'warm':climateBrush(tx,ty,9,0);break;
+    case'cool':climateBrush(tx,ty,-9,0);break;
+    case'wet':climateBrush(tx,ty,0,12);break;
+    case'dry':climateBrush(tx,ty,0,-12);break;
+    case'plant':plantTrees(tx,ty);break;
     case'fire':forBrush(tx,ty,i=>{if(Math.random()<.6)ignite(i);});break;
     case'rain':
       forBrush(tx,ty,(i,x,y)=>{
@@ -100,7 +108,9 @@ function calmRealm(tx,ty){
   bubble(k,'Lay down your arms.');
   chron('A hush from the heavens ends the wars of '+k.name,'peace');
 }
+let inspected=null;
 function inspect(tx,ty){
+  inspected=null;
   if(!inB(tx,ty)){hideInfo();return;}
   let u=null,bd=5;
   for(const o of units){const d=(o.x-tx)*(o.x-tx)+(o.y-ty)*(o.y-ty);if(d<bd){bd=d;u=o;}}
@@ -109,12 +119,16 @@ function inspect(tx,ty){
   if(u&&bd<=2){
     const s=SPEC[u.t],yrs=Math.floor(u.age/YEAR);
     const role=u.t>ORC?'':u.age<s.adult?'Child':u.soldier?'Soldier':u.v?'Villager':u.settle&&u.settle.found?'Settler':'Wanderer';
-    html='<b>'+s.name+(u.k?' of '+esc(u.k.name):'')+'</b><small>'+(role?role+', ':'')+yrs+(yrs===1?' year old':' years old')+(u.sick?', sick with plague':'')+'</small>';
+    let nm=s.name;
+    if(u.t===SIEGE&&u.k){const a=u.k.age;nm=a>=7?'Tank':a>=5?'Cannon':a>=4?'Trebuchet':'Catapult';}
+    else if(u.t===CARAVAN&&u.k){const ti=TIER[u.k.age]||0;nm=ti>=4?'Freight truck':ti===3?'Goods train':'Trade caravan';}
+    inspected=u;
+    html='<b>'+nm+(u.k?' of '+esc(u.k.name):'')+'</b><small>'+(u.t===CARAVAN&&u.dest?'Bound for '+esc(u.dest.name):(role?role+', ':'')+yrs+(yrs===1?' year old':' years old'))+(u.sick?', sick with plague':'')+'</small><button id="followBtn" class="act">Follow</button>';
   }else if(v&&v.alive){
     const k=v.k;
-    html='<b>'+esc(v.name)+'</b><small>'+SPEC[v.race].name+' settlement of '+esc(k.name)+', '+AGES[k.age]+' Age</small>'+
-      '<small>'+v.pop+' of '+v.cap+' people, '+v.houses+' homes, '+v.farms+' farms</small>'+
-      (b?'<small>This is its '+(b.kind==='farm'&&b.grove?'grove':b.kind)+'</small>':'')+
+    html='<b>'+esc(v.name)+'</b><small>'+settlementWord(v)+' of the '+SPEC[v.race].pl.toLowerCase()+' of '+esc(k.name)+', '+AGE_NAME[k.age]+'</small>'+
+      '<small>'+fmtPop(citizens(v))+' people, '+v.houses+' homes, '+v.farms+' farms</small>'+
+      (b?'<small>This is its '+bldName(b)+(b.prog<1?', still being built':'')+'</small>':'')+
       (k.wars.size?'<small>At war with '+[...k.wars].map(o=>esc(o.name)).join(', ')+'</small>':'');
   }else html='<b>'+TD[tile[i]].n+'</b>';
   showInfo(html);

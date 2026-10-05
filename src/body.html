@@ -3,7 +3,7 @@
 <canvas id="mini" aria-label="Minimap. Touch to jump to that part of the world."></canvas>
 
 <div id="hud">
-  <div id="stamp" class="plate"><span>Tiny Dominion</span><b id="year">Year 1</b></div>
+  <div id="stamp" class="plate"><span id="era">Tiny Dominion</span><b id="year">Year 1</b></div>
   <button id="realmBtn" class="plate" aria-expanded="false" aria-controls="sheet">
     <b id="pop">0 people</b><span id="realmCount">No realms yet</span>
   </button>
@@ -12,6 +12,7 @@
     <button data-s="1" aria-pressed="true">1x</button>
     <button data-s="3" aria-pressed="false">3x</button>
     <button data-s="8" aria-pressed="false">8x</button>
+    <button data-s="20" aria-pressed="false" aria-label="20 times speed">20x</button>
   </div>
 </div>
 
@@ -20,7 +21,9 @@
   <div id="sheetBody"></div>
 </section>
 
-<div id="veil"><div class="plate"><b id="veilTitle">Shaping the world</b><span id="veilText"></span></div></div>
+<button id="stopWatch" class="act" hidden>Stop watching</button>
+<div id="veil"><div class="plate"><b id="veilTitle">Shaping the world</b><span id="veilText"></span>
+  <div id="veilBtns" class="btnrow" hidden><button id="vCont" class="act">Continue</button> <button id="vNew" class="act">New world</button></div></div></div>
 
 <div id="bottom">
   <div id="log" aria-live="polite"></div>

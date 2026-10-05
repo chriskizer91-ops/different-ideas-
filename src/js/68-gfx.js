@@ -41,6 +41,11 @@ function updDay(dt,running){
   const l=Math.hypot(sunX,sunY);sunX/=l;sunY/=l;
   dayLight=1-nightF;
 }
+function switchGfx(){
+  const fresh=cv.cloneNode(false);cv.parentNode.replaceChild(fresh,cv);cv=fresh;
+  fcache.clear();initGfx();resize();dirtyAll=true;
+  if(G){G.setWorld();}
+}
 function initGfx(){
   G=null;
   if(S.gfx!=='classic'){

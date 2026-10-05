@@ -15,6 +15,7 @@ float nz(vec2 p){return texture(uNz,p*.00390625).r;}
 float hs(ivec2 p){return texelFetch(uNz,p&255,0).g;}
 float hs2(ivec2 p){return texelFetch(uNz,(p+ivec2(97,41))&255,0).b;}
 float fbm(vec2 p){return nz(p)*.5+nz(p*2.03+vec2(17.3,9.1))*.25+nz(p*4.07+vec2(3.7,41.2))*.125+nz(p*8.13+vec2(29.1,5.7))*.0625;}
+float stormAt(vec2 w){float a=0.;for(int i=0;i<6;i++){if(i>=uNSt)break;vec4 s=uSt[i];float d=length(w-s.xy)/s.z;a=max(a,(1.-smoothstep(.55,1.05,d+(nz(w*.5+s.xy)-.5)*.3))*s.w);}return a;}
 `;
 
 const SH_TERRAIN_FS=`#version 300 es
@@ -22,6 +23,7 @@ precision highp float;precision highp int;
 uniform highp sampler2D uTerr,uSm,uOwn,uKPal,uBio,uNz;
 uniform vec2 uRes,uCam,uWorld,uSun,uWind;
 uniform float uZoom,uTime,uSeas,uSAmp,uBord,uCloud,uDay,uDet,uSL,uTreeA;
+uniform vec4 uSt[6];uniform int uNSt;
 out vec4 o;
 ${SH_COMMON}
 ivec2 ct(ivec2 t){return clamp(t,ivec2(0),ivec2(uWorld)-1);}
@@ -183,7 +185,7 @@ void main(){
     if(rk>0){
       vec2 f=fract(ap);int ax;
       float d=roadD(t0,f,ax);
-      float w=rk==2?.2:.165;
+      float w=rk==2?(otier>=3?.18:.2):.165;
       if(d<w){
         int rt=max(rb>>2,otier);bool hw=rk==1;
         vec3 rc;
@@ -199,7 +201,7 @@ void main(){
             if(fract(a*5.33)<.45)rc=vec3(.42,.3,.2);
             if(abs(abs(p-.5)-.09)<.035)rc=vec3(.8,.8,.83);}
         }else{
-          rc=vec3(.27,.28,.3)*(.95+.08*h);
+          rc=vec3(.33,.34,.36)*(.95+.08*h);
           if(hw){if(ax>0){float a=ax==1?f.x:f.y,p=ax==1?f.y:f.x;if(abs(p-.5)<.035&&fract(a*2.)<.5)rc=vec3(.95,.85,.4);}}
           else if(d>w-.06)rc=vec3(.66,.66,.64);
         }
@@ -233,6 +235,7 @@ void main(){
     }
   }
   if(uCloud>.5){float cs=fbm((ap+uSun*3.)*.028+uWind);c*=1.-step(.6,cs)*.16*uDay;}
+  if(uNSt>0){float st=stormAt(ap);c*=1.-st*.32;c=mix(c,vec3(dot(c,vec3(.33))),st*.35);}
   if(outW){vec2 d=max(-wp,wp-uWorld);c*=max(.7,1.-max(d.x,d.y)*.008);}
   o=vec4(c,1.);
 }`;
@@ -241,19 +244,22 @@ const SH_CLOUD_FS=`#version 300 es
 precision highp float;
 uniform highp sampler2D uNz;
 uniform vec2 uRes,uCam,uWind;uniform vec3 uAmb;uniform float uZoom,uFade;
+uniform vec4 uSt[6];uniform int uNSt;
 out vec4 o;
 ${SH_COMMON}
 void main(){
   vec2 fc=vec2(gl_FragCoord.x,uRes.y-gl_FragCoord.y);
   vec2 wp=uCam+fc/uZoom;
   vec2 cp=(floor(wp*4.)+.5)/4.;
-  float d=fbm(cp*.028+uWind);
+  float st=uNSt>0?stormAt(cp):0.;
+  float d=fbm(cp*.028+uWind)+st*.45;
   if(d<.6)discard;
-  float dn=fbm((cp+vec2(.4,1.6))*.028+uWind),up=fbm((cp-vec2(.3,1.))*.028+uWind);
+  float dn=fbm((cp+vec2(.4,1.6))*.028+uWind)+st*.45,up=fbm((cp-vec2(.3,1.))*.028+uWind)+st*.45;
   vec3 col=vec3(.95,.96,.98);
   if(dn<.6)col=vec3(.76,.8,.88);else if(up<.6)col=vec3(1.);
   if(d>.7)col*=.97;
-  o=vec4(col*uAmb,.86*uFade);
+  col=mix(col,vec3(.42,.45,.52)*(dn<.6?.8:1.),smoothstep(.15,.6,st));
+  o=vec4(col*uAmb,max(.86*uFade,st*.75*(1.-smoothstep(10.,22.,uZoom))));
 }`;
 
 const SH_DARK_FS=`#version 300 es
@@ -288,6 +294,7 @@ void main(){
 const SH_SPRITE_FS=`#version 300 es
 precision highp float;precision highp int;
 uniform highp sampler2D uAtl,uNz;uniform int uMode;uniform float uNight,uDay,uCloud;uniform vec2 uAt,uWind,uSun;
+uniform vec4 uSt[6];uniform int uNSt;
 in vec2 vUV;in vec4 vT,vF;in float vA;flat in int vFl;in vec2 vW;
 out vec4 o;
 ${SH_COMMON}
@@ -300,8 +307,8 @@ void main(){
     if(mk==252){
       ivec2 px=ivec2(vUV*uAt);
       float on=texelFetch(uNz,(px/2+ivec2((vFl>>4)*7,(vFl>>4)*3))&255,0).r;
-      if(on<.32)discard;
-      o=vec4(vec3(1.,.8,.45)*min(1.2,L)*uNight,1.);
+      if(on<.3)discard;
+      o=vec4(vec3(1.,.84,.52)*max(.8,min(1.3,L))*1.25*uNight,1.);
     }else if(mk==251)o=vec4(c*uNight,1.);
     else discard;
     return;
@@ -309,6 +316,7 @@ void main(){
   if(mk==254)c=vT.rgb*L;else if(mk==253)c=vF.rgb*L;else if(mk==252)c=vec3(.19,.25,.33)*L;
   if((vFl&8)!=0){o=vec4(0.,0.,0.,vA);return;}
   if(uMode==0&&uCloud>.5&&(vFl&4)==0){float cs=fbm((vW+uSun*3.)*.028+uWind);c*=1.-step(.6,cs)*.16*uDay;}
+  if(uMode==0&&uNSt>0&&(vFl&4)==0){float st=stormAt(vW);c*=1.-st*.32;c=mix(c,vec3(dot(c,vec3(.33))),st*.35);}
   o=vec4(c,vA);
 }`;
 
