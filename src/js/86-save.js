@@ -32,9 +32,11 @@ function snapshot(){
     settle:u.settle?{x:u.settle.x,y:u.settle.y,t:u.settle.t,found:u.settle.found,grp:grpRef(u.settle.grp)}:null,
     tgt:u.tgt,sick:u.sick,immune:u.immune,ox:u.ox,oy:u.oy,dir:u.dir,home:vid(u.home),dest:vid(u.dest),cargo:u.cargo||0,back:!!u.back,trail:u.trail||null});
   const ks=kingdoms.map(k=>({id:k.id,name:k.name,race:k.race,color:k.color,villages:k.villages.map(vid),alive:k.alive,gold:k.gold,lore:k.lore,age:k.age,tech:k.tech,
-    focus:k.focus,focusUntil:k.focusUntil,restUntil:k.restUntil,ruler:{name:k.ruler.name,title:k.ruler.title,trait:k.ruler.trait.id,since:k.ruler.since,until:k.ruler.until},
+    focus:k.focus,focusUntil:k.focusUntil,restUntil:k.restUntil,ruler:{name:k.ruler.name,title:k.ruler.title,trait:k.ruler.trait.id,tm:k.ruler.tm||null,since:k.ruler.since,until:k.ruler.until},
     wars:[...k.wars].map(kid),allies:[...k.allies].map(kid),target:vid(k.target),port:vid(k.port),landing:k.landing,rally:vid(k.rally),rallyUntil:k.rallyUntil,
-    pauseUntil:k.pauseUntil,boatCd:k.boatCd,broke:k.broke,born:k.born,launches:k.launches,colony:k.colony,peak:k.peak,hist:k.hist,pad:k.pad?vid(k.pad.v):0}));
+    pauseUntil:k.pauseUntil,boatCd:k.boatCd,broke:k.broke,born:k.born,launches:k.launches,colony:k.colony,peak:k.peak,hist:k.hist,pad:k.pad?vid(k.pad.v):0,
+    mem:k.mem||{},rep:repOf(k),goal:k.goal?{type:k.goal.type,o:kid(k.goal.o),why:k.goal.why,s:k.goal.s,since:k.goal.since}:null,weary:k.weary||0,
+    pacts:k.pacts||[],kin:k.kin||[],nudge:k.nudge||null,mind:k.mind||null,heard:k.heard||0,cool:k.cool||{},reigns:k.reigns||null}));
   const vs=[];
   for(let n=1;n<vById.length;n++){
     const v=vById[n];
@@ -65,9 +67,10 @@ function restore(d){
   const K=id=>id?kingdoms[id-1]:null,V=id=>id?vById[id]:null;
   for(const o of d.kingdoms){
     const k={id:o.id,name:o.name,race:o.race,color:o.color,rgb:hexRgb(o.color),villages:[],alive:o.alive,gold:o.gold,lore:o.lore,age:o.age,tech:o.tech||0,pow:1,pop:0,str:0,
-      focus:o.focus,focusUntil:o.focusUntil,restUntil:o.restUntil,ruler:{name:o.ruler.name,title:o.ruler.title,trait:TRAITS.find(t=>t.id===o.ruler.trait)||TRAITS[0],since:o.ruler.since,until:o.ruler.until},
+      focus:o.focus,focusUntil:o.focusUntil,restUntil:o.restUntil,ruler:{name:o.ruler.name,title:o.ruler.title,trait:TRAITS.find(t=>t.id===o.ruler.trait)||TRAITS[0],tm:o.ruler.tm||null,since:o.ruler.since,until:o.ruler.until},
       wars:new Set(),allies:new Set(),nb:[],regs:new Set(),target:null,port:null,landing:o.landing,rally:null,rallyUntil:o.rallyUntil,pauseUntil:o.pauseUntil,boatCd:o.boatCd,
-      nAdult:0,nSold:0,nBarr:0,nCar:0,nSiege:0,broke:o.broke,born:o.born,launches:o.launches||0,colony:!!o.colony,peak:o.peak||0,hist:o.hist||[],pad:null};
+      nAdult:0,nSold:0,nBarr:0,nCar:0,nSiege:0,broke:o.broke,born:o.born,launches:o.launches||0,colony:!!o.colony,peak:o.peak||0,hist:o.hist||[],pad:null,
+      mem:o.mem||{},rep:o.rep===undefined?50:o.rep,goal:null,weary:o.weary||0,pacts:o.pacts||[],kin:o.kin||[],nudge:o.nudge||null,mind:o.mind||null,heard:o.heard||0,cool:o.cool||{},reigns:o.reigns||null};
     kingdoms.push(k);
   }
   for(const o of d.villages){
@@ -83,6 +86,7 @@ function restore(d){
     for(const id of o.wars)if(K(id))k.wars.add(K(id));
     for(const id of o.allies)if(K(id))k.allies.add(K(id));
     k.target=V(o.target);k.port=V(o.port);k.rally=V(o.rally);
+    if(o.goal)k.goal={type:o.goal.type,o:K(o.goal.o),why:o.goal.why||'',s:o.goal.s||0,since:o.goal.since||tick};
   }
   for(const o of d.villages){
     const v=V(o.id);if(!v.alive)continue;

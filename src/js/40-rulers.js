@@ -13,7 +13,7 @@ function setRel(a,b,v){relM.set(pk(a,b),Math.max(-100,Math.min(100,v)));}
 function relWord(r){return r<-55?'hatred':r<-25?'hostile':r<-8?'wary':r<15?'neutral':r<45?'cordial':'friendly';}
 function inTruce(a,b){const t=truM.get(pk(a,b));return t!==undefined&&tick<t;}
 function warOf(a,b){for(const w of wars)if((w.a===a&&w.b===b)||(w.a===b&&w.b===a))return w;return null;}
-function warScore(a,b){const w=warOf(a,b);if(w){if(w.a===a)w.sa++;else w.sb++;}}
+function warScore(a,b){const w=warOf(a,b);if(w){if(w.a===a)w.sa++;else w.sb++;}remember(b,a,.2,0,'');}
 function nearestVillageOf(k,x,y){
   let best=null,bd=1e9;
   for(const v of k.villages){const d=(v.x-x)*(v.x-x)+(v.y-y)*(v.y-y);if(d<bd){bd=d;best=v;}}
@@ -27,14 +27,14 @@ function bubble(k,text){
   bubbles.push({k,text:String(text).slice(0,90),until:now()+9000});
   if(bubbles.length>8)bubbles.shift();
 }
-function chron(text,type,at){
+function chron(text,type,at,hush){
   const e={y:yearNow(),text,type:type||''};
   if(at){if(at.villages)at=at.villages[0];if(at&&at.x!==undefined){e.x=at.x;e.y2=at.y;}}
   chronicle.push(e);
   if(e.x!==undefined)lastEvent={x:e.x,y:e.y2,t:now(),type:e.type};
   if(chronicle.length>300)chronicle.shift();
   chronDirty=true;
-  if(!quiet&&(type!=='found'||tick<25*YEAR))toast(text,type);
+  if(!quiet&&!hush&&(type!=='found'||tick<25*YEAR))toast(text,type);
 }
 function pickTarget(k){
   k.target=null;k.port=null;k.landing=null;
@@ -61,19 +61,32 @@ function pickTarget(k){
   if(!land)return;
   k.target=sea;k.port=port;k.landing=land;
 }
-function declareWar(a,b,why){
+function declareWar(a,b,why,joining){
   if(a===b||!a.alive||!b.alive||a.wars.has(b))return false;
-  if(a.allies.has(b)){a.allies.delete(b);b.allies.delete(a);chron(a.name+' betrays its alliance with '+b.name,'war');}
+  const truce=inTruce(a,b);
+  if(a.allies.has(b)){
+    a.allies.delete(b);b.allies.delete(a);a.rep=repOf(a)-25;remember(b,a,60,0,'betrayed our alliance');
+    chron(a.name+' betrays its alliance with '+b.name,'war');
+  }else remember(b,a,truce?40:25,0,truce?'broke the truce':'declared war on us');
+  if(truce)a.rep=repOf(a)-20;
+  if(a.pacts){a.pacts=a.pacts.filter(id=>id!==b.id);}if(b.pacts){b.pacts=b.pacts.filter(id=>id!==a.id);}
   a.wars.add(b);b.wars.add(a);wars.push({a,b,start:tick,sa:0,sb:0});
   truM.delete(pk(a,b));setRel(a,b,Math.min(rel(a,b),-60));
   chron(why||(rulerName(a)+' of '+a.name+' declares war on '+b.name),'war',nearestVillageOf(b,a.villages[0]?a.villages[0].x:0,a.villages[0]?a.villages[0].y:0)||b);
-  if(!why){const tid=a.ruler.trait.id;bubble(a,tid==='conqueror'?'Their lands will be ours.':tid==='zealot'?'Drive the outsiders from our borders!':tid==='schemer'?'They will never see it coming.':'To arms! We march on '+b.name+'.');}
   a.focus='army';b.focus='army';
   {const c=b.villages[0];snd('horn',c?c.x:undefined,c?c.y:undefined,.9);}
   pickTarget(a);pickTarget(b);
-  if(!why){
-    for(const al of[...b.allies])if(al!==a&&al.alive&&!al.wars.has(a)&&Math.random()<.75)declareWar(al,a,al.name+' honors its alliance with '+b.name+' and joins the war');
-    for(const al of[...a.allies])if(al!==b&&al.alive&&!al.wars.has(b)&&Math.random()<.35)declareWar(al,b,al.name+' joins '+a.name+' against '+b.name);
+  if(!joining){
+    /* each ally weighs the call for itself: honour, debts and old hatreds against fear and weariness */
+    for(const al of[...b.allies]){
+      if(al===a||!al.alive||al.wars.has(a)||al.allies.has(a)||!canReach(al,a))continue;
+      if(answerCall(al,b,a,false)){declareWar(al,a,al.name+' honours its alliance with '+b.name+' and joins the war',true);remember(b,al,0,25,'stood by us in war');}
+      else{remember(b,al,22,0,'abandoned us in war');al.rep=repOf(al)-8;setRel(b,al,rel(b,al)-25);chron(al.name+' leaves its ally '+b.name+' to fight alone','ruin',b);}
+    }
+    for(const al of[...a.allies]){
+      if(al===b||!al.alive||al.wars.has(b)||al.allies.has(b)||!canReach(al,b))continue;
+      if(answerCall(al,a,b,true)){declareWar(al,b,al.name+' joins '+a.name+' against '+b.name,true);remember(a,al,0,15,'fought at our side');}
+    }
   }
   return true;
 }
@@ -84,12 +97,11 @@ function makePeace(a,b,quietly){
   const n=wars.indexOf(w);if(n>=0)wars.splice(n,1);
   truM.set(pk(a,b),tick+((12+Math.random()*10)*YEAR|0));
   setRel(a,b,Math.max(rel(a,b),-25));
-  if(w&&Math.abs(w.sa-w.sb)>20){const win=w.sa>w.sb?w.a:w.b,lose=win===a?b:a,pay=lose.gold*.3;lose.gold-=pay;win.gold+=pay;}
   for(const k of[a,b]){
     if(!k.wars.size){standDown(k);k.restUntil=tick+((4+Math.random()*6)*YEAR|0);if(tick>k.focusUntil)k.focus=k.ruler.trait.focus;}
     else pickTarget(k);
   }
-  if(!quietly){chron('Peace between '+a.name+' and '+b.name+' after '+yrs+(yrs===1?' year':' years')+' of war','peace');snd('peace');bubble(a,'Enough blood. Let there be peace.');}
+  if(!quietly){const t=peaceTerms(a,b,w);chron('Peace between '+a.name+' and '+b.name+' after '+yrs+(yrs===1?' year':' years')+' of war'+(t?'. '+t:''),'peace',a);snd('peace');bubble(a,'Enough blood. Let there be peace.');}
 }
 function makeAlliance(a,b){
   if(a===b||a.allies.has(b)||a.wars.has(b))return false;
@@ -97,69 +109,31 @@ function makeAlliance(a,b){
   chron(a.name+' and '+b.name+' swear an alliance','peace');bubble(a,'We stand together with '+b.name+'.');
   return true;
 }
-function willing(k,o,w,yrs){
-  if(!w||yrs<2)return false;
-  const diff=w.a===k?w.sa-w.sb:w.sb-w.sa,tr=k.ruler.trait;
-  if(diff<-20)return true;
-  if(diff>20&&o.villages.length<=1&&Math.random()<.5)return true;
-  if(diff>20)return tr.aggr<1.2?yrs>3:(diff>60||yrs>12);
-  return yrs>(tr.aggr<1?8:14);
-}
 function secede(k,why){
   const cap=k.villages[0];let v=null,bd=-1;
   for(let n=1;n<k.villages.length;n++){const o=k.villages[n],d=d2(o,cap);if(d>bd){bd=d;v=o;}}
   if(!v)return;
-  const nk=newKingdom(k.race,v.name);
+  const nk=newKingdom(k.race,kingdoms.some(o=>o.alive&&o.name===v.name)?'Free '+v.name:v.name);
   k.villages.splice(k.villages.indexOf(v),1);v.k=nk;nk.villages.push(v);
   nk.age=k.age;nk.lore=k.lore*.8;nk.restUntil=tick+10*YEAR;nk.regs.add(region[v.y*W+v.x]);
   for(const u of units)if(u.v===v){u.k=nk;u.soldier=false;}
-  truM.set(pk(k,nk),tick+8*YEAR);setRel(k,nk,-30);
+  truM.set(pk(k,nk),tick+8*YEAR);setRel(k,nk,-30);remember(k,nk,20,0,'broke away from us');
   dirtyAll=true;
   chron(v.name+' breaks away from '+k.name+(why?' '+why:'')+'. '+rulerName(nk)+' takes the crown','ruin');bubble(nk,'We bow to '+k.name+' no longer.');
 }
+const ROMAN=['','I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV'];
 function succession(k){
   const old=rulerName(k),tr=k.ruler.trait;
-  k.ruler=newRuler(k.race,tr);
+  const tm=k.ruler.tm,base=k.ruler.name.replace(/ [IVX]+$/,'');
+  k.ruler=newRuler(k.race,tr,tm);k.goal=null;k.nudge=null;
+  /* a name already worn by this realm's rulers takes a regnal number */
+  const reign=k.reigns||(k.reigns={});reign[base]=reign[base]||1;
+  if(reign[k.ruler.name]){reign[k.ruler.name]++;k.ruler.name+=' '+ROMAN[Math.min(reign[k.ruler.name],ROMAN.length-1)];}
+  else reign[k.ruler.name]=1;
   chron(old+' of '+k.name+' dies. '+rulerName(k)+' '+k.ruler.trait.adj+' takes the throne','ruler');bubble(k,'The crown passes to me.');
   for(const n of k.nb)if(n.k.alive)setRel(k,n.k,rel(k,n.k)+(Math.random()*30-15));
   if(tick>k.focusUntil)k.focus=k.wars.size?'army':k.ruler.trait.focus;
   if(k.villages.length>=4&&Math.random()<.25)secede(k,'in a dispute over the crown');
-}
-function think(k){
-  const tr=k.ruler.trait,mood=MOOD[S.mood]||1;
-  if(tick>k.focusUntil){
-    k.focus=k.wars.size?'army':tr.focus;
-    if(k.pop<25&&!k.wars.size)k.focus='grow';
-  }
-  if(k.pop<8)return;
-  if(k.villages.length>=6&&!k.wars.size&&Math.random()<.03){secede(k,'');return;}
-  for(const n of k.nb){
-    const o=n.k;if(!o.alive)continue;
-    const r=rel(k,o);
-    if(k.allies.has(o)){
-      if(r<-15){k.allies.delete(o);o.allies.delete(k);chron('The alliance of '+k.name+' and '+o.name+' falls apart','ruin');}
-      continue;
-    }
-    if(!k.wars.has(o)&&r>34&&k.allies.size<2&&o.allies.size<2&&Math.random()<.12)makeAlliance(k,o);
-  }
-  if(!k.wars.size&&k.gold>320&&Math.random()<.08+Math.min(.3,k.gold/30000)){
-    k.gold-=160+k.gold*.12;for(const v of k.villages)v.res+=12;
-    if(k.villages[0])fx({k:'fireworks',x:k.villages[0].x,y:k.villages[0].y,t:120,T:120});
-    for(const n of k.nb)if(n.k.alive&&!k.wars.has(n.k))setRel(k,n.k,rel(k,n.k)+5);
-    chron(k.name+' holds a grand festival','peace');
-  }
-  if(k.wars.size||tick<k.restUntil)return;
-  let best=null,bp=0;const dock=k.age>=1&&hasDock(k);
-  for(const n of k.nb){
-    const o=n.k;if(!o.alive||k.allies.has(o)||inTruce(k,o)||(tick-o.born<20*YEAR&&mood<2))continue;
-    const reach=sameLand(k,o)?1:dock?.45:0;if(!reach)continue;
-    const hate=Math.max(0,(10-rel(k,o))/100),ratio=Math.min(2.2,k.str/(o.str+1));
-    let p=.035*tr.aggr*SPEC[k.race].aggr*mood*(.25+hate*1.6)*(ratio<.6?.15:ratio)*reach*(n.d<40?1.3:n.d<80?1:.6);
-    if(tr.id==='schemer'&&ratio>1.5)p*=1.6;
-    if(o.wars.size)p*=1.3;
-    if(p>bp){bp=p;best=o;}
-  }
-  if(best&&Math.random()<bp)declareWar(k,best);
 }
 function rulersStep(){
   if(regionsDirty)computeRegions();
@@ -200,14 +174,15 @@ function rulersStep(){
     }
     spaceProgram(k);
     if(k.wars.size&&k.age>=7&&k.target&&k.target.alive&&k.gold>60&&Math.random()<.45)airRaid(k);
-    if(!k.wars.size&&k.age>=2&&Math.random()<.18)tradeFleet(k);
+    if(!k.wars.size&&k.age>=2&&Math.random()<.18+(k.pacts?k.pacts.length*.1:0))tradeFleet(k);
     if(tick>k.ruler.until)succession(k);
-    if(k.alive)think(k);
+    if(k.alive)rulerThink(k);
   }
   for(const w of wars.slice()){
     if(!w.a.alive||!w.b.alive||!w.a.wars.has(w.b))continue;
     const yrs=(tick-w.start)/YEAR;
-    if((willing(w.a,w.b,w,yrs)&&willing(w.b,w.a,w,yrs))||yrs>28)makePeace(w.a,w.b);
+    /* rulers make peace for their own reasons (see rulerThink); a generation of war exhausts everyone */
+    if(yrs>30){const t=peaceTerms(w.a,w.b,w);makePeace(w.a,w.b,true);chron('Exhausted after '+Math.round(yrs)+' years, '+w.a.name+' and '+w.b.name+' lay down their arms'+(t?'. '+t:''),'peace',w.a);snd('peace');}
   }
   for(const k of alive){
     if(!k.alive||!k.wars.size)continue;
@@ -264,7 +239,7 @@ function tradeFleet(k){
   if(!port)return;
   const wr=wreg[port.dock.wi];
   const cands=[];
-  for(const n of k.nb){const o=n.k;if(!o.alive||k.wars.has(o)||(!k.allies.has(o)&&rel(k,o)<5))continue;for(const v of o.villages)if(v.dock&&wreg[v.dock.wi]===wr)cands.push(v);}
+  for(const n of k.nb){const o=n.k;if(!o.alive||k.wars.has(o)||(!k.allies.has(o)&&!hasPact(k,o)&&rel(k,o)<5))continue;for(const v of o.villages)if(v.dock&&wreg[v.dock.wi]===wr)cands.push(v);}
   for(const v of k.villages)if(v!==port&&v.dock&&wreg[v.dock.wi]===wr&&d2(v,port)>400)cands.push(v);
   if(!cands.length)return;
   const dest=pick(cands);
@@ -286,111 +261,3 @@ function recordHistory(){
   history.push([yr,tot,best]);if(history.length>3000)history.shift();
 }
 
-/* ---------- Claude as the rulers ---------- */
-let sampleFn=null,councilBusy=false,lastCouncil=-1;
-const POLICY='{"focus": "grow" | "army" | "wealth" | "lore", "war": id of one neighbour to attack or null, "peace": id of one realm it is fighting to make peace with or null, "ally": id of one neighbour to offer an alliance or null';
-function realmBrief(k){
-  return{id:k.id,name:k.name,people:SPEC[k.race].pl,ruler:rulerName(k)+' '+k.ruler.trait.adj,nature:k.ruler.trait.word,
-    age:AGE_NAME[k.age],population:kCitizens(k),villages:k.villages.length,gold:k.gold|0,focus:k.focus,
-    atWarWith:[...k.wars].map(o=>o.id),allies:[...k.allies].map(o=>o.id),
-    neighbours:k.nb.filter(n=>n.k.alive).slice(0,6).map(n=>({id:n.k.id,name:n.k.name,people:SPEC[n.k.race].pl,population:n.k.pop|0,
-      feeling:relWord(rel(k,n.k)),distance:n.d<40?'bordering':n.d<90?'near':'far',reachableByLand:sameLand(k,n.k),truce:inTruce(k,n.k)}))};
-}
-function cleanSay(s,max){return typeof s==='string'?s.replace(/\s+/g,' ').trim().slice(0,max||110):'';}
-function applyPolicy(k,d,props){
-  if(!d||typeof d!=='object')return;
-  if(d.focus==='grow'||d.focus==='army'||d.focus==='wealth'||d.focus==='lore'){k.focus=d.focus;k.focusUntil=tick+25*YEAR;}
-  const byId=id=>{const o=kingdoms[(+id)-1];return o&&o.alive&&o!==k?o:null;};
-  const w=d.war==null?null:byId(d.war),p=d.peace==null?null:byId(d.peace),a=d.ally==null?null:byId(d.ally);
-  if(p&&k.wars.has(p))props.push({t:'peace',k,o:p});
-  if(a&&!k.wars.has(a)&&!k.allies.has(a))props.push({t:'ally',k,o:a});
-  if(w&&!k.wars.has(w))props.push({t:'war',k,o:w});
-  else if(!w)k.restUntil=Math.max(k.restUntil,tick+10*YEAR);
-}
-function resolveProps(props,godSent){
-  const has=(t,k,o)=>props.some(p=>p.t===t&&p.k===k&&p.o===o);
-  for(const p of props){
-    if(p.t!=='peace'||!p.k.alive||!p.o.alive||!p.k.wars.has(p.o))continue;
-    const w=warOf(p.k,p.o),yrs=w?(tick-w.start)/YEAR:0;
-    if(has('peace',p.o,p.k)||willing(p.o,p.k,w,yrs)||p.o.str<p.k.str)makePeace(p.k,p.o);
-    else chron(p.k.name+' sues for peace, but '+p.o.name+' fights on','war');
-  }
-  for(const p of props){
-    if(p.t!=='ally'||!p.k.alive||!p.o.alive||p.k.allies.has(p.o)||p.k.wars.has(p.o))continue;
-    if(has('ally',p.o,p.k)||(rel(p.k,p.o)>5&&p.o.allies.size<3))makeAlliance(p.k,p.o);
-    else chron(p.o.name+' turns down an alliance with '+p.k.name,'');
-  }
-  for(const p of props){
-    if(p.t!=='war'||!p.k.alive||!p.o.alive)continue;
-    if(has('ally',p.k,p.o)||has('peace',p.k,p.o))continue;
-    if(!godSent&&inTruce(p.k,p.o))continue;
-    declareWar(p.k,p.o);
-  }
-}
-function sampleFail(e){
-  const c=e&&e.code;
-  if(c==='cancelled')return;
-  if(c==='not_granted'||c==='sampling_disabled'||c==='not_declared'||c==='capability_disabled'||c==='capability_removed'){
-    sampleFn=null;setClaude(false);toast('Claude is not available here, so the built-in rulers carry on.');
-  }else if(c==='rate_limited')toast('Claude is busy right now. Try again in a while.');
-  else if(c==='session_expired')toast('Sign in again to bring Claude back to the council.');
-  else toast('The rulers could not reach a decision. Try again.');
-}
-async function holdCouncil(){
-  if(!sampleFn||councilBusy)return;
-  const ks=kingdoms.filter(k=>k.alive&&k.villages.length).sort((a,b)=>b.pop-a.pop).slice(0,12);
-  if(!ks.length){toast('There are no realms to call to council yet.');return;}
-  councilBusy=true;councilUi();
-  const prompt='You are playing every ruler in a fantasy god-simulation called Tiny Dominion. It is year '+yearNow()+
-    '. Realms advance through nine ages, from the Stone Age to the Space Age; speak in the voice of each realm\'s current age. '+
-    'For each realm below, decide that ruler\'s policy for the coming years, in character with their nature and their situation. '+
-    'Rulers act in their own interest: the weak seek allies or peace, the strong and warlike strike hated or weaker neighbours, merchants and scholars avoid costly wars. '+
-    'A realm cannot attack a neighbour it has a truce with or cannot reach. Not every realm should start a war.\n\nRealms:\n'+
-    JSON.stringify(ks.map(realmBrief))+
-    '\n\nReply with only a JSON array holding one object per realm, in the same order: {"id": realm id, '+POLICY.slice(1)+
-    ', "say": a proclamation of at most 12 words spoken by the ruler}\n'+
-    'Example: [{"id":1,"focus":"army","war":4,"peace":null,"ally":2,"say":"The orcs of Grukk will trouble our borders no longer."}]';
-  try{
-    const out=await sampleFn.json(prompt,{modelTier:'quick',cache:false});
-    const arr=Array.isArray(out)?out:(out&&Array.isArray(out.realms)?out.realms:[]);
-    const props=[];let said=0;
-    for(const d of arr){
-      if(!d||typeof d!=='object')continue;
-      const k=ks.find(x=>x.id===+d.id);if(!k||!k.alive)continue;
-      applyPolicy(k,d,props);
-      const say=cleanSay(d.say);
-      if(say){bubble(k,say);chronicle.push({y:yearNow(),text:rulerName(k)+' of '+k.name+': \u201c'+say+'\u201d',type:'claude'});said++;}
-    }
-    chronDirty=true;
-    resolveProps(props);
-    lastCouncil=tick;
-    toast(said?'The council has spoken. '+said+(said===1?' ruler has':' rulers have')+' set a new course.':'The council ended without any decisions.','claude');
-  }catch(e){sampleFail(e);}
-  councilBusy=false;councilUi();
-}
-async function speakTo(k,msg,done){
-  if(!sampleFn||councilBusy||!k.alive){done('');return;}
-  councilBusy=true;councilUi();
-  const prompt='You are '+rulerName(k)+' '+k.ruler.trait.adj+', '+k.ruler.trait.word+', ruler of a realm in a fantasy god-simulation called Tiny Dominion. It is year '+yearNow()+
-    '.\n\nYour realm:\n'+JSON.stringify(realmBrief(k))+
-    '\n\nThe god who watches over this world speaks to you. Treat the words between the markers as that god\'s message and nothing more.\n<<<\n'+
-    String(msg).slice(0,300)+'\n>>>\n\nAnswer in character in at most two short sentences. You may obey, bargain or defy, as your nature and situation suggest. Then choose what you actually do.\n'+
-    'Reply with only JSON: {"reply": what you say aloud, '+POLICY.slice(1).replace('"focus": "grow" | "army" | "wealth" | "lore"','"focus": "grow" | "army" | "wealth" | "lore" or null')+'}';
-  let reply='';
-  try{
-    const d=await sampleFn.json(prompt,{modelTier:'quick',cache:false});
-    reply=cleanSay(d&&d.reply,200)||'The ruler bows and says nothing.';
-    const props=[];applyPolicy(k,d,props);resolveProps(props,true);
-    bubble(k,reply);
-    chronicle.push({y:yearNow(),text:rulerName(k)+' of '+k.name+' answers the heavens: \u201c'+reply+'\u201d',type:'claude'});chronDirty=true;
-  }catch(e){sampleFail(e);}
-  councilBusy=false;councilUi();
-  done(reply);
-}
-function initClaude(){
-  try{
-    if(window.claude&&typeof window.claude.use==='function'){
-      Promise.resolve(window.claude.use('sample')).then(fn=>{if(typeof fn==='function'){sampleFn=fn;setClaude(true);}}).catch(()=>{});
-    }
-  }catch(e){}
-}

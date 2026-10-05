@@ -241,7 +241,7 @@ function updCaravan(u,s){
   if(!d||!d.alive||!k||!k.alive||(d.k!==k&&k.wars.has(d.k))){kill(u);return;}
   if(d2(u,d)<=8){
     const g=u.cargo||4;k.gold+=g;
-    if(d.k!==k){d.k.gold+=g*.6;setRel(k,d.k,rel(k,d.k)+2);}
+    if(d.k!==k){d.k.gold+=g*.6;setRel(k,d.k,rel(k,d.k)+2);remember(d.k,k,0,.3,'trades with us');}
     if(!u.back&&u.home&&u.home.alive&&u.home!==d){u.back=true;u.dest=u.home;u.cargo=g*.5;}else kill(u);
     return;
   }
@@ -417,7 +417,7 @@ function unloadBoat(b,lx,ly){
   b.dead=true;
   if(b.mode==='trade'){
     const k=b.k,o=b.to;
-    if(k.alive&&lx>=0){k.gold+=b.cargoGold;if(o&&o.alive&&o!==k){o.gold+=b.cargoGold*.6;setRel(k,o,rel(k,o)+3);}}
+    if(k.alive&&lx>=0){k.gold+=b.cargoGold;if(o&&o.alive&&o!==k){o.gold+=b.cargoGold*.6;setRel(k,o,rel(k,o)+3);remember(o,k,0,.8,'trades with us');}}
     return;
   }
   for(const u of b.cargo){

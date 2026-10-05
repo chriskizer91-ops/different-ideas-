@@ -17,7 +17,14 @@ Open `Tiny_Dominion.html` in any modern browser. Nothing to install, no network 
 - City walls with gates, windmills, lighthouses, factories with smoke, arenas, stadiums and launch pads.
 - Nine world wonders, from the Standing Stones to the Star Gate, each raised over years.
 - Trade caravans, goods trains, freight trucks and merchant fleets. Armies carry clubs, spears, swords, muskets and rifles; catapults, cannons and tanks besiege walls; bombers fly in the Modern Age; rockets launch in the Space Age, until a colony ship leaves for the stars.
-- Rulers with personalities who make alliances, declare wars, secede and fall. When the page runs inside Claude, Claude can play every ruler in a council, or answer as one ruler when you speak to them.
+
+**Rulers who think**
+- Every ruler has a temperament made of eight dispositions (aggression, caution, ambition, greed, zeal, honour, curiosity and cunning), shaped by their nature and people and partly inherited by their heirs. Rulers who share a name take regnal numbers.
+- Rulers remember. A war declared, a town taken, a broken truce, an ally who stayed home: each leaves a grudge that fades over the years. Gifts, trade and help in war leave gratitude. A realm that betrays allies or breaks truces loses its good name, and others stop trusting it.
+- Each ruler commits to a long-term aim: conquer a weak neighbour, avenge a wrong, defend against a rising power, grow rich, seek knowledge or settle new land. The aim steers the realm's focus and its choices.
+- Once a year every ruler weighs their real options (war, peace, alliances, tribute, gifts, trade pacts, royal marriages, festivals, funding scholars). Each option is scored from named reasons, and the ruler acts only when the case is strong enough for their temperament.
+- Allies decide for themselves whether to answer a call to war. Peace comes with terms: reparations, or a town ceded to the winner.
+- The realm page shows the ruler's mind: temperament, current aim, memories, and this year's options with the reasons for and against each. Whisper to a ruler to urge war, urge peace or inspire learning; they may listen or refuse.
 
 **Terrain sandbox**
 - Sculpt with raise, lower, smooth, flatten (to the height where the stroke began), ridges, valleys, terraces, roughen and erosion, each with a size and strength slider.
@@ -70,7 +77,8 @@ Source layout (files are concatenated in name order into one script):
 | `src/js/10-world.js` | World generation, regions, tile changes |
 | `src/js/20-units.js` | People, beasts, siege engines, caravans, ships |
 | `src/js/30-civ.js` | Towns, street planning, buildings, walls, wonders, economy |
-| `src/js/40-rulers.js` | Rulers, diplomacy, war, ages and discoveries, space programme, history; the Claude council |
+| `src/js/40-rulers.js` | Diplomacy and war, succession, ages and discoveries, space programme, history |
+| `src/js/45-mind.js` | The minds of rulers: temperament, memory, aims, yearly decisions, peace terms, whispers |
 | `src/js/50-nature.js` | Fire, disasters, the simulation tick |
 | `src/js/55-terra.js` | Terraforming and sculpting, climate, sea level, lakes and rivers, storms, heights in metres |
 | `src/js/60-powers.js` | God powers and inspection |

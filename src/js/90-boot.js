@@ -53,7 +53,7 @@ function frame(t){
   }
   requestAnimationFrame(frame);
 }
-initGfx();resize();buildTabs();buildTools(true);initClaude();bootStart();
+initGfx();resize();buildTabs();buildTools(true);bootStart();
 /* offer to continue the last world if this browser kept one */
 function bootStart(){
   let done=false;const go=f=>{if(!done){done=true;f();}};
@@ -73,7 +73,7 @@ function bootStart(){
 toast('Shape the land, settle a people, and watch them rise from huts to starships. Pinch or scroll to zoom.');
 window.__td={step,S,get busy(){return busy;},cam,centerOn,openSheet,closeSheet,erupt,blast,spawn,
   get s(){return{W,H,units,vById,kingdoms,wars,boats,counts,chronicle,tick,twisters,wonderOf,planes,history,effects};},
-  fakeClaude(fn){sampleFn=fn;setClaude(true);},setDay(v){dayClock=v;},get G(){return G;},
+  setDay(v){dayClock=v;},whisper(k,kind){return whisper(k,kind);},get G(){return G;},
   /* test hook: use any tool at a tile, as a tap or one brush stamp */
   use(id,x,y){let t=null;for(const c of CATS)for(const o of c.tools)if(o.id===id)t=o;if(!t)return false;
     if(t.mode==='brush')applyBrush(x,y,t);else if(t.mode==='spawn')spawnBrush(x,y,t.type);

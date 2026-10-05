@@ -1,9 +1,9 @@
 /* ================= villages and kingdoms ================= */
 function rulerName(k){return k.ruler.title+' '+k.ruler.name;}
-function newRuler(race,keep){
+function newRuler(race,keep,parentTm){
   const p=pick(RULERS[race]);
   const trait=keep&&Math.random()<.3?keep:pick(TRAITS);
-  return{name:p[0],title:p[1],trait,since:tick,until:tick+((16+Math.random()*30)*YEAR|0)};
+  return{name:p[0],title:p[1],trait,tm:rollTemper(trait,race,parentTm||null),since:tick,until:tick+((16+Math.random()*30)*YEAR|0)};
 }
 function newKingdom(race,name){
   const color=COLORS[kc++%COLORS.length];
@@ -11,7 +11,8 @@ function newKingdom(race,name){
     gold:10,lore:0,age:0,tech:0,pow:1,pop:0,str:0,focus:'grow',focusUntil:0,restUntil:tick+(tick<30*YEAR?28:8)*YEAR,
     ruler:null,wars:new Set(),allies:new Set(),nb:[],regs:new Set(),
     target:null,port:null,landing:null,rally:null,rallyUntil:0,pauseUntil:0,boatCd:0,nAdult:0,nSold:0,nBarr:0,nCar:0,nSiege:0,broke:false,born:tick,
-    launches:0,colony:false,peak:0,hist:[]};
+    launches:0,colony:false,peak:0,hist:[],
+    mem:{},rep:50,goal:null,weary:0,pacts:[],kin:[],nudge:null,mind:null,cool:{}};
   k.ruler=newRuler(race,null);
   kingdoms.push(k);
   if(!name)chron(rulerName(k)+' founds the '+SPEC[race].name.toLowerCase()+' realm of '+k.name,'found',k.villages[0]);
@@ -326,7 +327,8 @@ function captureVillage(v,k){
   }
   v.pop=pop;dirtyAll=true;
   for(const w of wars){if(w.a===k&&w.b===old)w.sa+=25;else if(w.b===k&&w.a===old)w.sb+=25;}
-  chron(k.name+' captures '+(v.name===old.name?'the capital of '+old.name:v.name+' from '+old.name)+(v.wonder?', and with it '+WMAP[v.wonder.wid].n:''),'war',v);
+  remember(old,k,40,0,'took '+v.name);
+  chron(k.name+(v.name===k.name?' takes back '+v.name+' from '+old.name:' captures '+(v.name===old.name?'the capital of '+old.name:v.name+' from '+old.name))+(v.wonder?', and with it '+WMAP[v.wonder.wid].n:''),'war',v);
   k.pauseUntil=tick+((2+Math.random()*3)*YEAR|0);k.target=null;
   if(old.villages.length===0)killKingdom(old);
   dirtyAll=true;
@@ -480,9 +482,9 @@ function raiseStep(){
 /* trade: a caravan sets out for one of the realm's towns, or a friendly neighbour's */
 function sendCaravan(v,k){
   const reg=region[v.y*W+v.x];let dest=null;
-  if(Math.random()<.35&&k.nb.length){
+  if(Math.random()<(k.pacts&&k.pacts.length?.6:.35)&&k.nb.length){
     const n=k.nb[(Math.random()*Math.min(4,k.nb.length))|0],o=n.k;
-    if(o.alive&&!k.wars.has(o)&&(k.allies.has(o)||rel(k,o)>8))for(const tv of o.villages)if(region[tv.y*W+tv.x]===reg&&d2(tv,v)<85*85){dest=tv;break;}
+    if(o.alive&&!k.wars.has(o)&&(k.allies.has(o)||hasPact(k,o)||rel(k,o)>8))for(const tv of o.villages)if(region[tv.y*W+tv.x]===reg&&d2(tv,v)<85*85){dest=tv;break;}
   }
   if(!dest)for(let m=0;m<5;m++){const tv=pick(k.villages);if(tv!==v&&region[tv.y*W+tv.x]===reg&&d2(tv,v)<90*90&&d2(tv,v)>64){dest=tv;break;}}
   if(!dest)return;

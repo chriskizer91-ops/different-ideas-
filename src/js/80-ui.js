@@ -33,12 +33,46 @@ function veil(on,title,text){
   if(title)$('veilTitle').textContent=title;
   $('veilText').textContent=text||'';
 }
-function setClaude(on){document.body.classList.toggle('has-claude',!!on);}
-function councilUi(){
-  const b=$('councilBtn');if(b){b.disabled=councilBusy;b.textContent=councilBusy?'The rulers are conferring':'Hold a council';}
-  const s=$('rSend');if(s)s.disabled=councilBusy;
-}
 const cap1=s=>s.charAt(0).toUpperCase()+s.slice(1);
+/* ---------- the ruler's mind on the realm page ---------- */
+const TEMPER_ADJ={aggr:['bold','peaceable'],caut:['careful','reckless'],ambi:['ambitious','content'],greed:['greedy','generous'],
+  zeal:['devout','tolerant'],honor:['honourable','faithless'],curio:['curious','incurious'],cunning:['cunning','plain-dealing']};
+function temperWords(tm){
+  const a=TEMPER.slice().sort((p,q)=>Math.abs(tm[q]-.5)-Math.abs(tm[p]-.5)).slice(0,3).map(x=>TEMPER_ADJ[x][tm[x]>=.5?0:1]);
+  return cap1(a[0])+', '+a[1]+' and '+a[2];
+}
+function mindHtml(k){
+  const tm=tmOf(k),m=k.mind,bar=.28+tm.caut*.15-tm.aggr*.08,sc=u=>Math.max(0,Math.min(100,u*70));
+  $('rGoal').textContent='Aim: '+goalText(k.goal)+(k.goal?', for '+Math.max(1,Math.round((tick-k.goal.since)/YEAR))+(Math.round((tick-k.goal.since)/YEAR)>1?' years':' year'):'');
+  $('rChar').textContent=temperWords(tm)+'.';
+  $('rTemper').innerHTML=TEMPER.map(a=>'<span>'+TEMPER_NAME[a]+'</span><div class="meter" role="img" aria-label="'+TEMPER_NAME[a]+' '+Math.round(tm[a]*100)+' of 100"><i style="width:'+Math.round(tm[a]*100)+'%"></i></div>').join('');
+  if(!m||m.small){$('rWeighH').textContent='Weighing this year';$('rDid').textContent=m||k.pop<8?'The realm is too small for statecraft. Its ruler only tends to its people.':'The ruler has not yet sat in council.';$('rWeigh').innerHTML='';}
+  else{
+    $('rWeighH').textContent='Weighing, year '+m.y;
+    const best=m.opts[0];
+    $('rDid').textContent=m.did?'Chose: '+m.did+'.':!best?'Nothing to decide this year.':best.u>(m.bar!==undefined?m.bar:bar)?'Tempted by '+optLabel(best).toLowerCase()+', but held back this year.':'Nothing seemed worth the risk, so the ruler waited.';
+    $('rWeigh').innerHTML=m.opts.map(p=>{
+      const why=p.f.map(x=>'<span class="'+(x[1]>0?'fp">+ ':'fn">\u2212 ')+esc(x[0])+'</span>').join(' ');
+      return '<div class="opt'+(p.done?' chosen':'')+'"><div class="ol"><b>'+esc(optLabel(p))+'</b>'+(p.done?'<em>Chosen</em>':'<small>'+(p.u>0?'+':'\u2212')+Math.abs(Math.round(p.u*100))+'</small>')+'</div>'+
+        '<div class="ub"><i class="'+(p.u>=0?'pos':'neg')+'" style="width:'+sc(Math.abs(p.u))+'%"></i><s style="left:'+sc(m.bar!==undefined?m.bar:bar)+'%"></s></div>'+
+        (why?'<p class="why">'+why+'</p>':'')+'</div>';
+    }).join('');
+  }
+  const r=repOf(k);
+  const ties=[];
+  const names=ids=>ids.map(id=>kingdoms[id-1]).filter(o=>o&&o.alive).map(o=>esc(o.name)).join(', ');
+  if(k.pacts&&k.pacts.length){const n=names(k.pacts);if(n)ties.push('Trade pacts with '+n+'.');}
+  if(k.kin&&k.kin.length){const n=names(k.kin);if(n)ties.push('Royal kin in '+n+'.');}
+  $('rRep').innerHTML=(r>70?'Its word is trusted by all.':r>45?'Its word is good.':r>25?'Its word is doubted.':'Its word is worthless; it has broken too many promises.')+(ties.length?' '+ties.join(' '):'');
+  const mem=[];
+  if(k.mem)for(const id in k.mem){
+    const e=k.mem[id],o=kingdoms[id-1];if(!o||!o.alive)continue;
+    if(e.g>=5)mem.push({o,v:e.g,t:(e.g>80?'Burning hatred':e.g>45?'Deep grudge':e.g>20?'Grudge':'Resentment'),why:e.why,y:e.wy,bad:true});
+    if(e.d>=5)mem.push({o,v:e.d,t:(e.d>50?'Deep gratitude':e.d>20?'Gratitude':'Goodwill'),why:e.dwhy,y:e.dy,bad:false});
+  }
+  mem.sort((a,b)=>b.v-a.v);
+  $('rMem').innerHTML=mem.length?mem.slice(0,7).map(e=>'<div class="mem'+(e.bad?' bad':'')+'"><i style="background:'+e.o.color+'"></i><span><b>'+esc(e.o.name)+'</b> '+(e.why?esc(e.why)+(e.y?' (year '+e.y+')':''):'')+'</span><span class="lvl">'+e.t+'</span></div>').join(''):'<p class="fine">No old wrongs or debts weigh on this ruler.</p>';
+}
 
 /* ---------- sheets ---------- */
 let sheetMode='',sheetK=null,sheetTimer=0,seedText='',confirmNew=0;
@@ -60,24 +94,22 @@ const ONOFF=[['true','On'],['false','Off']];
 function buildSheet(){
   const body=$('sheetBody');body.scrollTop=0;
   if(sheetMode==='realms'){
-    body.innerHTML='<div class="council claude-only"><button id="councilBtn" class="act">Hold a council</button>'+
-      '<p class="fine">Claude plays every ruler and picks each realm\'s next move. Each council uses some of your Claude usage.</p></div>'+
-      '<p class="fine no-claude">The rulers think for themselves. When this page is open inside Claude, Claude can also play them in a council.</p><div id="realmList"></div>';
-    councilUi();
+    body.innerHTML='<p class="fine">Every ruler has a temperament, remembers what other realms have done to them, and weighs their options each year. Open a realm to see what its ruler is thinking.</p><div id="realmList"></div>';
   }else if(sheetMode==='realm'){
     const k=sheetK;
     body.innerHTML='<div class="rhead"><i style="background:'+k.color+'"></i><div><b id="rRuler"></b><small id="rNature"></small></div></div>'+
       '<dl id="rStats" class="stats"></dl><p id="rFocus" class="note"></p>'+
+      '<h3>The ruler\u2019s mind</h3><p id="rGoal" class="goal"></p><p id="rChar" class="char"></p><div id="rTemper" class="temper"></div>'+
+      '<h3 id="rWeighH">Weighing this year</h3><p id="rDid" class="note"></p><div id="rWeigh"></div>'+
+      '<p class="fine">Each option is scored from the reasons under it. The red line is how strong a case this ruler needs before acting; bolder rulers need less.</p>'+
+      '<h3>Memory</h3><p id="rRep" class="note"></p><div id="rMem"></div>'+
+      '<h3>Whisper from the heavens</h3><div class="whisper"><button class="act" data-wh="war">Urge war</button><button class="act" data-wh="peace">Urge peace</button><button class="act" data-wh="lore">Inspire learning</button></div>'+
+      '<p id="rReply" class="note" aria-live="polite"></p><p class="fine">The ruler may listen or refuse, depending on who they are. A heeded whisper weighs on their choices for years.</p>'+
       '<h3 id="rAgeH"></h3><div class="meter" role="img" id="rMeterW"><i id="rMeter"></i></div><p id="rTechNow" class="fine"></p><div id="rTechs" class="chips"></div>'+
       '<div id="rWonders"></div>'+
       '<h3>Towns</h3><div id="rTowns"></div>'+
       '<h3>How it sees its neighbours</h3><div id="rRel"></div>'+
-      '<div class="btnrow"><button id="rGo" class="act">Go to capital</button></div>'+
-      '<div class="claude-only speak"><h3>Speak to the ruler</h3>'+
-      '<textarea id="rMsg" rows="2" maxlength="300" placeholder="Command, warn or bargain as their god"></textarea>'+
-      '<button id="rSend" class="act">Send</button><p id="rReply" class="note"></p>'+
-      '<p class="fine">Claude answers as the ruler and may act on what you say. Each message uses some of your Claude usage.</p></div>';
-    councilUi();
+      '<div class="btnrow"><button id="rGo" class="act">Go to capital</button></div>';
   }else if(sheetMode==='chronicle'){
     body.innerHTML='<p class="fine">Tap an entry marked with a pin to see where it happened.</p><div id="chronList"></div>';chronDirty=true;
   }else if(sheetMode==='history'){
@@ -123,7 +155,8 @@ function refreshSheet(){
     list.innerHTML=alive.map(k=>{
       const vs=k.villages.length,st=k.wars.size?'At war':k.allies.size?'Allied':'At peace';
       return '<button class="realm" data-k="'+k.id+'"><i style="background:'+k.color+'"></i><span class="rn">'+esc(k.name)+'</span>'+
-        '<span class="rs'+(k.wars.size?' hot':'')+'">'+st+'</span><span class="rm">'+SPEC[k.race].pl+', '+fmtPop(kCitizens(k))+' people, '+vs+(vs===1?' town, ':' towns, ')+AGE_NAME[k.age]+'</span></button>';
+        '<span class="rs'+(k.wars.size?' hot':'')+'">'+st+'</span><span class="rm">'+SPEC[k.race].pl+', '+fmtPop(kCitizens(k))+' people, '+vs+(vs===1?' town, ':' towns, ')+AGE_NAME[k.age]+'</span>'+
+        '<span class="rm rg">'+esc(rulerName(k))+': '+esc(lc1(goalText(k.goal)))+'</span></button>';
     }).join('');
   }else if(sheetMode==='realm'){
     const k=sheetK;if(!$('rStats'))return;
@@ -134,6 +167,7 @@ function refreshSheet(){
     $('rStats').innerHTML='<div><dt>People</dt><dd>'+fmtPop(kCitizens(k))+'</dd></div><div><dt>Towns</dt><dd>'+k.villages.length+'</dd></div><div><dt>Age</dt><dd>'+AGES[k.age]+'</dd></div>'+
       '<div><dt>Gold</dt><dd>'+(k.gold|0)+'</dd></div><div><dt>Soldiers</dt><dd>'+k.nSold+'</dd></div><div><dt>Allies</dt><dd>'+k.allies.size+'</dd></div>';
     $('rFocus').textContent=FOCUS_WORD[k.focus]+(k.broke?'. The treasury is empty.':'.');
+    mindHtml(k);
     {
       const nt=Math.min(k.tech,TECH_LORE.length),lo=nt?TECH_LORE[nt-1]:0,hi=TECH_LORE[Math.min(nt,TECH_LORE.length-1)];
       const pct=nt>=TECH_LORE.length?100:Math.max(0,Math.min(100,Math.round((k.lore-lo)/(hi-lo)*100)));
@@ -201,13 +235,14 @@ $('sheetBody').addEventListener('click',e=>{
   const btn=t.closest('button');if(!btn)return;
   if(btn.dataset.save){saveWorld(btn.dataset.save).then(()=>savesHtml(h=>{const el=$('saves');if(el)el.innerHTML=h;}));return;}
   if(btn.dataset.load){closeSheet();loadWorld(btn.dataset.load);return;}
-  if(btn.id==='councilBtn')holdCouncil();
-  else if(btn.id==='rGo'){const k=sheetK;if(k&&k.villages.length){camTo(k.villages[0].x,k.villages[0].y,Math.max(cam.z,9),1200);closeSheet();}}
-  else if(btn.id==='rSend'){
-    const k=sheetK,m=$('rMsg').value.trim();if(!k||!m||councilBusy)return;
-    $('rReply').textContent=rulerName(k)+' listens to the heavens';
-    speakTo(k,m,reply=>{const el=$('rReply');if(el&&sheetK===k)el.textContent=reply?'\u201c'+reply+'\u201d':'';});
-  }else if(btn.id==='newBtn'){
+  if(btn.dataset.wh){
+    const k=sheetK;if(!k||!k.alive)return;
+    const r=whisper(k,btn.dataset.wh),el=$('rReply');
+    if(el)el.textContent=r.busy?r.text:rulerName(k)+(r.ok?' heeds the heavens: ':' refuses: ')+'\u201c'+(r.text||'')+'\u201d';
+    return;
+  }
+  if(btn.id==='rGo'){const k=sheetK;if(k&&k.villages.length){camTo(k.villages[0].x,k.villages[0].y,Math.max(cam.z,9),1200);closeSheet();}}
+  else if(btn.id==='newBtn'){
     if(Date.now()-confirmNew<3500){confirmNew=0;closeSheet();startWorld();}
     else{confirmNew=Date.now();btn.textContent='Tap again to replace this world';setTimeout(()=>{if(btn.isConnected)btn.textContent='Create new world';},3500);}
   }
