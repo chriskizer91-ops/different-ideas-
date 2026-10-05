@@ -320,6 +320,7 @@ function glFrame(R,dt,running,lerp){
   if(R.lost)return;
   if(!R.dT||R.W!==W)R.setWorld();
   R.flush();
+  if(view3d){topoMap=S.topo==='map';seasonP=((tick%YEAR)+Math.max(0,Math.min(1,lerp)))/YEAR;rel3dFrame(R);return;}
   const cw=cv.width,ch=cv.height,z=cam.z*gdpr,tsec=now()/1000;
   let cx=cam.x,cy=cam.y;
   if(shake>0){cx+=(Math.random()-.5)*shake/cam.z*.5;cy+=(Math.random()-.5)*shake/cam.z*.5;shake*=.88;if(shake<.4)shake=0;}
@@ -352,7 +353,7 @@ function glFrame(R,dt,running,lerp){
   const pS=R.pS,uS=pS.u;gl.useProgram(pS.p);
   bindT(6,R.tAtl,uS.uAtl);bindT(7,R.tFr,uS.uFr);bindT(5,R.tNz,uS.uNz);
   gl.uniform2f(uS.uRes,cw,ch);gl.uniform2f(uS.uCam,cx,cy);gl.uniform2f(uS.uAt,R.atlas.w,R.atlas.h);gl.uniform1f(uS.uZoom,z);
-  gl.uniform1f(uS.uNight,nightF);gl.uniform1f(uS.uDay,dayLight);gl.uniform1f(uS.uCloud,S.clouds?1:0);gl.uniform2f(uS.uWind,wind[0],wind[1]);gl.uniform2f(uS.uSun,sunX,sunY);setSt(uS);
+  gl.uniform1f(uS.uNight,nightF);gl.uniform1f(uS.uDay,dayLight);gl.uniform1f(uS.uCloud,S.clouds?1:0);gl.uniform2f(uS.uWind,wind[0],wind[1]);gl.uniform2f(uS.uSun,sunX,sunY);setSt(uS);gl.uniform3f(uS.uLit,1,1,1);
   const draw=(L,V,mode)=>{
     if(!L.n)return;
     gl.uniform1i(uS.uMode,mode);

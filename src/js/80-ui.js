@@ -221,6 +221,7 @@ const CATS=[
     {id:'pan',label:'Move',ico:'\u270B',mode:'pan'},
     {id:'inspect',label:'Inspect',ico:'\uD83D\uDD0E',mode:'tap'},
     {id:'watch',label:'Watch',ico:'\u{1F3AC}',mode:'action'},
+    {id:'view3d',label:'3D view',ico:'\u{1F9CA}',mode:'action'},
     {id:'sound',label:'Sound',ico:'\u{1F50A}',mode:'action'},
     {id:'realms',label:'Realms',ico:'\uD83D\uDC51',mode:'action'},
     {id:'chronicle',label:'Chronicle',ico:'\uD83D\uDCDC',mode:'action'},
@@ -293,12 +294,14 @@ function buildTools(reset){
     if(t.sw){ic.className='sw';ic.style.background=t.sw;}else{ic.className='ico';ic.textContent=t.id==='sound'?(S.sound?'\u{1F50A}':'\u{1F507}'):t.ico;}
     if(t.id==='sound'){b.setAttribute('aria-pressed',String(!!S.sound));}
     if(t.id==='topo'){b.setAttribute('aria-pressed',String(S.topo==='map'));}
+    if(t.id==='view3d'){b.setAttribute('aria-pressed',String(view3d));}
     const lb=document.createElement('span');lb.textContent=t.label;
     b.appendChild(ic);b.appendChild(lb);
     b.addEventListener('click',()=>{
       if(typeof AU!=='undefined')AU.unlock();snd('click');
       if(t.id==='sound'){S.sound=!S.sound;saveSettings();if(typeof AU!=='undefined'){AU.unlock();AU.setOn(S.sound);AU.setMusic(S.music);}toast(S.sound?'Sound on.':'Sound off.');buildTools(false);return;}
       if(t.id==='watch'){setWatch(!watching);return;}
+      if(t.id==='view3d'){setView3d(!view3d);return;}
       if(t.id==='topo'){S.topo=S.topo==='map'?'off':'map';saveSettings();toast(S.topo==='map'?'Topographic map. Contour lines every 5 steps of height; peaks show their height.':'Back to the living world.');buildTools(false);return;}
       if(t.id==='flow'){const r=letWaterFlow();chron('Rain gathers in the hollows: '+r.lakes+(r.lakes===1?' lake fills':' lakes fill')+' and rivers find their way to the sea','disaster');snd('water');return;}
       if(t.mode==='action'){if(sheetMode===t.id)closeSheet();else openSheet(t.id);return;}
@@ -309,7 +312,9 @@ function buildTools(reset){
   el.scrollLeft=reset?0:keep;
   $('brushRow').hidden=!(tool.mode==='brush'||tool.mode==='spawn');
   $('strRow').hidden=!tool.sculpt;
-  $('seaRow').hidden=tool.mode!=='slider';
+  $('seaRow').hidden=tool.mode!=='slider'||view3d;
+  $('reliefRow').hidden=!view3d;
+  if(view3d){$('brushRow').hidden=true;$('strRow').hidden=true;}
   if(tool.mode==='slider'){$('seaIn').value=seaGoal-100;$('seaVal').textContent=fmtM((seaGoal-100)*60);}
 }
 
@@ -361,6 +366,11 @@ ovc.addEventListener('pointerdown',e=>{
   glide=null;if(watching)setWatch(false);
   try{ovc.setPointerCapture(e.pointerId);}catch(_){}
   const p=pos(e);ptrs.set(e.pointerId,p);
+  if(view3d){
+    if(ptrs.size===1)stroke={lx:p.x,ly:p.y,moved:0,multi:false,paint:false,pan:e.button===2||e.button===1||e.shiftKey};
+    else if(ptrs.size===2){if(stroke)stroke.multi=true;const a=[...ptrs.values()];gesture={mx:(a[0].x+a[1].x)/2,my:(a[0].y+a[1].y)/2,d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)||1};}
+    return;
+  }
   if(ptrs.size===1){
     const painting=(tool.mode==='brush'||tool.mode==='spawn')&&e.button===0;
     stroke={lx:p.x,ly:p.y,moved:0,ltx:null,lty:null,spx:-99,spy:-99,multi:false,paint:painting};
@@ -375,6 +385,14 @@ ovc.addEventListener('pointermove',e=>{
   if(e.pointerType==='mouse')hoverP=pos(e);
   if(!ptrs.has(e.pointerId))return;
   const p=pos(e);ptrs.set(e.pointerId,p);
+  if(view3d){
+    if(ptrs.size>=2&&gesture){
+      const a=[...ptrs.values()],mx=(a[0].x+a[1].x)/2,my=(a[0].y+a[1].y)/2,d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)||1;
+      rel3dZoom(gesture.d/d);rel3dDrag(mx-gesture.mx,my-gesture.my,true);gesture.mx=mx;gesture.my=my;gesture.d=d;return;
+    }
+    if(stroke&&!stroke.multi){rel3dDrag(p.x-stroke.lx,p.y-stroke.ly,stroke.pan);stroke.lx=p.x;stroke.ly=p.y;}
+    return;
+  }
   if(ptrs.size>=2&&gesture){
     const a=[...ptrs.values()],mx=(a[0].x+a[1].x)/2,my=(a[0].y+a[1].y)/2,d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)||1;
     const wx=cam.x+gesture.mx/cam.z,wy=cam.y+gesture.my/cam.z;
@@ -393,7 +411,7 @@ function pointerEnd(e){
   const p=ptrs.get(e.pointerId);ptrs.delete(e.pointerId);
   if(ptrs.size<2)gesture=null;
   if(ptrs.size===0){
-    if(stroke&&!stroke.multi&&stroke.moved<12&&tool.mode==='tap'&&e.type==='pointerup'&&!busy)tapAt(p);
+    if(stroke&&!view3d&&!stroke.multi&&stroke.moved<12&&tool.mode==='tap'&&e.type==='pointerup'&&!busy)tapAt(p);
     stroke=null;
   }
 }
@@ -402,7 +420,9 @@ ovc.addEventListener('pointercancel',pointerEnd);
 ovc.addEventListener('contextmenu',e=>e.preventDefault());
 ovc.addEventListener('pointerleave',()=>{hoverP=null;});
 ovc.addEventListener('wheel',e=>{
-  e.preventDefault();glide=null;if(watching)setWatch(false);const p=pos(e),wx=cam.x+p.x/cam.z,wy=cam.y+p.y/cam.z;
+  e.preventDefault();
+  if(view3d){rel3dZoom(Math.exp(e.deltaY*.0012));return;}
+  glide=null;if(watching)setWatch(false);const p=pos(e),wx=cam.x+p.x/cam.z,wy=cam.y+p.y/cam.z;
   cam.z=clampZ(cam.z*Math.exp(-e.deltaY*.0015));cam.x=wx-p.x/cam.z;cam.y=wy-p.y/cam.z;clampCam();
 },{passive:false});
 let miniDrag=false;
@@ -421,6 +441,8 @@ function setSpeed(s){
 $('speed').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setSpeed(+b.dataset.s);});
 $('brush').addEventListener('input',e=>{brush=+e.target.value;$('brushVal').textContent=brush;});
 $('strength').addEventListener('input',e=>{sculptStr=+e.target.value;$('strVal').textContent=sculptStr;});
+$('reliefIn').addEventListener('input',e=>{V3.relief=+e.target.value/10;$('reliefVal').textContent=(+e.target.value/10).toFixed(1)+'x';});
+$('exit3d').addEventListener('click',()=>setView3d(false));
 $('seaIn').addEventListener('input',e=>{seaGoal=100+(+e.target.value);$('seaVal').textContent=fmtM((+e.target.value)*60);});
 window.addEventListener('keydown',e=>{
   const tg=e.target&&e.target.tagName;if(tg==='TEXTAREA'||tg==='INPUT')return;
@@ -428,8 +450,9 @@ window.addEventListener('keydown',e=>{
   else if(e.key==='1')setSpeed(1);else if(e.key==='2')setSpeed(3);else if(e.key==='3')setSpeed(8);
   else if(e.key==='4')setSpeed(20);
   else if(e.key==='w'||e.key==='W')setWatch(!watching);
+  else if(e.key==='v'||e.key==='V')setView3d(!view3d);
   else if(e.key==='t'||e.key==='T'){S.topo=S.topo==='map'?'off':'map';saveSettings();buildTools(false);}
-  else if(e.key==='Escape'){closeSheet();if(watching)setWatch(false);}
+  else if(e.key==='Escape'){closeSheet();if(watching)setWatch(false);if(view3d)setView3d(false);}
 });
 window.addEventListener('resize',resize);
 

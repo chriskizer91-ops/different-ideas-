@@ -332,7 +332,7 @@ void main(){
 
 const SH_SPRITE_FS=`#version 300 es
 precision highp float;precision highp int;
-uniform highp sampler2D uAtl,uNz;uniform int uMode;uniform float uNight,uDay,uCloud;uniform vec2 uAt,uWind,uSun;
+uniform highp sampler2D uAtl,uNz;uniform int uMode;uniform float uNight,uDay,uCloud;uniform vec2 uAt,uWind,uSun;uniform vec3 uLit;
 uniform vec4 uSt[6];uniform int uNSt;
 in vec2 vUV;in vec4 vT,vF;in float vA;flat in int vFl;in vec2 vW;
 out vec4 o;
@@ -354,6 +354,7 @@ void main(){
   }
   if(mk==254)c=vT.rgb*L;else if(mk==253)c=vF.rgb*L;else if(mk==252)c=vec3(.19,.25,.33)*L;
   if((vFl&8)!=0){o=vec4(0.,0.,0.,vA);return;}
+  if(uMode==0)c*=uLit;
   if(uMode==0&&uCloud>.5&&(vFl&4)==0){float cs=fbm((vW+uSun*3.)*.028+uWind);c*=1.-step(.6,cs)*.16*uDay;}
   if(uMode==0&&uNSt>0&&(vFl&4)==0){float st=stormAt(vW);c*=1.-st*.32;c=mix(c,vec3(dot(c,vec3(.33))),st*.35);}
   o=vec4(c,vA);

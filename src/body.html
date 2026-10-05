@@ -23,6 +23,7 @@
 
 <div id="banner" aria-live="polite"><small id="bannerKicker"></small><b id="bannerTitle"></b><span id="bannerSub"></span></div>
 <button id="stopWatch" class="act" hidden>Stop watching</button>
+<button id="exit3d" class="act" hidden>Back to the map</button>
 <div id="veil"><div class="plate"><b id="veilTitle">Shaping the world</b><span id="veilText"></span>
   <div id="veilBtns" class="btnrow" hidden><button id="vCont" class="act">Continue</button> <button id="vNew" class="act">New world</button></div></div></div>
 
@@ -39,6 +40,11 @@
       <label for="strength">Strength</label>
       <input id="strength" type="range" min="1" max="10" value="5">
       <output id="strVal" for="strength">5</output>
+    </div>
+    <div id="reliefRow" class="slideRow" hidden>
+      <label for="reliefIn">Relief</label>
+      <input id="reliefIn" type="range" min="4" max="40" value="20">
+      <output id="reliefVal" for="reliefIn">2.0x</output>
     </div>
     <div id="seaRow" class="slideRow" hidden>
       <label for="seaIn">Sea level</label>

@@ -78,5 +78,5 @@ window.__td={step,S,get busy(){return busy;},cam,centerOn,openSheet,closeSheet,e
   use(id,x,y){let t=null;for(const c of CATS)for(const o of c.tools)if(o.id===id)t=o;if(!t)return false;
     if(t.mode==='brush')applyBrush(x,y,t);else if(t.mode==='spawn')spawnBrush(x,y,t.type);
     else{const keep=tool;tool=t;tapAt({x:(x+.5-cam.x)*cam.z,y:(y+.5-cam.y)*cam.z});tool=keep;}return true;},
-  setBrush(n){brush=n;},save:saveWorld,load:loadWorld,switchGfx,setWatch};
+  setBrush(n){brush=n;},save:saveWorld,load:loadWorld,switchGfx,setWatch,view3d:setView3d,v3(o){Object.assign(V3,o);}};
 requestAnimationFrame(frame);
