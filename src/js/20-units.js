@@ -229,6 +229,7 @@ function updSiege(u,s){
       const f=nearest(u,5,o=>hostile(u,o));
       if(f){u.cd=6;u.dir=f.x>=u.x?1:-1;hit(f,s.atk*k.pow*.5,u);fx({k:'arrow',x:u.x,y:u.y,x2:f.x,y2:f.y,t:3,T:3,gun:true});fx({k:'spark',x:u.x,y:u.y,t:2});return;}
     }
+    u.cd=4;
   }
   const tv=k.target;
   if(tv&&tv.alive&&k.wars.has(tv.k)&&region[u.y*W+u.x]===region[tv.y*W+tv.x]){if(d2(u,tv)>16&&Math.random()<s.move)stepFlow(u,tv);}

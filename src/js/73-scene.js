@@ -275,7 +275,6 @@ function sceneEffects(x0,y0,x1,y1,night){
         put(P,FI(e.s),ax,ay,.003,0,0,0,1,1,1);break;}
       case'rocket':{
         const p=1-e.t/e.T,lift=p<.12?0:Math.pow((p-.12)/.88,2.2)*70,rx=e.x+.05,ry=e.y+.6-lift;
-        if(e.team)e.team.flying=e.t>1;
         put(SPR.sk,FI('rocket'),rx,ry-.95,.0015,e.team?kU(e.team):WHITE,0,4,1,1,e.colony?1.5:1);
         if(p>.04)put(SPR.sk,FI('exhaust_'+((frameNo>>1)%3)),rx,ry-.95,.0016,0,0,4,1,1,(e.colony?1.5:1)*(p<.12?.6+p*3:1.2));
         for(let m=0;m<10;m++){const q=(m/10+frameNo*.004)%1,sy=ry-.2+q*Math.min(lift,14)*.9;if(lift>.3||m<3)put(L,FI('smoke_'+(q<.3?0:q<.6?1:2)),rx+Math.sin(m*1.7+q*4)*(.2+q*1.4),sy,.006,0,0,4,(1-q)*.55,1,.8+q*2.2);}

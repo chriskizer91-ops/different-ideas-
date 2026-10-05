@@ -296,6 +296,7 @@ function tickEffects(){
   for(let n=0;n<effects.length;n++){
     const e=effects[n];
     if(e.k==='meteor'&&e.t===1)blast(e.x,e.y,6,true);
+    if(e.k==='rocket'&&e.team)e.team.flying=e.t>1;
     if(--e.t>0)effects[w++]=e;
   }
   effects.length=w;
