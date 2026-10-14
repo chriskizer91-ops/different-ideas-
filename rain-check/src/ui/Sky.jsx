@@ -9,8 +9,8 @@ import { clockText } from '../lib/dates.js';
 import { sunTimes } from '../model/solar.js';
 import { normalFor } from '../model/normals.js';
 
-const H = 100;
-const HORIZON = 78;
+const H = 150;
+const HORIZON = 116;
 
 function phaseOf(h, rise, set) {
   if (rise == null || set == null) return 'day';
@@ -48,10 +48,12 @@ function moonPath(cx, cy, r, p) {
 
 function Cloud({ x, y, s, night }) {
   return (
-    <g class="sky-cloud" transform={`translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${s})`} opacity={night ? 0.35 : 0.9}>
-      <ellipse cx="0" cy="6" rx="18" ry="7" fill="#fff" />
-      <circle cx="-7" cy="1" r="8" fill="#fff" />
-      <circle cx="6" cy="-1" r="10" fill="#fff" />
+    <g class="sky-cloud" transform={`translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${s})`} opacity={night ? 0.35 : 0.92}>
+      <ellipse cx="1" cy="9" rx="21" ry="5" fill="#000" opacity="0.06" />
+      <ellipse cx="0" cy="6" rx="20" ry="7.5" fill="url(#cloud-fill)" />
+      <circle cx="-9" cy="2" r="7.5" fill="url(#cloud-fill)" />
+      <circle cx="5" cy="-1" r="10.5" fill="url(#cloud-fill)" />
+      <circle cx="13" cy="4" r="6" fill="url(#cloud-fill)" />
     </g>
   );
 }
@@ -82,8 +84,8 @@ export function Sky({ wx, units, normals, heatLevel, coldTonight, nowMs }) {
   else if (phase === 'day' && heatLevel >= 2) sky = SKIES.hot;
   const dark = phase !== 'day';
 
-  const pad = 22;
-  const peak = 56;
+  const pad = 24;
+  const peak = 80;
   const s = rise != null && set != null ? Math.max(0, Math.min(1, (h - rise) / (set - rise))) : 0.5;
   const at = (t) => [pad + t * (W - 2 * pad), HORIZON - peak * Math.sin(Math.PI * t)];
   const arc = (a, b) => {
@@ -137,21 +139,63 @@ export function Sky({ wx, units, normals, heatLevel, coldTonight, nowMs }) {
               <stop offset="0" stop-color={heatLevel >= 2 ? '#ffb347' : '#fff3b0'} stop-opacity="0.9" />
               <stop offset="1" stop-color={heatLevel >= 2 ? '#ff6a3d' : '#fff3b0'} stop-opacity="0" />
             </radialGradient>
+            <radialGradient id="sun-core" cx="0.42" cy="0.4" r="0.65">
+              <stop offset="0" stop-color="#fffbe8" />
+              <stop offset="0.55" stop-color={heatLevel >= 2 ? '#ffc04d' : '#ffe066'} />
+              <stop offset="1" stop-color={heatLevel >= 2 ? '#ff9a2e' : '#ffc93a'} />
+            </radialGradient>
+            <radialGradient id="moon-glow">
+              <stop offset="0" stop-color="#f4efd6" stop-opacity="0.35" />
+              <stop offset="1" stop-color="#f4efd6" stop-opacity="0" />
+            </radialGradient>
+            <linearGradient id="sky-haze" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#ffffff" stop-opacity="0" />
+              <stop offset="1" stop-color={dark ? '#ffd6b0' : '#ffffff'} stop-opacity={phase === 'night' ? 0 : dark ? 0.22 : 0.4} />
+            </linearGradient>
+            <linearGradient id="cloud-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#ffffff" />
+              <stop offset="1" stop-color={dark ? '#c9d2e6' : '#e2eaf2'} />
+            </linearGradient>
+            <linearGradient id="sky-ground" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color={dark ? '#2b4a36' : '#5b9b64'} />
+              <stop offset="1" stop-color={dark ? '#14261b' : '#2f6a3e'} />
+            </linearGradient>
           </defs>
           <rect width={W} height={H} fill="url(#sky-grad)" />
-          {phase === 'night' && stars.map(([x, y, r], i) => <circle key={i} cx={x * W} cy={y * HORIZON} r={r} fill="#fff" opacity={0.35 + r * 0.4} />)}
+          {phase === 'night' &&
+            stars.map(([x, y, r], i) => (
+              <circle
+                key={i}
+                cx={x * W}
+                cy={y * HORIZON}
+                r={r}
+                fill="#fff"
+                opacity={0.35 + r * 0.4}
+                class="sky-star"
+                style={{ '--o': (0.35 + r * 0.4).toFixed(2), animationDelay: `${((i * 0.37) % 3.6).toFixed(2)}s` }}
+              />
+            ))}
+          <rect y={HORIZON - 44} width={W} height={44} fill="url(#sky-haze)" />
           <path d={arc(0, 1)} class="sky-arc-rest" />
           {phase !== 'night' && s > 0 && <path d={arc(0, s)} class="sky-arc-done" />}
+          {phase !== 'night' && (
+            <g>
+              <circle cx={at(0)[0]} cy={at(0)[1]} r="2" class="sky-end" />
+              <circle cx={at(1)[0]} cy={at(1)[1]} r="2" class="sky-end" />
+            </g>
+          )}
           {phase !== 'night' && h >= rise && h <= set && (
             <g>
+              <circle cx={sx} cy={sy} r={heatLevel >= 2 ? 40 : 32} fill="url(#sun-glow)" class="sky-halo" />
               <circle cx={sx} cy={sy} r={heatLevel >= 2 ? 22 : 17} fill="url(#sun-glow)" />
-              <circle cx={sx} cy={sy} r="8" fill={heatLevel >= 2 ? '#ffb238' : '#ffd84d'} />
+              <circle cx={sx} cy={sy} r="9" fill="url(#sun-core)" />
             </g>
           )}
           {phase === 'night' && (
             <g>
-              <circle cx={W - 54} cy={30} r="10" fill="#33406a" />
-              <path d={moonPath(W - 54, 30, 10, moon)} fill="#f4efd6" />
+              <circle cx={W - 50} cy={82} r="28" fill="url(#moon-glow)" />
+              <circle cx={W - 50} cy={82} r="11" fill="#33406a" />
+              <path d={moonPath(W - 50, 82, 11, moon)} fill="#f4efd6" />
             </g>
           )}
           {clouds.slice(0, nClouds).map(([x, y, sc], i) => (
@@ -160,12 +204,16 @@ export function Sky({ wx, units, normals, heatLevel, coldTonight, nowMs }) {
           {raining && (
             <g class="sky-rain">
               {Array.from({ length: Math.round(W / 14) }, (_, i) => (
-                <line key={i} x1={i * 14 + 6} y1={(i * 37) % 60} x2={i * 14 + 2} y2={((i * 37) % 60) + 9} />
+                <line key={i} x1={i * 14 + 6} y1={(i * 37) % 96} x2={i * 14 + 2} y2={((i * 37) % 96) + 9} />
               ))}
             </g>
           )}
           <path
-            d={`M0,${HORIZON + 2} C${W * 0.25},${HORIZON - 6} ${W * 0.45},${HORIZON + 6} ${W * 0.7},${HORIZON} S${W},${HORIZON - 4} ${W},${HORIZON - 2} V${H} H0 Z`}
+            d={`M0,${HORIZON - 6} C${W * 0.16},${HORIZON - 24} ${W * 0.34},${HORIZON - 8} ${W * 0.5},${HORIZON - 15} S${W * 0.8},${HORIZON - 28} ${W},${HORIZON - 12} V${H} H0 Z`}
+            class="sky-hill"
+          />
+          <path
+            d={`M0,${HORIZON + 2} C${W * 0.25},${HORIZON - 7} ${W * 0.45},${HORIZON + 7} ${W * 0.7},${HORIZON} S${W},${HORIZON - 5} ${W},${HORIZON - 2} V${H} H0 Z`}
             class="sky-ground"
           />
           <path

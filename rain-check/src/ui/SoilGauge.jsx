@@ -50,6 +50,11 @@ export function SoilDefs() {
             <Marks marks={s.marks} />
           </pattern>
         ))}
+        <linearGradient id="soil-water" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#8cc8f4" stop-opacity="0.8" />
+          <stop offset="0.14" stop-color="#4a92d2" stop-opacity="0.66" />
+          <stop offset="1" stop-color="#1c4f88" stop-opacity="0.82" />
+        </linearGradient>
         <pattern id="soil-hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
           <line x1="1" y1="0" x2="1" y2="5" stroke="#ffffff" stroke-width="1.6" opacity="0.8" />
         </pattern>
@@ -205,6 +210,7 @@ function Ground({ bed, sim, now, tonight, refillAt, id }) {
         {rz < 1 && <rect x={X0} y={TOP + zoneH} width={X1 - X0} height={BOT - TOP - zoneH} class="g-unreached" />}
         <g clip-path={`url(#zone-${id})`}>
           <rect x={X0} y={TOP} width={X1 - X0} height={zoneH} class="g-water rc-move" style={{ transform: `translateY(${f1(nowY - TOP)}px)` }} />
+          <rect x={X0} y={TOP} width={X1 - X0} height="1.2" class="g-water-top rc-move" style={{ transform: `translateY(${f1(nowY - TOP)}px)` }} />
           {tonightY > nowY + 0.6 && <rect x={X0} y={nowY} width={X1 - X0} height={tonightY - nowY} fill="url(#soil-hatch)" />}
           <Roots paths={roots} />
         </g>
@@ -275,6 +281,7 @@ function Pot({ bed, sim, now, tonight, refillAt, id }) {
       <g clip-path={`url(#pot-${id})`}>
         <rect x={CX - wt / 2} y={iTop} width={wt} height={ih} fill={`url(#soil-${mix})`} />
         <rect x={CX - wt / 2} y={iTop} width={wt} height={ih} class="g-water rc-move" style={{ transform: `translateY(${f1(nowY - iTop)}px)` }} />
+        <rect x={CX - wt / 2} y={iTop} width={wt} height="1.2" class="g-water-top rc-move" style={{ transform: `translateY(${f1(nowY - iTop)}px)` }} />
         {tonightY > nowY + 0.6 && <rect x={CX - wt / 2} y={nowY} width={wt} height={tonightY - nowY} fill="url(#soil-hatch)" />}
         <Roots paths={roots} />
       </g>

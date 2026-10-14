@@ -58,7 +58,15 @@ export function Slider({ label, display, value, min, max, step = 1, onChange }) 
         <span>{label}</span>
         <strong>{display}</strong>
       </span>
-      <input type="range" min={min} max={max} step={step} value={value} onInput={(e) => onChange(Number(e.currentTarget.value))} />
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        style={{ '--p': `${((value - min) / (max - min)) * 100}%` }}
+        onInput={(e) => onChange(Number(e.currentTarget.value))}
+      />
     </label>
   );
 }

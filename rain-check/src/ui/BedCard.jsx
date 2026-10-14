@@ -28,7 +28,7 @@ export function BedCard({ row, days, T, units, open, onToggle, onUpdate, onLog, 
   const canTime = how.timed && how.minutes > 0 && (sim.status === 'water' || sim.status === 'cold' || sim.status === 'wait');
 
   return (
-    <article class={`card${timer ? ' timing' : ''}`}>
+    <article class={`card${timer ? ' timing' : ''}`} data-tone={st.tone}>
       <div class="card-main">
         <SoilGauge bed={bed} sim={sim} />
         <div class="card-body">

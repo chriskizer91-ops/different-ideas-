@@ -516,7 +516,10 @@ export function App() {
       <main class="wrap">
         <header class="top">
           <span class="brand display">
-            <Droplets size={20} aria-hidden="true" class="rain-ink" /> Rain Check
+            <span class="brand-mark" aria-hidden="true">
+              <Droplets size={19} />
+            </span>
+            Rain Check
           </span>
           <Segmented
             small

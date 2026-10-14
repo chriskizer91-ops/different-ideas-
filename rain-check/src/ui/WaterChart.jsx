@@ -61,6 +61,16 @@ function ChartSvg({ data, sel, setSel }) {
           if (e.key === 'ArrowRight') (setSel(Math.min(end, cur + step)), e.preventDefault());
         }}
       >
+        <defs>
+          <linearGradient id="wc-past" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" class="wc-top" />
+            <stop offset="1" class="wc-bot" />
+          </linearGradient>
+          <linearGradient id="wc-ahead" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" class="wc-top ahead" />
+            <stop offset="1" class="wc-bot ahead" />
+          </linearGradient>
+        </defs>
         {[0, 50, 100].map((m) => (
           <g key={m}>
             <line x1={L} x2={L + plotW} y1={y(m)} y2={y(m)} class="grid" />
@@ -79,7 +89,7 @@ function ChartSvg({ data, sel, setSel }) {
           const w = wide ? Math.max(1.5, (b.to - b.from + 1) * dayW * 0.72) : Math.max(1.2, dayW * 0.6);
           const cx = wide ? (x(b.from) + x(b.to)) / 2 : x(b.from);
           const h = barH(b.rain);
-          return <rect key={b.from} x={cx - w / 2} y={base - h} width={w} height={h} class={b.forecast ? 'rainbar ahead' : 'rainbar'} />;
+          return <rect key={b.from} x={cx - w / 2} y={base - h} width={w} height={h} rx={Math.min(1.5, w / 2)} class={b.forecast ? 'rainbar ahead' : 'rainbar'} />;
         })}
         <path d={refill} class="refill" />
         <line x1={x(T)} x2={x(T)} y1={TOP} y2={base} class="today" />
